@@ -14,19 +14,24 @@ class AppDatabase {
 
   Database get database => _db;
 
-  static const _schemaV2Tasks = '''
+  static const _schemaTasksV3 = '''
     CREATE TABLE tasks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       uuid TEXT,
       title TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
       done INTEGER NOT NULL DEFAULT 0,
+      priority INTEGER NOT NULL DEFAULT 0,
+      due_at INTEGER,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
-      deleted INTEGER NOT NULL DEFAULT 0
+      deleted INTEGER NOT NULL DEFAULT 0,
+      deleted_at INTEGER,
+      device_id TEXT
     )
   ''';
 
-  static const _schemaV2Memos = '''
+  static const _schemaMemosV3 = '''
     CREATE TABLE memos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       uuid TEXT,
@@ -34,7 +39,9 @@ class AppDatabase {
       content TEXT NOT NULL DEFAULT '',
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
-      deleted INTEGER NOT NULL DEFAULT 0
+      deleted INTEGER NOT NULL DEFAULT 0,
+      deleted_at INTEGER,
+      device_id TEXT
     )
   ''';
 
@@ -51,20 +58,20 @@ class AppDatabase {
         p.join((await getApplicationSupportDirectory()).path, 'todolist.db');
     final db = await openDatabase(
       file,
-      version: 2,
+      version: 3,
       onConfigure: (db) async {
         // 主窗口与桌面小组件子窗口是两个引擎并发访问同一个库文件。
         await db.execute('PRAGMA busy_timeout = 3000');
       },
       onCreate: (db, version) async {
-        await db.execute(_schemaV2Tasks);
-        await db.execute(_schemaV2Memos);
+        await db.execute(_schemaTasksV3);
+        await db.execute(_schemaMemosV3);
         await db.execute(_schemaSettings);
         await _createUuidIndexes(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        // v1 -> v2：加 uuid / deleted 列、uuid 唯一索引、设置表，并回填 uuid。
         if (oldVersion < 2) {
+          // v1 -> v2：软删除与全局标识。
           await db.execute('ALTER TABLE tasks ADD COLUMN uuid TEXT');
           await db.execute(
               'ALTER TABLE tasks ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0');
@@ -75,6 +82,20 @@ class AppDatabase {
           await _backfillUuids(db, 'tasks');
           await _backfillUuids(db, 'memos');
           await _createUuidIndexes(db);
+        }
+        if (oldVersion < 3) {
+          // v2 -> v3：SPD §17 完整字段（description/priority/dueAt/deviceId/deletedAt）。
+          await db
+              .execute("ALTER TABLE tasks ADD COLUMN description TEXT NOT NULL DEFAULT ''");
+          await db
+              .execute('ALTER TABLE tasks ADD COLUMN priority INTEGER NOT NULL DEFAULT 0');
+          await db.execute('ALTER TABLE tasks ADD COLUMN due_at INTEGER');
+          await db.execute('ALTER TABLE tasks ADD COLUMN deleted_at INTEGER');
+          await db.execute('ALTER TABLE tasks ADD COLUMN device_id TEXT');
+          await db.execute('ALTER TABLE memos ADD COLUMN deleted_at INTEGER');
+          await db.execute('ALTER TABLE memos ADD COLUMN device_id TEXT');
+          await _backfillDeletedAt(db, 'tasks');
+          await _backfillDeletedAt(db, 'memos');
         }
       },
     );
@@ -96,6 +117,12 @@ class AppDatabase {
       await db.update(table, {'uuid': const Uuid().v4()},
           where: 'id = ?', whereArgs: [row['id']]);
     }
+  }
+
+  /// v2 的布尔墓碑补写成 v3 的时间戳墓碑。
+  static Future<void> _backfillDeletedAt(Database db, String table) async {
+    await db.execute(
+        'UPDATE $table SET deleted_at = updated_at WHERE deleted = 1 AND deleted_at IS NULL');
   }
 
   Future<void> close() => _db.close();

@@ -10,17 +10,24 @@ class Snapshot {
   Snapshot({
     required this.tasks,
     required this.memos,
+    this.device,
     DateTime? exportedAt,
   }) : exportedAt = exportedAt ?? DateTime.now();
 
-  static const format = 1;
+  /// v2：完整字段（description/priority/dueAt/deletedAt/deviceId）。
+  /// v1 快照仍可读（缺省字段补默认值）。
+  static const format = 2;
 
   final List<Task> tasks;
   final List<Memo> memos;
+
+  /// 生成这份快照的设备（便于排查，不参与合并逻辑）。
+  final String? device;
   final DateTime exportedAt;
 
   Map<String, Object?> toJson() => {
         'format': format,
+        'device': device,
         'exportedAt': exportedAt.millisecondsSinceEpoch,
         'tasks': [for (final t in tasks) _taskJson(t)],
         'memos': [for (final m in memos) _memoJson(m)],
@@ -29,10 +36,15 @@ class Snapshot {
   static Map<String, Object?> _taskJson(Task t) => {
         'uuid': t.uuid,
         'title': t.title,
+        'description': t.description,
         'done': t.done,
+        'priority': t.priority,
+        'dueAt': t.dueAt?.millisecondsSinceEpoch,
         'createdAt': t.createdAt.millisecondsSinceEpoch,
         'updatedAt': t.updatedAt.millisecondsSinceEpoch,
         'deleted': t.deleted,
+        'deletedAt': t.deletedAt?.millisecondsSinceEpoch,
+        'deviceId': t.deviceId,
       };
 
   static Map<String, Object?> _memoJson(Memo m) => {
@@ -42,13 +54,17 @@ class Snapshot {
         'createdAt': m.createdAt.millisecondsSinceEpoch,
         'updatedAt': m.updatedAt.millisecondsSinceEpoch,
         'deleted': m.deleted,
+        'deletedAt': m.deletedAt?.millisecondsSinceEpoch,
+        'deviceId': m.deviceId,
       };
 
   factory Snapshot.fromJson(Map<String, Object?> json) {
-    if (json['format'] != format) {
+    final f = json['format'];
+    if (f != format && f != 1) {
       throw const FormatException('快照版本不兼容，请升级应用');
     }
     return Snapshot(
+      device: json['device'] as String?,
       exportedAt:
           DateTime.fromMillisecondsSinceEpoch(json['exportedAt'] as int? ?? 0),
       tasks: [
@@ -62,15 +78,24 @@ class Snapshot {
     );
   }
 
+  static DateTime? _msToDate(Object? ms) => ms == null
+      ? null
+      : DateTime.fromMillisecondsSinceEpoch(ms as int);
+
   static Task _taskFromJson(Map<String, Object?> j) => Task(
         uuid: j['uuid'] as String?,
         title: j['title'] as String? ?? '',
+        description: j['description'] as String? ?? '',
         done: j['done'] as bool? ?? false,
+        priority: j['priority'] as int? ?? 0,
+        dueAt: _msToDate(j['dueAt']),
         createdAt:
             DateTime.fromMillisecondsSinceEpoch(j['createdAt'] as int? ?? 0),
         updatedAt:
             DateTime.fromMillisecondsSinceEpoch(j['updatedAt'] as int? ?? 0),
         deleted: j['deleted'] as bool? ?? false,
+        deletedAt: _msToDate(j['deletedAt']),
+        deviceId: j['deviceId'] as String?,
       );
 
   static Memo _memoFromJson(Map<String, Object?> j) => Memo(
@@ -82,6 +107,8 @@ class Snapshot {
         updatedAt:
             DateTime.fromMillisecondsSinceEpoch(j['updatedAt'] as int? ?? 0),
         deleted: j['deleted'] as bool? ?? false,
+        deletedAt: _msToDate(j['deletedAt']),
+        deviceId: j['deviceId'] as String?,
       );
 }
 

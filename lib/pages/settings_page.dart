@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../desktop/widget_launcher.dart';
 import '../desktop/widget_settings.dart';
 import '../home_widget_bridge.dart';
-import '../sync/sync_engine.dart';
+import '../sync/sync_manager.dart';
 import '../sync/sync_settings_model.dart';
 import '../sync/sync_transport.dart';
 
@@ -46,7 +46,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _syncNow() async {
     await _save();
     if (!mounted) return;
-    final engine = context.read<SyncEngine>();
+    final engine = context.read<SyncManager>();
     await engine.syncNow(manual: true);
     if (!mounted) return;
     if (engine.status == SyncStatus.success) {
@@ -69,7 +69,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SyncSettingsModel>();
-    final engine = context.watch<SyncEngine>();
+    final engine = context.watch<SyncManager>();
     final busy = engine.status == SyncStatus.syncing || _testing;
 
     return Scaffold(
@@ -413,7 +413,7 @@ class _StatusTile extends StatelessWidget {
     required this.configured,
   });
 
-  final SyncEngine engine;
+  final SyncManager engine;
   final DateTime? lastSyncAt;
   final bool configured;
 
@@ -428,9 +428,12 @@ class _StatusTile extends StatelessWidget {
       case SyncStatus.success:
         text = '上次同步成功：${_formatTime(lastSyncAt)}';
         color = Colors.green;
-      case SyncStatus.error:
-        text = engine.lastError ?? '同步出错';
+      case SyncStatus.failed:
+        text = engine.lastError ?? '同步失败';
         color = Theme.of(context).colorScheme.error;
+      case SyncStatus.offline:
+        text = '网络不可用，本地数据安全；恢复网络后点“立即同步”继续';
+        color = Colors.orange;
       case SyncStatus.idle:
         text = configured ? '尚未同步' : '未启用同步';
         color = Theme.of(context).colorScheme.outline;

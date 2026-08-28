@@ -1,6 +1,7 @@
 /// 一条备忘（标题 + 正文）。
 ///
-/// [uuid] 是跨设备的全局标识；[deleted] 是软删除墓碑，含义同任务表。
+/// [uuid] 跨设备全局标识；[deletedAt] 软删除墓碑；[deviceId] 最后修改来源，
+/// 语义同任务表（SPD §17/18）。
 class Memo {
   const Memo({
     this.id,
@@ -10,19 +11,29 @@ class Memo {
     required this.createdAt,
     required this.updatedAt,
     this.deleted = false,
+    this.deletedAt,
+    this.deviceId,
   });
 
-  factory Memo.fromMap(Map<String, Object?> map) => Memo(
-        id: map['id'] as int?,
-        uuid: map['uuid'] as String?,
-        title: map['title'] as String,
-        content: map['content'] as String? ?? '',
-        createdAt:
-            DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
-        updatedAt:
-            DateTime.fromMillisecondsSinceEpoch(map['updated_at'] as int),
-        deleted: (map['deleted'] as int? ?? 0) != 0,
-      );
+  factory Memo.fromMap(Map<String, Object?> map) {
+    final deletedAtMs = map['deleted_at'] as int?;
+    final legacyDeleted = (map['deleted'] as int? ?? 0) != 0;
+    return Memo(
+      id: map['id'] as int?,
+      uuid: map['uuid'] as String?,
+      title: map['title'] as String,
+      content: map['content'] as String? ?? '',
+      createdAt:
+          DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
+      updatedAt:
+          DateTime.fromMillisecondsSinceEpoch(map['updated_at'] as int),
+      deleted: legacyDeleted || deletedAtMs != null,
+      deletedAt: deletedAtMs == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(deletedAtMs),
+      deviceId: map['device_id'] as String?,
+    );
+  }
 
   final int? id;
   final String? uuid;
@@ -31,6 +42,8 @@ class Memo {
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool deleted;
+  final DateTime? deletedAt;
+  final String? deviceId;
 
   /// 入库后回填自增主键用。
   Memo withId(int id) => Memo(
@@ -41,6 +54,8 @@ class Memo {
         createdAt: createdAt,
         updatedAt: updatedAt,
         deleted: deleted,
+        deletedAt: deletedAt,
+        deviceId: deviceId,
       );
 
   Memo copyWith({
@@ -48,7 +63,8 @@ class Memo {
     String? title,
     String? content,
     DateTime? updatedAt,
-    bool? deleted,
+    DateTime? deletedAt,
+    String? deviceId,
   }) =>
       Memo(
         id: id,
@@ -57,7 +73,9 @@ class Memo {
         content: content ?? this.content,
         createdAt: createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
-        deleted: deleted ?? this.deleted,
+        deleted: deletedAt != null || this.deleted,
+        deletedAt: deletedAt ?? this.deletedAt,
+        deviceId: deviceId ?? this.deviceId,
       );
 
   Map<String, Object?> toMap() => {
@@ -68,5 +86,7 @@ class Memo {
         'created_at': createdAt.millisecondsSinceEpoch,
         'updated_at': updatedAt.millisecondsSinceEpoch,
         'deleted': deleted ? 1 : 0,
+        'deleted_at': deletedAt?.millisecondsSinceEpoch,
+        if (deviceId != null) 'device_id': deviceId,
       };
 }

@@ -9,6 +9,7 @@ import 'package:sqflite/sqflite.dart' as sqflite;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'data/app_database.dart';
+import 'data/device_identity.dart';
 import 'data/memo_repository.dart';
 import 'data/settings_store.dart';
 import 'data/task_repository.dart';
@@ -19,7 +20,7 @@ import 'pages/home_page.dart';
 import 'pages/widget_window_page.dart';
 import 'state/memo_list_model.dart';
 import 'state/task_list_model.dart';
-import 'sync/sync_engine.dart';
+import 'sync/sync_manager.dart';
 import 'sync/sync_settings_model.dart';
 
 Future<void> main(List<String> args) async {
@@ -49,23 +50,31 @@ Future<void> main(List<String> args) async {
   }
   final db = await AppDatabase.open();
 
-  final taskModel = TaskListModel(TaskRepository(db.database));
-  final memoModel = MemoListModel(MemoRepository(db.database));
-  final syncSettings = SyncSettingsModel(SettingsStore(db.database));
+  // SPD §9：本机设备身份（同步 LWW 平局决胜）。
+  final settingsStore = SettingsStore(db.database);
+  final device = await DeviceIdentity.load(settingsStore);
+
+  final taskModel = TaskListModel(
+    TaskRepository(db.database, deviceId: device.id),
+  );
+  final memoModel = MemoListModel(
+    MemoRepository(db.database, deviceId: device.id),
+  );
+  final syncSettings = SyncSettingsModel(settingsStore);
   await syncSettings.load();
-  final desktopWidgetSettings =
-      DesktopWidgetSettingsModel(SettingsStore(db.database));
+  final desktopWidgetSettings = DesktopWidgetSettingsModel(settingsStore);
   await desktopWidgetSettings.load();
 
-  final syncEngine = SyncEngine(
-    taskRepository: TaskRepository(db.database),
-    memoRepository: MemoRepository(db.database),
+  final syncManager = SyncManager(
+    taskRepository: TaskRepository(db.database, deviceId: device.id),
+    memoRepository: MemoRepository(db.database, deviceId: device.id),
     settings: syncSettings,
+    deviceId: device.id,
   );
-  syncEngine.attach(taskModel: taskModel, memoModel: memoModel);
+  syncManager.attach(taskModel: taskModel, memoModel: memoModel);
   // 本地数据一变就安排一次防抖同步。
-  taskModel.addListener(syncEngine.scheduleSync);
-  memoModel.addListener(syncEngine.scheduleSync);
+  taskModel.addListener(syncManager.scheduleSync);
+  memoModel.addListener(syncManager.scheduleSync);
 
   if (Platform.isWindows) {
     _setupDesktopWidget(taskModel, memoModel, desktopWidgetSettings);
@@ -77,7 +86,7 @@ Future<void> main(List<String> args) async {
   unawaited(taskModel.load());
   unawaited(memoModel.load());
   if (syncSettings.configured && syncSettings.autoSync) {
-    unawaited(syncEngine.syncNow());
+    unawaited(syncManager.syncNow());
   }
 
   runApp(MultiProvider(
@@ -86,7 +95,7 @@ Future<void> main(List<String> args) async {
       ChangeNotifierProvider.value(value: taskModel),
       ChangeNotifierProvider.value(value: memoModel),
       ChangeNotifierProvider.value(value: syncSettings),
-      ChangeNotifierProvider.value(value: syncEngine),
+      ChangeNotifierProvider.value(value: syncManager),
       ChangeNotifierProvider.value(value: desktopWidgetSettings),
     ],
     child: const TodolistApp(),
