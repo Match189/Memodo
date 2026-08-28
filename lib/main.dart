@@ -33,10 +33,20 @@ Future<void> main(List<String> args) async {
       args.first == 'multi_window') {
     final windowId = int.parse(args[1]);
     final db = await AppDatabase.open();
+    final subSettingsStore = SettingsStore(db.database);
+    final device = await DeviceIdentity.load(subSettingsStore);
+    final widgetSettings =
+        DesktopWidgetSettingsModel(subSettingsStore);
+    await widgetSettings.load();
     runApp(WidgetWindowApp(
       windowId: windowId,
-      taskModel: TaskListModel(TaskRepository(db.database)),
-      memoModel: MemoListModel(MemoRepository(db.database)),
+      taskModel: TaskListModel(
+        TaskRepository(db.database, deviceId: device.id),
+      ),
+      memoModel: MemoListModel(
+        MemoRepository(db.database, deviceId: device.id),
+      ),
+      widgetSettings: widgetSettings,
     ));
     return;
   }
@@ -139,10 +149,10 @@ void _setupDesktopWidget(
   memoModel.addListener(broadcastToWidget);
 
   // 应用启动时若上次开着小组件，则自动恢复。
-  debugPrint('[widget] startup enabled=${widgetSettings.enabled}');
   if (widgetSettings.enabled) {
     unawaited(WidgetLauncher.ensureOpen(
       alwaysOnTop: widgetSettings.alwaysOnTop,
+      opacity: widgetSettings.opacity,
     ));
   }
 }

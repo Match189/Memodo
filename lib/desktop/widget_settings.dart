@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../data/settings_store.dart';
 
-/// Windows 桌面小组件的本地设置（不参与同步）。
+/// Windows 桌面小组件的本地设置（不参与同步）。SPD §14。
 class DesktopWidgetSettingsModel extends ChangeNotifier {
   DesktopWidgetSettingsModel(this._store);
 
@@ -13,7 +13,21 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
   final SettingsStore _store;
 
   bool enabled = false;
-  bool alwaysOnTop = true;
+
+  /// 置顶是**可选项**，默认关（SPD 禁止事项 #7：不得强制 Always On Top）。
+  bool alwaysOnTop = false;
+
+  /// 卡片不透明度百分比（100 = 完全不透明）。
+  int opacity = 90;
+
+  /// 锁定位置后禁止拖动。
+  bool lockPosition = false;
+
+  /// 上次窗口位置与尺寸（恢复用；由主进程周期性采样保存）。
+  int? posX;
+  int? posY;
+  int? width;
+  int? height;
 
   Future<void> load() async {
     final raw = await _store.read(_storageKey);
@@ -21,7 +35,13 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
     try {
       final json = (jsonDecode(raw) as Map).cast<String, Object?>();
       enabled = json['enabled'] as bool? ?? false;
-      alwaysOnTop = json['alwaysOnTop'] as bool? ?? true;
+      alwaysOnTop = json['alwaysOnTop'] as bool? ?? false;
+      opacity = (json['opacity'] as int? ?? 90).clamp(30, 100);
+      lockPosition = json['lockPosition'] as bool? ?? false;
+      posX = json['posX'] as int?;
+      posY = json['posY'] as int?;
+      width = json['width'] as int?;
+      height = json['height'] as int?;
     } catch (_) {
       // 配置损坏时用默认值。
     }
@@ -34,7 +54,35 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
   }
 
   Future<void> setAlwaysOnTop(bool value) async {
+    if (alwaysOnTop == value) return;
     alwaysOnTop = value;
+    await save();
+  }
+
+  Future<void> setOpacity(int value) async {
+    final clamped = value.clamp(30, 100);
+    if (opacity == clamped) return;
+    opacity = clamped;
+    await save();
+  }
+
+  Future<void> setLockPosition(bool value) async {
+    if (lockPosition == value) return;
+    lockPosition = value;
+    await save();
+  }
+
+  Future<void> saveWindowRect({
+    required int x,
+    required int y,
+    required int w,
+    required int h,
+  }) async {
+    if (posX == x && posY == y && width == w && height == h) return;
+    posX = x;
+    posY = y;
+    width = w;
+    height = h;
     await save();
   }
 
@@ -43,6 +91,14 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Map<String, Object?> toJson() =>
-      {'enabled': enabled, 'alwaysOnTop': alwaysOnTop};
+  Map<String, Object?> toJson() => {
+        'enabled': enabled,
+        'alwaysOnTop': alwaysOnTop,
+        'opacity': opacity,
+        'lockPosition': lockPosition,
+        'posX': posX,
+        'posY': posY,
+        'width': width,
+        'height': height,
+      };
 }

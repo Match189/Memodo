@@ -2,6 +2,7 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../desktop/widget_settings.dart';
 import '../desktop/win32_window_style.dart';
 import '../models/task.dart';
 import '../state/memo_list_model.dart';
@@ -11,13 +12,14 @@ import '../state/task_list_model.dart';
 const widgetWindowTitle = '待办小组件';
 
 /// 桌面小组件应用：独立 Flutter 引擎，读同一个 SQLite 库。
-/// 界面做成一张紧凑卡片：勾选完成、快速添加、拖动移动、关闭。
+/// 界面是一张紧凑卡片：勾选完成、快速添加、拖动移动、打开主窗口、关闭。
 class WidgetWindowApp extends StatelessWidget {
   const WidgetWindowApp({
     super.key,
     required this.windowId,
     required this.taskModel,
     required this.memoModel,
+    required this.widgetSettings,
   });
 
   /// 子窗口自己的 id（由 main() 的 multi_window 参数传入）。
@@ -25,6 +27,7 @@ class WidgetWindowApp extends StatelessWidget {
 
   final TaskListModel taskModel;
   final MemoListModel memoModel;
+  final DesktopWidgetSettingsModel widgetSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +35,7 @@ class WidgetWindowApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider.value(value: taskModel),
         ChangeNotifierProvider.value(value: memoModel),
+        ChangeNotifierProvider.value(value: widgetSettings),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -120,19 +124,27 @@ class _WidgetWindowPageState extends State<WidgetWindowPage> {
   @override
   Widget build(BuildContext context) {
     final taskModel = context.watch<TaskListModel>();
+    final widgetSettings = context.watch<DesktopWidgetSettingsModel>();
     final scheme = Theme.of(context).colorScheme;
     final openTasks = taskModel.tasks.where((t) => !t.done).length;
 
+    // 内容层透明度（窗口层由原生 accent 处理，两层叠加）。
+    final bg = scheme.surface.withOpacity(widgetSettings.opacity / 100 * 0.35 + 0.65);
+
     return Scaffold(
-      backgroundColor: scheme.surface,
+      backgroundColor: bg,
       body: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 标题栏：按住拖动
+            // 标题栏：按住拖动（锁定位置时禁止）
             GestureDetector(
-              onPanStart: (_) => WidgetWindowNative.beginDrag(),
+              onPanStart: (_) {
+                if (!widgetSettings.lockPosition) {
+                  WidgetWindowNative.beginDrag();
+                }
+              },
               behavior: HitTestBehavior.opaque,
               child: Row(
                 children: [
@@ -146,12 +158,15 @@ class _WidgetWindowPageState extends State<WidgetWindowPage> {
                           .textTheme
                           .labelSmall
                           ?.copyWith(color: scheme.outline)),
-                  InkWell(
+                  _HeaderIcon(
+                    tooltip: '打开主窗口',
+                    icon: Icons.open_in_new,
+                    onTap: () => WidgetWindowNative.openMainWindow(),
+                  ),
+                  _HeaderIcon(
+                    tooltip: '关闭',
+                    icon: Icons.close,
                     onTap: _close,
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: Icon(Icons.close, size: 16, color: scheme.outline),
-                    ),
                   ),
                 ],
               ),
@@ -244,6 +259,33 @@ class _WidgetWindowPageState extends State<WidgetWindowPage> {
                         ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderIcon extends StatelessWidget {
+  const _HeaderIcon({
+    required this.tooltip,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Icon(icon, size: 15, color: scheme.outline),
         ),
       ),
     );

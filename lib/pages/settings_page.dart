@@ -288,7 +288,7 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  /// Windows 桌面小组件开关。
+  /// Windows 桌面小组件设置（SPD §14）。
   List<Widget> _desktopWidgetSection(BuildContext context) {
     final widgetSettings = context.watch<DesktopWidgetSettingsModel>();
     return [
@@ -300,26 +300,52 @@ class _SettingsPageState extends State<SettingsPage> {
           children: [
             SwitchListTile(
               title: const Text('在桌面显示待办卡片'),
-              subtitle: const Text('角落常驻一张可勾选、可快速添加的小卡片，按住标题栏可拖动'),
+              subtitle: const Text('可缩放、可拖动的小卡片，勾选和添加实时同步'),
               value: widgetSettings.enabled,
               onChanged: (v) async {
                 await widgetSettings.setEnabled(v);
                 if (v && !WidgetLauncher.isOpen) {
                   await WidgetLauncher.ensureOpen(
                     alwaysOnTop: widgetSettings.alwaysOnTop,
+                    opacity: widgetSettings.opacity,
                   );
                 }
               },
             ),
             SwitchListTile(
               title: const Text('窗口置顶'),
-              subtitle: const Text('卡片始终浮在其他窗口上方'),
+              subtitle: const Text('卡片浮在其他窗口上方（默认关闭）'),
               value: widgetSettings.alwaysOnTop,
               onChanged: widgetSettings.enabled
                   ? (v) async {
                       await widgetSettings.setAlwaysOnTop(v);
                       await WidgetLauncher.updateTopmost(v);
                     }
+                  : null,
+            ),
+            ListTile(
+              title: const Text('不透明度'),
+              subtitle: Slider(
+                min: 30,
+                max: 100,
+                divisions: 14,
+                label: '${widgetSettings.opacity}%',
+                value: widgetSettings.opacity.toDouble(),
+                onChanged: widgetSettings.enabled
+                    ? (v) async {
+                        await widgetSettings.setOpacity(v.round());
+                        await WidgetLauncher.updateOpacity(v.round());
+                      }
+                    : null,
+              ),
+              trailing: Text('${widgetSettings.opacity}%'),
+            ),
+            SwitchListTile(
+              title: const Text('锁定位置'),
+              subtitle: const Text('开启后卡片不可拖动，防止误碰'),
+              value: widgetSettings.lockPosition,
+              onChanged: widgetSettings.enabled
+                  ? (v) => widgetSettings.setLockPosition(v)
                   : null,
             ),
           ],
