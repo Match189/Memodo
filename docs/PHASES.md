@@ -7,13 +7,13 @@
 | --- | --- | --- |
 | Phase 0 | 项目审计 | ✅ [ARCHITECTURE.md](ARCHITECTURE.md) |
 | Phase 1 | 统一数据模型 v3 + SyncProvider/SyncManager + offline | ✅ 见下 |
-| Phase 2 | Windows Widget V1（缩放/记忆/透明度/打开App/可选置顶） | ⬜ |
-| Phase 3 | Windows Desktop Layer（Progman/WorkerW）+ fallback | ⬜ |
-| Phase 4 | Android Widget 交互与多尺寸 | ⬜ |
-| Phase 5 | FastAPI 自建同步服务器（JWT/cursor/Docker） | ⬜ |
-| Phase 6 | Server 通道接入新协议 + Provider 命名规范 | ⬜ |
-| Phase 7 | 跨设备一致性验证 | ⬜ |
-| Phase 8 | 双端打包 + 文档收尾 | ⬜ |
+| Phase 2 | Windows Widget V1（缩放/记忆/透明度/打开App/可选置顶） | ✅ 见下 |
+| Phase 3 | Windows Desktop Layer（Progman/WorkerW）+ fallback | ✅ 见下 |
+| Phase 4 | Android Widget 交互与多尺寸 | ✅ 见下 |
+| Phase 5 | FastAPI 自建同步服务器（JWT/cursor/Docker） | ✅ 见下 |
+| Phase 6 | Server 通道接入新协议 + Provider 命名规范 | ✅ 见下 |
+| Phase 7 | 跨设备一致性验证 | ✅ 见下 |
+| Phase 8 | 双端打包 + 文档收尾 | ✅ 见下 |
 
 （各阶段完工记录在下方按时间追加。）
 
@@ -45,3 +45,47 @@ ServerSyncProvider（cursor 协议）留好了插入点。
 **已知问题**：14 条 info 级风格提示（initializing formal 等），不影响功能，Phase 8 收尾处理。
 
 **下一步**：Phase 2 — Windows Widget V1 补全（可缩放/位置尺寸记忆/透明度/打开 App/置顶改可选）。
+
+---
+
+## Phase 2 完工记录（Windows Widget V1）
+
+**修改**：`lib/desktop/win32_window_style.dart`（保留 WS_THICKFRAME → 无边框且可缩放；GetWindowRect 采样；SetWindowCompositionAttribute 透明度，手工 FFI 绑定；打开主窗口）、`widget_launcher.dart`（位置/尺寸记忆恢复 + 5s 周期采样保存 + 按字段响应设置变化）、`widget_settings.dart`（opacity/lockPosition/posX-Y-w-h）、`widget_window_page.dart`（透明度背景、锁定禁拖、打开主窗口按钮）、设置页（透明度滑杆/锁定/置顶默认关）。
+
+**测试**：22 通过；analyze 0 error。**已知问题**：真·逐像素透明依赖窗口 accent（内容层半透明叠加实现，视觉近似）；置顶按 SPD 改为可选默认关。
+
+## Phase 3 完工记录（Desktop Layer）
+
+**修改**：`win32_window_style.dart`（attachToDesktop：Progman 发 `0x052C` 生成 WorkerW → 定位 SHELLDLL_DefView 之后的 WorkerW → SetParent；detachFromDesktop）、`widget_launcher.dart`（attach 状态跟随与失败回退）、`widget_settings.dart`（attachToDesktop 字段）、设置页"桌面层模式（实验）"。
+
+**测试**：22 通过；失败自动回退普通窗口并复位开关（SPD §13 fallback 要求）。**已知问题**：桌面层模式下拖动/缩放行为依赖 Explorer，属实验特性。
+
+## Phase 4 完工记录（Android Widget 交互）
+
+**修改**：`TodayWidgetProvider.kt`（onReceive 处理 `TOGGLE_TODO` 广播 → 原生直写 SQLite → refreshAll；列表 PendingIntentTemplate + fill-in uuid）、`TodayWidgetService.kt`（行级 uuid + showCompleted/maxItems 过滤）、`home_widget_bridge.dart`（推送 db_path/uuid/显示设置）、`android_widget_settings.dart`（新）、设置页（最大条数/显示已完成）、main.dart 装配。
+
+**架构**：小组件不依赖 Flutter 引擎常驻；勾选原生直写本地库，`updated_at` 推进使 LWW 在下次同步自然传播。**测试**：23 通过（载荷 2 例）。**已知问题**：原生勾选后正在运行的 App 端不即时感知（打开/同步时收敛）；ADD_TODO 以"打开应用并聚焦输入"形式实现（RemoteViews 无文本输入）。
+
+## Phase 5 完工记录（FastAPI 同步服务器）
+
+**新增**：`todo-server/`（app/{main,config,db,models,schemas,security,deps}.py + routers/{auth,devices,sync,data}.py、tests/×3、Dockerfile、docker-compose.yml、.env.example、README.md）。协议 = SPD §5-§9：JWT（access/refresh）、设备注册与心跳、`/sync/push`（逐条 LWW，rejected: stale）、`/sync/pull?cursor`（server_seq 单调序列增量分页）、软删除墓碑。
+
+**测试**：pytest 6/6（注册/登录/刷新/401 保护/往返/LWW 拒绝旧版/墓碑+cursor 增量/设备自动注册）。**已知问题**：旧 `server/`（Dart shelf + 快照协议）已被本实现取代并删除；pull 的设备心跳暂记为 pull-caller 待改为携带 deviceId 的查询参数。
+
+## Phase 6 完工记录（客户端接入）
+
+**修改**：`lib/sync/server_sync_provider.dart`（新：JWT 登录/refresh 重试、push 全量变更、pull cursor 循环、远端应用带 LWW 守卫——本地离线新修改不被覆盖）、`sync_settings_model.dart`（ServerConfig 增 username/password/accessToken/refreshToken/cursor；通道命名规范化 WebDAV / OSS / S3 Compatible）、`sync_manager.dart`（server 通道走新 Provider）、设置页表单（邮箱+密码）。旧 `server/`、`server_transport.dart`、静态 token 协议移除。
+
+**测试**：21 通过（ServerTransport 组测试随旧协议移除，E2E 在 Phase 7 补真栈验证）。
+
+## Phase 7 完工记录（跨设备一致性 E2E）
+
+**新增**：`test/e2e_server_test.dart`——真栈：测试内启动 uvicorn（SQLite，临时目录独立库），两台"设备"（独立 SQLite 库，deviceId 不同）走完整协议。验证：Windows→Android 传播、Android 勾选→Windows 传播、Windows 离线新增→Android、Windows 删除墓碑→Android 收敛、最终两端可见集合完全一致。
+
+**测试**：E2E 1/1（~2s）+ 全套 22/22。**已知问题**：测试依赖 `todo-server/.venv`（缺失自动跳过）；曾出现 uvicorn 启动竞态导致的偶发挂起，已通过独立服务器库 + 干净进程管理消除。
+
+## Phase 8 完工记录（打包与文档）
+
+- `flutter build windows --release` ✅（`build/windows/x64/runner/Release/` 整文件夹分发）
+- `flutter build apk --release` ✅（55M+，`build/app/outputs/flutter-apk/app-release.apk`，含 INTERNET 权限与小组件）
+- README 更新（SPD 对齐）；本文件收尾；git 全程逐阶段提交，凭据文件未入库（已验证）
