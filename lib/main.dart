@@ -13,6 +13,7 @@ import 'data/device_identity.dart';
 import 'data/memo_repository.dart';
 import 'data/settings_store.dart';
 import 'data/task_repository.dart';
+import 'desktop/android_widget_settings.dart';
 import 'desktop/widget_launcher.dart';
 import 'desktop/widget_settings.dart';
 import 'home_widget_bridge.dart';
@@ -89,8 +90,15 @@ Future<void> main(List<String> args) async {
   if (Platform.isWindows) {
     _setupDesktopWidget(taskModel, memoModel, desktopWidgetSettings);
   }
+  final androidWidgetSettings = AndroidWidgetSettingsModel(settingsStore);
+  await androidWidgetSettings.load();
   if (Platform.isAndroid) {
-    _setupAndroidWidget(taskModel, memoModel);
+    _setupAndroidWidget(
+      taskModel,
+      memoModel,
+      dbPath: db.database.path ?? '',
+      widgetSettings: androidWidgetSettings,
+    );
   }
 
   unawaited(taskModel.load());
@@ -107,6 +115,7 @@ Future<void> main(List<String> args) async {
       ChangeNotifierProvider.value(value: syncSettings),
       ChangeNotifierProvider.value(value: syncManager),
       ChangeNotifierProvider.value(value: desktopWidgetSettings),
+      ChangeNotifierProvider.value(value: androidWidgetSettings),
     ],
     child: const TodolistApp(),
   ));
@@ -160,21 +169,27 @@ void _setupDesktopWidget(
 /// 安卓桌面小组件：数据变化后防抖推送一份 JSON 快照给原生渲染。
 void _setupAndroidWidget(
   TaskListModel taskModel,
-  MemoListModel memoModel,
-) {
+  MemoListModel memoModel, {
+  required String dbPath,
+  required AndroidWidgetSettingsModel widgetSettings,
+}) {
   Timer? pushTimer;
   void schedulePush() {
     pushTimer?.cancel();
     pushTimer = Timer(const Duration(milliseconds: 800), () {
+      HomeWidgetBridge.maxItems = widgetSettings.maxItems;
+      HomeWidgetBridge.showCompleted = widgetSettings.showCompleted;
       unawaited(HomeWidgetBridge.push(
         tasks: taskModel.tasks,
         memos: memoModel.memos,
+        dbPath: dbPath,
       ));
     });
   }
 
   taskModel.addListener(schedulePush);
   memoModel.addListener(schedulePush);
+  widgetSettings.addListener(schedulePush);
 }
 
 class TodolistApp extends StatelessWidget {

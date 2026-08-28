@@ -6,23 +6,39 @@ import 'package:home_widget/home_widget.dart';
 import 'models/memo.dart';
 import 'models/task.dart';
 
-/// 安卓桌面小组件的数据推送：把任务列表序列化成 JSON 存进
-/// home_widget 的共享存储，然后唤醒原生 [TodayWidgetProvider] 重绘。
-/// 纯 Dart 无法在小组件里跑 Flutter，所以原生侧只读这份 JSON。
+/// 安卓桌面小组件的推送桥（SPD §12/§13/§14）：
+/// 把任务快照 + 本机数据库路径 + 显示设置写入 home_widget 共享存储，
+/// 然后唤醒原生 [TodayWidgetProvider] 重绘。
+///
+/// 小组件上的勾选由 Kotlin 原生直写 SQLite（路径来自 db_path），
+/// 不需要 Flutter 引擎常驻（SPD 禁止事项 #6）。
 class HomeWidgetBridge {
   HomeWidgetBridge._();
 
   static const _tasksKey = 'widget_tasks';
   static const _countsKey = 'widget_counts';
+  static const _dbPathKey = 'db_path';
+  static const _showCompletedKey = 'show_completed';
+  static const _maxItemsKey = 'max_items';
   static const _providerClass = 'com.example.todolist.TodayWidgetProvider';
-  static const maxItems = 12;
+
+  static int maxItems = 12;
+  static bool showCompleted = false;
 
   /// 纯函数：构造推送载荷（便于单测）。
-  static Map<String, Object?> buildPayload(List<Task> tasks, List<Memo> memos) {
+  static Map<String, Object?> buildPayload(
+    List<Task> tasks,
+    List<Memo> memos, {
+    int? maxItemsOverride,
+    bool? showCompletedOverride,
+  }) {
+    final cap = maxItemsOverride ?? maxItems;
+    final showDone = showCompletedOverride ?? showCompleted;
+    final visible = showDone ? tasks : tasks.where((t) => !t.done).toList();
     return {
       _tasksKey: jsonEncode([
-        for (final t in tasks.take(maxItems))
-          {'t': t.title, 'd': t.done},
+        for (final t in visible.take(cap))
+          {'u': t.uuid, 't': t.title, 'd': t.done},
       ]),
       _countsKey: jsonEncode({
         'tasks': tasks.length,
@@ -35,9 +51,14 @@ class HomeWidgetBridge {
   static Future<void> push({
     required List<Task> tasks,
     required List<Memo> memos,
+    required String dbPath,
   }) async {
     if (!Platform.isAndroid) return;
     final payload = buildPayload(tasks, memos);
+    await HomeWidget.saveWidgetData<String>(
+        _dbPathKey, dbPath.replaceAll('\\', '/'));
+    await HomeWidget.saveWidgetData<bool>(_showCompletedKey, showCompleted);
+    await HomeWidget.saveWidgetData<int>(_maxItemsKey, maxItems);
     for (final entry in payload.entries) {
       await HomeWidget.saveWidgetData<String>(entry.key, entry.value as String);
     }

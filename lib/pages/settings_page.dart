@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../desktop/android_widget_settings.dart';
 import '../desktop/widget_launcher.dart';
 import '../desktop/widget_settings.dart';
 import '../home_widget_bridge.dart';
@@ -365,21 +366,43 @@ class _SettingsPageState extends State<SettingsPage> {
     ];
   }
 
-  /// 安卓桌面小组件说明与快捷添加。
+  /// 安卓桌面小组件说明与快捷添加（SPD §14）。
   List<Widget> _androidWidgetSection(BuildContext context) {
+    final widgetSettings = context.watch<AndroidWidgetSettingsModel>();
     return [
       const SizedBox(height: 16),
       _sectionTitle(context, '桌面小组件'),
       Card(
         margin: EdgeInsets.zero,
-        child: ListTile(
-          title: const Text('今日待办小组件'),
-          subtitle: const Text(
-              '数据在应用变化后自动更新到小组件；也可以长按桌面 → 小组件 → 待办备忘 手动添加'),
-          trailing: TextButton(
-            onPressed: () => HomeWidgetBridge.requestPin(),
-            child: const Text('添加到桌面'),
-          ),
+        child: Column(
+          children: [
+            ListTile(
+              title: const Text('今日待办小组件'),
+              subtitle: const Text(
+                  '支持 2×2 至 4×4 任意拉伸；数据在应用变化后自动更新；卡片上可直接勾选完成'),
+              trailing: TextButton(
+                onPressed: () => HomeWidgetBridge.requestPin(),
+                child: const Text('添加到桌面'),
+              ),
+            ),
+            ListTile(
+              title: const Text('最大显示条数'),
+              subtitle: Slider(
+                min: 4,
+                max: 20,
+                divisions: 16,
+                label: '${widgetSettings.maxItems} 条',
+                value: widgetSettings.maxItems.toDouble(),
+                onChanged: (v) => widgetSettings.setMaxItems(v.round()),
+              ),
+              trailing: Text('${widgetSettings.maxItems}'),
+            ),
+            SwitchListTile(
+              title: const Text('显示已完成'),
+              value: widgetSettings.showCompleted,
+              onChanged: (v) => widgetSettings.setShowCompleted(v),
+            ),
+          ],
         ),
       ),
     ];
