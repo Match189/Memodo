@@ -85,12 +85,25 @@ class SyncMerge {
     T existing,
     DateTime Function(T) updatedAt,
     String Function(T) deviceId,
+  ) =>
+      isNewer(
+        updatedAt(candidate),
+        updatedAt(existing),
+        deviceId(candidate),
+        deviceId(existing),
+      );
+
+  /// 公开版比较器（ServerSyncProvider 的 LWW 守卫用）：
+  /// candidate 是否应当覆盖 existing。
+  static bool isNewer(
+    DateTime candidateAt,
+    DateTime existingAt,
+    String candidateDevice,
+    String existingDevice,
   ) {
-    final c = updatedAt(candidate);
-    final e = updatedAt(existing);
-    if (c.isAfter(e)) return true;
-    if (c.isBefore(e)) return false;
-    return deviceId(candidate).compareTo(deviceId(existing)) > 0;
+    if (candidateAt.isAfter(existingAt)) return true;
+    if (candidateAt.isBefore(existingAt)) return false;
+    return candidateDevice.compareTo(existingDevice) > 0;
   }
 }
 

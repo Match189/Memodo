@@ -3,16 +3,17 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../data/settings_store.dart';
+import 'server_sync_provider.dart';
+import 'sync_provider.dart';
 import 'sync_transport.dart';
 import 'transports/oss_transport.dart';
-import 'transports/server_transport.dart';
 import 'transports/webdav_transport.dart';
 
-/// 同步通道种类。
+/// 同步通道种类（SPD §5：命名不得绑定具体厂商）。
 enum SyncChannel {
   none('不同步'),
-  webdav('WebDAV（坚果云等）'),
-  oss('对象存储（阿里云 OSS / 腾讯云 COS）'),
+  webdav('WebDAV'),
+  oss('OSS / S3 Compatible'),
   server('自建服务器');
 
   const SyncChannel(this.label);
@@ -79,47 +80,82 @@ class SyncSettingsModel extends ChangeNotifier {
         'server': server.toJson(),
       };
 
-  /// 按当前选择构造传输实现；未配置/必填项缺失返回 null。
-  SyncTransport? buildTransport() {
+  /// 按当前选择构造同步 Provider；未配置/必填项缺失返回 null。
+  /// SyncManager 与设置页的"测试连接"都走这里。
+  SyncProvider? buildProvider() {
     switch (channel) {
       case SyncChannel.none:
         return null;
       case SyncChannel.webdav:
-        if (webdav.baseUrl.trim().isEmpty ||
-            webdav.username.trim().isEmpty ||
-            webdav.password.isEmpty) {
-          return null;
-        }
-        return WebdavTransport(
-          baseUrl: webdav.baseUrl.trim(),
-          folder: webdav.folder.trim().isEmpty ? 'todolist' : webdav.folder.trim(),
-          username: webdav.username.trim(),
-          password: webdav.password,
-        );
+        final transport = _webdavTransport();
+        return transport == null
+            ? null
+            : SnapshotSyncProvider(
+                transport: transport,
+                passphrase: _passphraseOrNull(),
+              );
       case SyncChannel.oss:
-        if (oss.endpoint.trim().isEmpty ||
-            oss.bucket.trim().isEmpty ||
-            oss.accessKeyId.trim().isEmpty ||
-            oss.accessKeySecret.isEmpty) {
-          return null;
-        }
-        return OssTransport(
-          endpoint: oss.endpoint.trim(),
-          bucket: oss.bucket.trim(),
-          accessKeyId: oss.accessKeyId.trim(),
-          accessKeySecret: oss.accessKeySecret,
-          objectKey: oss.objectKey.trim().isEmpty
-              ? 'todolist/snapshot.json'
-              : oss.objectKey.trim(),
-        );
+        final transport = _ossTransport();
+        return transport == null
+            ? null
+            : SnapshotSyncProvider(
+                transport: transport,
+                passphrase: _passphraseOrNull(),
+              );
       case SyncChannel.server:
-        if (server.baseUrl.trim().isEmpty || server.token.isEmpty) {
+        if (server.baseUrl.trim().isEmpty) return null;
+        if (server.username.trim().isEmpty || server.password.isEmpty) {
           return null;
         }
-        return ServerTransport(
-          baseUrl: server.baseUrl.trim(),
-          token: server.token,
-        );
+        return ServerSyncProvider(config: server);
+    }
+  }
+
+  String? _passphraseOrNull() =>
+      passphrase.isEmpty ? null : passphrase;
+
+  WebdavTransport? _webdavTransport() {
+    if (webdav.baseUrl.trim().isEmpty ||
+        webdav.username.trim().isEmpty ||
+        webdav.password.isEmpty) {
+      return null;
+    }
+    return WebdavTransport(
+      baseUrl: webdav.baseUrl.trim(),
+      folder: webdav.folder.trim().isEmpty ? 'todolist' : webdav.folder.trim(),
+      username: webdav.username.trim(),
+      password: webdav.password,
+    );
+  }
+
+  OssTransport? _ossTransport() {
+    if (oss.endpoint.trim().isEmpty ||
+        oss.bucket.trim().isEmpty ||
+        oss.accessKeyId.trim().isEmpty ||
+        oss.accessKeySecret.isEmpty) {
+      return null;
+    }
+    return OssTransport(
+      endpoint: oss.endpoint.trim(),
+      bucket: oss.bucket.trim(),
+      accessKeyId: oss.accessKeyId.trim(),
+      accessKeySecret: oss.accessKeySecret,
+      objectKey: oss.objectKey.trim().isEmpty
+          ? 'todolist/snapshot.json'
+          : oss.objectKey.trim(),
+    );
+  }
+
+  /// 旧接口：仅返回快照类通道的传输实现（webdav/oss；server 走 buildProvider）。
+  SyncTransport? buildTransport() {
+    switch (channel) {
+      case SyncChannel.none:
+      case SyncChannel.server:
+        return null;
+      case SyncChannel.webdav:
+        return _webdavTransport();
+      case SyncChannel.oss:
+        return _ossTransport();
     }
   }
 }
@@ -172,13 +208,32 @@ class OssConfig {
 
 class ServerConfig {
   String baseUrl = '';
-  String token = '';
 
-  Map<String, Object?> toJson() => {'baseUrl': baseUrl, 'token': token};
+  /// JWT 登录账号（SPD §9：邮箱 + 密码，token 自动刷新）。
+  String username = '';
+  String password = '';
+
+  /// 运行期凭据与增量游标（随 sync.config 持久化）。
+  String accessToken = '';
+  String refreshToken = '';
+  int cursor = 0;
+
+  Map<String, Object?> toJson() => {
+        'baseUrl': baseUrl,
+        'username': username,
+        'password': password,
+        'accessToken': accessToken,
+        'refreshToken': refreshToken,
+        'cursor': cursor,
+      };
 
   void fillFrom(Map<String, Object?>? json) {
     if (json == null) return;
     baseUrl = json['baseUrl'] as String? ?? baseUrl;
-    token = json['token'] as String? ?? token;
+    username = json['username'] as String? ?? username;
+    password = json['password'] as String? ?? password;
+    accessToken = json['accessToken'] as String? ?? accessToken;
+    refreshToken = json['refreshToken'] as String? ?? refreshToken;
+    cursor = json['cursor'] as int? ?? cursor;
   }
 }

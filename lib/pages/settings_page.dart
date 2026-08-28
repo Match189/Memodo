@@ -9,6 +9,7 @@ import '../desktop/widget_settings.dart';
 import '../home_widget_bridge.dart';
 import '../sync/sync_manager.dart';
 import '../sync/sync_settings_model.dart';
+import '../sync/sync_provider.dart';
 import '../sync/sync_transport.dart';
 
 /// 设置页：选择同步通道、填写配置、测试连接、手动同步。
@@ -28,15 +29,15 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _testConnection() async {
     await _save();
-    final transport = _settings.buildTransport();
-    if (transport == null) {
+    final provider = _settings.buildProvider();
+    if (provider == null) {
       _toast('必填项不完整，无法测试');
       return;
     }
     setState(() => _testing = true);
     try {
-      await transport.testConnection();
-      if (mounted) _toast('${transport.displayName} 连接成功');
+      await provider.testConnection();
+      if (mounted) _toast('${provider.name} 连接成功');
     } catch (e) {
       if (mounted) _toast(describeTransportError(e));
     } finally {
@@ -267,22 +268,31 @@ class _SettingsPageState extends State<SettingsPage> {
           _ConfigField(
             fieldKey: ValueKey('$channelKey-baseUrl'),
             label: '服务器地址',
-            hint: '如 http://192.168.1.10:8080',
+            hint: '如 https://sync.example.com',
             initialValue: settings.server.baseUrl,
             onChanged: (v) => settings.server.baseUrl = v,
             onDone: _save,
           ),
           _ConfigField(
-            fieldKey: ValueKey('$channelKey-token'),
-            label: '访问令牌',
-            initialValue: settings.server.token,
+            fieldKey: ValueKey('$channelKey-username'),
+            label: '账户（邮箱）',
+            hint: '先在服务器上注册',
+            initialValue: settings.server.username,
+            onChanged: (v) => settings.server.username = v,
+            onDone: _save,
+          ),
+          _ConfigField(
+            fieldKey: ValueKey('$channelKey-password'),
+            label: '密码',
+            initialValue: settings.server.password,
             obscure: true,
-            onChanged: (v) => settings.server.token = v,
+            onChanged: (v) => settings.server.password = v,
             onDone: _save,
           ),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Text('服务端参考实现在项目 server/ 目录，单文件即可部署。',
+            child: Text(
+                '登录与增量游标自动管理（SPD §6-§9）；服务端部署见 todo-server/README.md。',
                 style: TextStyle(fontSize: 12)),
           ),
         ]);
