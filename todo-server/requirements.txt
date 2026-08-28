@@ -1,0 +1,15 @@
+fastapi==0.115.*
+uvicorn[standard]==0.32.*
+sqlalchemy[asyncio]==2.0.*
+asyncpg==0.30.*
+aiosqlite==0.20.*
+pydantic==2.*
+email-validator==2.*
+pydantic-settings==2.*
+passlib[bcrypt]==1.7.*
+bcrypt==4.0.1  # 4.1+ 与 passlib 1.7.4 不兼容（误报 72 bytes）
+python-jose[cryptography]==3.3.*
+python-multipart==0.0.*
+httpx==0.28.*
+pytest==8.*
+pytest-asyncio==0.24.*
