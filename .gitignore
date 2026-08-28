@@ -24,3 +24,5 @@ Thumbs.db
 *.log
 todo-server/**/__pycache__/
 todo-server/.venv/
+*.db
+todo-server/*.db
