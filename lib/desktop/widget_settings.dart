@@ -23,6 +23,10 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
   /// 锁定位置后禁止拖动。
   bool lockPosition = false;
 
+  /// 桌面层模式（SPD §13 V2）：把卡片 SetParent 到 WorkerW，成为壁纸层。
+  /// 不稳定/失败时自动回退普通窗口模式。
+  bool attachToDesktop = false;
+
   /// 上次窗口位置与尺寸（恢复用；由主进程周期性采样保存）。
   int? posX;
   int? posY;
@@ -38,6 +42,7 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
       alwaysOnTop = json['alwaysOnTop'] as bool? ?? false;
       opacity = (json['opacity'] as int? ?? 90).clamp(30, 100);
       lockPosition = json['lockPosition'] as bool? ?? false;
+      attachToDesktop = json['attachToDesktop'] as bool? ?? false;
       posX = json['posX'] as int?;
       posY = json['posY'] as int?;
       width = json['width'] as int?;
@@ -72,6 +77,12 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
     await save();
   }
 
+  Future<void> setAttachToDesktop(bool value) async {
+    if (attachToDesktop == value) return;
+    attachToDesktop = value;
+    await save();
+  }
+
   Future<void> saveWindowRect({
     required int x,
     required int y,
@@ -96,6 +107,7 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
         'alwaysOnTop': alwaysOnTop,
         'opacity': opacity,
         'lockPosition': lockPosition,
+        'attachToDesktop': attachToDesktop,
         'posX': posX,
         'posY': posY,
         'width': width,

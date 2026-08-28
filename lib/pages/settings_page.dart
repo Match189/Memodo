@@ -348,6 +348,17 @@ class _SettingsPageState extends State<SettingsPage> {
                   ? (v) => widgetSettings.setLockPosition(v)
                   : null,
             ),
+            SwitchListTile(
+              title: const Text('桌面层模式（实验）'),
+              subtitle: const Text('把卡片嵌进壁纸层，像桌面图标一样常驻；失败会自动退回普通窗口'),
+              value: widgetSettings.attachToDesktop,
+              onChanged: widgetSettings.enabled
+                  ? (v) async {
+                      final ok = await WidgetLauncher.updateAttachToDesktop(v);
+                      if (ok) await widgetSettings.setAttachToDesktop(v);
+                    }
+                  : null,
+            ),
           ],
         ),
       ),

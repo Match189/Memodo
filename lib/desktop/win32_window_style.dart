@@ -122,6 +122,65 @@ class WidgetWindowNative {
     SendMessage(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
   }
 
+  /// SPD §13 V2：把小组件附到桌面层（WorkerW），成为壁纸一样的存在。
+  /// 返回是否成功；失败时调用方应回退普通窗口模式。
+  static Future<bool> attachToDesktop() async {
+    final hwnd = _findWidgetHwnd();
+    if (hwnd == 0) return false;
+    final progman = FindWindow(nullptr, TEXT('Program Manager'));
+    if (progman == 0) return false;
+
+    // 让 Explorer 在壁纸后面生成一个 WorkerW（0x052C 魔数消息）。
+    final user32 = DynamicLibrary.open('user32.dll');
+    final sendMessageTimeout = user32.lookupFunction<
+        IntPtr Function(IntPtr, Uint32, IntPtr, IntPtr, Uint32, Uint32,
+            Pointer<Void>),
+        int Function(int, int, int, int, int, int,
+            Pointer<Void>)>('SendMessageTimeoutW');
+    sendMessageTimeout(progman, 0x052C, 0, 0, 0 /*SMTO_NORMAL*/, 1000, nullptr);
+
+    final worker = _findDesktopWorkerW();
+    if (worker == 0) return false;
+
+    // 作为 WorkerW 子窗口时不再需要任何顶层样式交互。
+    if (SetParent(hwnd, worker) == 0) return false;
+    setTopmost(false);
+    return true;
+  }
+
+  /// 从桌面层脱离，恢复普通顶层窗口。
+  static Future<void> detachFromDesktop() async {
+    final hwnd = _findWidgetHwnd();
+    if (hwnd == 0) return;
+    SetParent(hwnd, 0);
+    SetWindowPos(
+      hwnd,
+      0,
+      0,
+      0,
+      0,
+      0,
+      SET_WINDOW_POS_FLAGS.SWP_NOMOVE |
+          SET_WINDOW_POS_FLAGS.SWP_NOSIZE |
+          SET_WINDOW_POS_FLAGS.SWP_FRAMECHANGED,
+    );
+  }
+
+  /// 找到承载桌面图标的 SHELLDLL_DefView 之后的那个 WorkerW。
+  static int _findDesktopWorkerW() {
+    var worker = 0;
+    while (true) {
+      worker = FindWindowEx(0, worker, TEXT('WorkerW'), nullptr);
+      if (worker == 0) return 0;
+      final defview =
+          FindWindowEx(worker, 0, TEXT('SHELLDLL_DefView'), nullptr);
+      if (defview != 0) {
+        final target = FindWindowEx(0, worker, TEXT('WorkerW'), nullptr);
+        return target != 0 ? target : worker;
+      }
+    }
+  }
+
   /// 小组件上的"打开主窗口"：把主窗口恢复并带到前台。
   static Future<void> openMainWindow() async {
     final hwnd = FindWindow(nullptr, TEXT(mainWindowTitle));

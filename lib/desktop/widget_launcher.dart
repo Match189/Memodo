@@ -22,12 +22,14 @@ class WidgetLauncher {
   static bool _lastEnabled = false;
   static bool _lastTopmost = false;
   static int _lastOpacity = 90;
+  static bool _lastAttach = false;
 
   static void bind(DesktopWidgetSettingsModel settings) {
     _settings = settings;
     _lastEnabled = settings.enabled;
     _lastTopmost = settings.alwaysOnTop;
     _lastOpacity = settings.opacity;
+    _lastAttach = settings.attachToDesktop;
     settings.addListener(_onSettingsChanged);
   }
 
@@ -52,6 +54,26 @@ class WidgetLauncher {
     if (s.opacity != _lastOpacity) {
       _lastOpacity = s.opacity;
       if (_windowId != null) await WidgetWindowNative.setOpacity(s.opacity);
+    }
+    if (s.attachToDesktop != _lastAttach) {
+      _lastAttach = s.attachToDesktop;
+      if (_windowId != null) await applyAttachState();
+    }
+  }
+
+  /// 应用"桌面层模式"开关；失败自动回退普通窗口并改回设置。
+  static Future<void> applyAttachState() async {
+    final s = _settings;
+    if (s == null || _windowId == null) return;
+    if (!s.attachToDesktop) {
+      await WidgetWindowNative.detachFromDesktop();
+      await WidgetWindowNative.setTopmost(s.alwaysOnTop);
+      return;
+    }
+    final ok = await WidgetWindowNative.attachToDesktop();
+    if (!ok) {
+      await s.setAttachToDesktop(false);
+      _lastAttach = false;
     }
   }
 
@@ -92,6 +114,12 @@ class WidgetLauncher {
       );
     }
     await WidgetWindowNative.setOpacity(opacity);
+    // 记忆的桌面层状态
+    if ((s?.attachToDesktop ?? false)) {
+      _lastAttach = true;
+      final ok = await WidgetWindowNative.attachToDesktop();
+      if (!ok && s != null) await s.setAttachToDesktop(false);
+    }
     _startRectWatcher();
   }
 
@@ -145,5 +173,17 @@ class WidgetLauncher {
   static Future<void> updateOpacity(int opacity) async {
     if (_windowId == null) return;
     await WidgetWindowNative.setOpacity(opacity);
+  }
+
+  /// 设置里的桌面层开关变化时调用；失败返回 false（UI 回退开关）。
+  static Future<bool> updateAttachToDesktop(bool attach) async {
+    if (_windowId == null) return false;
+    if (!attach) {
+      await WidgetWindowNative.detachFromDesktop();
+      await WidgetWindowNative.setTopmost(_settings?.alwaysOnTop ?? false);
+      return true;
+    }
+    final ok = await WidgetWindowNative.attachToDesktop();
+    return ok;
   }
 }
