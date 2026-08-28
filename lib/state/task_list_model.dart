@@ -52,6 +52,12 @@ class TaskListModel extends ChangeNotifier {
     await load();
   }
 
+  /// 撤销删除：清除墓碑并刷新。
+  Future<void> restore(Task task) async {
+    await _repo.undelete(task);
+    await load();
+  }
+
   Future<void> clearDone() async {
     await _repo.deleteDone();
     await load();

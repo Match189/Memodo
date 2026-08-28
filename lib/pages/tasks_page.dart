@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/task.dart';
 import '../state/task_list_model.dart';
 
-/// 待办列表页：勾选完成、点击编辑、删除、清除已完成，底部输入框新增。
+/// 待办列表页：卡片化列表、勾选完成、点击编辑、删除可撤销，底部输入框新增。
 class TasksPage extends StatefulWidget {
   const TasksPage({super.key});
 
@@ -56,6 +56,23 @@ class _TasksPageState extends State<TasksPage> {
     }
   }
 
+  /// 删除 → Snackbar 撤销（软删除天然支持恢复，SPD §18）。
+  Future<void> _remove(Task task) async {
+    await context.read<TaskListModel>().remove(task);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text('已删除「${task.title}」'),
+        width: 380,
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: '撤销',
+          onPressed: () => context.read<TaskListModel>().restore(task),
+        ),
+      ));
+  }
+
   Future<void> _confirmClearDone() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -75,7 +92,15 @@ class _TasksPageState extends State<TasksPage> {
       ),
     );
     if (ok == true && mounted) {
-      await context.read<TaskListModel>().clearDone();
+      final model = context.read<TaskListModel>();
+      final removed = model.tasks.where((t) => t.done).length;
+      await model.clearDone();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('已清除 $removed 条已完成'),
+        width: 380,
+        behavior: SnackBarBehavior.floating,
+      ));
     }
   }
 
@@ -97,37 +122,18 @@ class _TasksPageState extends State<TasksPage> {
       body: model.loading
           ? const Center(child: CircularProgressIndicator())
           : model.tasks.isEmpty
-              ? const Center(
-                  child: Text('还没有待办，在下方输入框添加一条吧'),
-                )
+              ? const _EmptyState()
               : ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 96),
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 96),
                   itemCount: model.tasks.length,
                   itemBuilder: (context, index) {
                     final task = model.tasks[index];
-                    return ListTile(
-                      leading: Checkbox(
-                        value: task.done,
-                        onChanged: (_) =>
-                            context.read<TaskListModel>().toggle(task),
-                      ),
+                    return _TaskCard(
+                      task: task,
+                      onToggle: () =>
+                          context.read<TaskListModel>().toggle(task),
                       onTap: () => _rename(task),
-                      title: Text(
-                        task.title,
-                        style: TextStyle(
-                          decoration: task.done
-                              ? TextDecoration.lineThrough
-                              : null,
-                          color: task.done
-                              ? Theme.of(context).colorScheme.outline
-                              : null,
-                        ),
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () =>
-                            context.read<TaskListModel>().remove(task),
-                      ),
+                      onRemove: () => _remove(task),
                     );
                   },
                 ),
@@ -142,8 +148,9 @@ class _TasksPageState extends State<TasksPage> {
                   controller: _inputController,
                   decoration: const InputDecoration(
                     hintText: '新增待办，回车确认',
-                    border: OutlineInputBorder(),
                     isDense: true,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   ),
                   onSubmitted: (_) => _add(),
                 ),
@@ -157,6 +164,93 @@ class _TasksPageState extends State<TasksPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 单条待办：卡片容器 + 勾选 + 标题（完成划线动画）+ 删除。
+class _TaskCard extends StatelessWidget {
+  const _TaskCard({
+    required this.task,
+    required this.onToggle,
+    required this.onTap,
+    required this.onRemove,
+  });
+
+  final Task task;
+  final VoidCallback onToggle;
+  final VoidCallback onTap;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Card(
+        color: task.done ? scheme.surfaceContainerHighest : null,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            child: Row(
+              children: [
+                Checkbox(value: task.done, onChanged: (_) => onToggle()),
+                Expanded(
+                  child: AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 200),
+                    style: TextStyle(
+                      fontSize: 15,
+                      color:
+                          task.done ? scheme.outline : scheme.onSurface,
+                      decoration: task.done
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
+                      decorationColor: scheme.outline,
+                    ),
+                    child: Text(
+                      task.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: '删除',
+                  icon: Icon(Icons.close_rounded,
+                      size: 18, color: scheme.outline),
+                  onPressed: onRemove,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.task_alt_rounded,
+              size: 64, color: scheme.primary.withValues(alpha: 0.5)),
+          const SizedBox(height: 12),
+          Text('一切尽在掌握',
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text('在下方输入框添加第一条待办',
+              style: TextStyle(fontSize: 13, color: scheme.outline)),
+        ],
       ),
     );
   }

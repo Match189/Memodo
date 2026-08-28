@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/memo.dart';
 import '../state/memo_list_model.dart';
+import '../utils/dates.dart';
 import 'memo_edit_page.dart';
 
 /// 备忘列表页：卡片网格布局，宽度自适应，点卡片进入编辑。
@@ -83,7 +84,7 @@ class _MemoCard extends StatelessWidget {
               Align(
                 alignment: Alignment.bottomRight,
                 child: Text(
-                  '${updated.year}/${updated.month}/${updated.day}',
+                  relativeDate(updated),
                   style: Theme.of(context)
                       .textTheme
                       .labelSmall

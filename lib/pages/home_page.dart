@@ -21,12 +21,28 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
       final wide = constraints.maxWidth >= 640;
+      final page = AnimatedSwitcher(
+        duration: const Duration(milliseconds: 220),
+        switchInCurve: Curves.easeOut,
+        child: KeyedSubtree(
+          key: ValueKey(_index),
+          child: _pages[_index],
+        ),
+      );
       if (wide) {
         return Scaffold(
           body: Row(
             children: [
               SafeArea(
                 child: NavigationRail(
+                  leading: Padding(
+                    padding: const EdgeInsets.only(top: 8, bottom: 12),
+                    child: Icon(
+                      Icons.check_circle_rounded,
+                      size: 32,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
                   selectedIndex: _index,
                   onDestinationSelected: (i) => setState(() => _index = i),
                   labelType: NavigationRailLabelType.all,
@@ -50,13 +66,13 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               const VerticalDivider(width: 1),
-              Expanded(child: _pages[_index]),
+              Expanded(child: page),
             ],
           ),
         );
       }
       return Scaffold(
-        body: _pages[_index],
+        body: page,
         bottomNavigationBar: NavigationBar(
           selectedIndex: _index,
           onDestinationSelected: (i) => setState(() => _index = i),

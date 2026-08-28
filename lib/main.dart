@@ -14,8 +14,10 @@ import 'data/memo_repository.dart';
 import 'data/settings_store.dart';
 import 'data/task_repository.dart';
 import 'desktop/android_widget_settings.dart';
+import 'desktop/main_window.dart' show mainWindowDisplayTitle;
 import 'desktop/widget_launcher.dart';
 import 'desktop/widget_settings.dart';
+import 'desktop/win32_window_style.dart';
 import 'home_widget_bridge.dart';
 import 'pages/home_page.dart';
 import 'pages/widget_window_page.dart';
@@ -23,6 +25,8 @@ import 'state/memo_list_model.dart';
 import 'state/task_list_model.dart';
 import 'sync/sync_manager.dart';
 import 'sync/sync_settings_model.dart';
+import 'theme/app_theme.dart';
+import 'theme/theme_settings.dart';
 
 Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,9 +40,10 @@ Future<void> main(List<String> args) async {
     final db = await AppDatabase.open();
     final subSettingsStore = SettingsStore(db.database);
     final device = await DeviceIdentity.load(subSettingsStore);
-    final widgetSettings =
-        DesktopWidgetSettingsModel(subSettingsStore);
+    final widgetSettings = DesktopWidgetSettingsModel(subSettingsStore);
     await widgetSettings.load();
+    final themeSettings = ThemeSettingsModel(subSettingsStore);
+    await themeSettings.load();
     runApp(WidgetWindowApp(
       windowId: windowId,
       taskModel: TaskListModel(
@@ -48,6 +53,7 @@ Future<void> main(List<String> args) async {
         MemoRepository(db.database, deviceId: device.id),
       ),
       widgetSettings: widgetSettings,
+      themeSettings: themeSettings,
     ));
     return;
   }
@@ -75,6 +81,10 @@ Future<void> main(List<String> args) async {
   await syncSettings.load();
   final desktopWidgetSettings = DesktopWidgetSettingsModel(settingsStore);
   await desktopWidgetSettings.load();
+  final androidWidgetSettings = AndroidWidgetSettingsModel(settingsStore);
+  await androidWidgetSettings.load();
+  final themeSettings = ThemeSettingsModel(settingsStore);
+  await themeSettings.load();
 
   final syncManager = SyncManager(
     taskRepository: TaskRepository(db.database, deviceId: device.id),
@@ -89,9 +99,12 @@ Future<void> main(List<String> args) async {
 
   if (Platform.isWindows) {
     _setupDesktopWidget(taskModel, memoModel, desktopWidgetSettings);
+    // 品牌化窗口标题（运行时改，规避 Runner 模板编码问题）。
+    Timer(const Duration(milliseconds: 800), () {
+      unawaited(
+          WidgetWindowNative.setMainWindowTitle(mainWindowDisplayTitle));
+    });
   }
-  final androidWidgetSettings = AndroidWidgetSettingsModel(settingsStore);
-  await androidWidgetSettings.load();
   if (Platform.isAndroid) {
     _setupAndroidWidget(
       taskModel,
@@ -116,6 +129,7 @@ Future<void> main(List<String> args) async {
       ChangeNotifierProvider.value(value: syncManager),
       ChangeNotifierProvider.value(value: desktopWidgetSettings),
       ChangeNotifierProvider.value(value: androidWidgetSettings),
+      ChangeNotifierProvider.value(value: themeSettings),
     ],
     child: const TodolistApp(),
   ));
@@ -197,17 +211,13 @@ class TodolistApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appearance = context.watch<ThemeSettingsModel>();
     return MaterialApp(
       title: '待办备忘',
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF00696D),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        colorSchemeSeed: const Color(0xFF00696D),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light(appearance.seedColor),
+      darkTheme:
+          AppTheme.dark(appearance.seedColor, amoled: appearance.amoledBlack),
+      themeMode: appearance.themeMode,
       home: const HomePage(),
     );
   }

@@ -62,6 +62,23 @@ class TaskRepository {
         whereArgs: [id]);
   }
 
+  /// 撤销软删除（删除后的 Snackbar"撤销"用）：墓碑清除后经 LWW 自然传播。
+  Future<void> undelete(Task task) async {
+    final id = task.id;
+    if (id == null) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _db.update(
+        'tasks',
+        {
+          'deleted': 0,
+          'deleted_at': null,
+          'updated_at': now,
+          if (_deviceId.isNotEmpty) 'device_id': _deviceId,
+        },
+        where: 'id = ?',
+        whereArgs: [id]);
+  }
+
   /// 软删除所有已完成（未删除）的任务。
   Future<void> deleteDone() async {
     final now = DateTime.now().millisecondsSinceEpoch;

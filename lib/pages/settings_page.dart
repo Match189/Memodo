@@ -8,9 +8,11 @@ import '../desktop/widget_launcher.dart';
 import '../desktop/widget_settings.dart';
 import '../home_widget_bridge.dart';
 import '../sync/sync_manager.dart';
-import '../sync/sync_settings_model.dart';
 import '../sync/sync_provider.dart';
+import '../sync/sync_settings_model.dart';
 import '../sync/sync_transport.dart';
+import '../theme/app_theme.dart';
+import '../theme/theme_settings.dart';
 
 /// 设置页：选择同步通道、填写配置、测试连接、手动同步。
 class SettingsPage extends StatefulWidget {
@@ -72,6 +74,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final settings = context.watch<SyncSettingsModel>();
     final engine = context.watch<SyncManager>();
+    final appearance = context.watch<ThemeSettingsModel>();
     final busy = engine.status == SyncStatus.syncing || _testing;
 
     return Scaffold(
@@ -79,6 +82,8 @@ class _SettingsPageState extends State<SettingsPage> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
+          ..._appearanceSection(context, appearance),
+          const SizedBox(height: 16),
           _sectionTitle(context, '同步通道'),
           Card(
             margin: EdgeInsets.zero,
@@ -299,6 +304,70 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  /// 外观设置（SPD §14 General/Theme）：主题模式、主题色、AMOLED。
+  List<Widget> _appearanceSection(BuildContext context, ThemeSettingsModel appearance) {
+    final appearance = context.watch<ThemeSettingsModel>();
+    return [
+      _sectionTitle(context, '外观'),
+      Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('主题模式'),
+              const SizedBox(height: 8),
+              SegmentedButton<ThemeMode>(
+                segments: const [
+                  ButtonSegment(
+                      value: ThemeMode.system,
+                      label: Text('跟随系统'),
+                      icon: Icon(Icons.brightness_auto_outlined)),
+                  ButtonSegment(
+                      value: ThemeMode.light,
+                      label: Text('浅色'),
+                      icon: Icon(Icons.light_mode_outlined)),
+                  ButtonSegment(
+                      value: ThemeMode.dark,
+                      label: Text('深色'),
+                      icon: Icon(Icons.dark_mode_outlined)),
+                ],
+                selected: {appearance.themeMode},
+                onSelectionChanged: (selection) =>
+                    appearance.setThemeMode(selection.first),
+              ),
+              const SizedBox(height: 16),
+              const Text('主题色'),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (final entry in ThemePresets.all.entries)
+                    _SeedSwatch(
+                      color: entry.value,
+                      selected: appearance.seedKey == entry.key,
+                      onTap: () => appearance.setSeed(entry.key),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('AMOLED 纯黑'),
+                subtitle: const Text('深色模式下使用纯黑背景，省电更护眼'),
+                value: appearance.amoledBlack,
+                onChanged: (v) => appearance.setAmoledBlack(v),
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 16),
+    ];
+  }
+
   /// Windows 桌面小组件设置（SPD §14）。
   List<Widget> _desktopWidgetSection(BuildContext context) {
     final widgetSettings = context.watch<DesktopWidgetSettingsModel>();
@@ -437,8 +506,7 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 /// 配置输入框：无边框样式，key 稳定（通道名+字段名），切换通道不串值、输入不失焦。
-class _ConfigField extends StatelessWidget {
-  const _ConfigField({
+class _ConfigField extends StatelessWidget {  const _ConfigField({
     required this.fieldKey,
     required this.label,
     required this.initialValue,
@@ -528,5 +596,47 @@ class _StatusTile extends StatelessWidget {
       return '${two(local.hour)}:${two(local.minute)}';
     }
     return '${local.year}-${two(local.month)}-${two(local.day)} ${two(local.hour)}:${two(local.minute)}';
+  }
+}
+
+/// 主题色圆形色板：选中带描边勾。
+class _SeedSwatch extends StatelessWidget {
+  const _SeedSwatch({
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: '主题色',
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: selected ? scheme.onSurface : scheme.outline,
+              width: selected ? 3 : 1,
+            ),
+          ),
+          child: selected
+              ? const Icon(Icons.check_rounded,
+                  color: Colors.white, size: 20)
+              : null,
+        ),
+      ),
+    );
   }
 }

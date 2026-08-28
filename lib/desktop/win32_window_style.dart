@@ -7,7 +7,8 @@ import 'package:ffi/ffi.dart';
 import 'package:win32/win32.dart';
 
 import '../pages/widget_window_page.dart' show widgetWindowTitle;
-import 'main_window.dart' show mainWindowTitle;
+import 'main_window.dart'
+    show mainWindowTitle, mainWindowDisplayTitle;
 
 /// 用 Win32 API 给小组件子窗口做样式加工（SPD §11 Windows Native API）：
 /// 去标题栏但保留可缩放边框、可选置顶、右下角定位、位置采样、透明度、拖拽。
@@ -182,11 +183,20 @@ class WidgetWindowNative {
   }
 
   /// 小组件上的"打开主窗口"：把主窗口恢复并带到前台。
+  /// 兼容重命名前后两种标题。
   static Future<void> openMainWindow() async {
-    final hwnd = FindWindow(nullptr, TEXT(mainWindowTitle));
+    var hwnd = FindWindow(nullptr, TEXT(mainWindowDisplayTitle));
+    if (hwnd == 0) hwnd = FindWindow(nullptr, TEXT(mainWindowTitle));
     if (hwnd == 0) return;
     ShowWindow(hwnd, SW_RESTORE);
     SetForegroundWindow(hwnd);
+  }
+
+  /// 启动后把窗口标题改成品牌名（运行时改，规避 Runner 编码问题）。
+  static Future<void> setMainWindowTitle(String title) async {
+    final hwnd = FindWindow(nullptr, TEXT(mainWindowTitle));
+    if (hwnd == 0) return;
+    SetWindowText(hwnd, TEXT(title));
   }
 }
 

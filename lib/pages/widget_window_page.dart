@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../desktop/widget_settings.dart';
 import '../desktop/win32_window_style.dart';
+import '../theme/app_theme.dart';
+import '../theme/theme_settings.dart';
 import '../models/task.dart';
 import '../state/memo_list_model.dart';
 import '../state/task_list_model.dart';
@@ -12,7 +14,7 @@ import '../state/task_list_model.dart';
 const widgetWindowTitle = '待办小组件';
 
 /// 桌面小组件应用：独立 Flutter 引擎，读同一个 SQLite 库。
-/// 界面是一张紧凑卡片：勾选完成、快速添加、拖动移动、打开主窗口、关闭。
+/// 主题色跟随主应用的外观设置。
 class WidgetWindowApp extends StatelessWidget {
   const WidgetWindowApp({
     super.key,
@@ -20,6 +22,7 @@ class WidgetWindowApp extends StatelessWidget {
     required this.taskModel,
     required this.memoModel,
     required this.widgetSettings,
+    required this.themeSettings,
   });
 
   /// 子窗口自己的 id（由 main() 的 multi_window 参数传入）。
@@ -28,6 +31,7 @@ class WidgetWindowApp extends StatelessWidget {
   final TaskListModel taskModel;
   final MemoListModel memoModel;
   final DesktopWidgetSettingsModel widgetSettings;
+  final ThemeSettingsModel themeSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -36,20 +40,21 @@ class WidgetWindowApp extends StatelessWidget {
         ChangeNotifierProvider.value(value: taskModel),
         ChangeNotifierProvider.value(value: memoModel),
         ChangeNotifierProvider.value(value: widgetSettings),
+        ChangeNotifierProvider.value(value: themeSettings),
       ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorSchemeSeed: const Color(0xFF00696D),
-          useMaterial3: true,
-        ),
-        darkTheme: ThemeData(
-          brightness: Brightness.dark,
-          colorSchemeSeed: const Color(0xFF00696D),
-          useMaterial3: true,
-        ),
-        home: WidgetWindowPage(windowId: windowId),
-      ),
+      child: Builder(builder: (context) {
+        final appearance = context.watch<ThemeSettingsModel>();
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light(appearance.seedColor),
+          darkTheme: AppTheme.dark(
+            appearance.seedColor,
+            amoled: appearance.amoledBlack,
+          ),
+          themeMode: appearance.themeMode,
+          home: WidgetWindowPage(windowId: windowId),
+        );
+      }),
     );
   }
 }
