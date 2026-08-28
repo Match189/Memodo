@@ -1,0 +1,26 @@
+# 凭据 / 密钥（严禁入库）
+坚果云WebDAV连接信息.txt
+*.key
+*.pem
+.env
+todo-server/.env
+todo-server/dev.db
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins*
+.packages
+build/
+*.lock
+
+# IDE / 系统
+.idea/
+.vscode/
+*.iml
+Thumbs.db
+.DS_Store
+
+# 本地临时
+*.log
+todo-server/**/__pycache__/
+todo-server/.venv/

@@ -1,0 +1,11 @@
+name: todolist_server
+description: 待办备忘的自建同步服务器（参考实现，单文件部署）。
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  shelf: ^1.4.0
+  args: ^2.4.0
