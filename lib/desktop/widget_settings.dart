@@ -57,8 +57,10 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
   /// 关闭主窗口时最小化到托盘（true=不退出，托盘图标可恢复）。
   bool closeToTray = true;
 
-  /// 启动时是否预创建子窗口（藏在任务栏后），打开时只需 show()。
-  bool preCreate = true;
+  /// 启动时是否预创建子窗口（藏在任务栏后，秒开）。当前默认关：
+  /// desktop_multi_window 0.2.x 预创建会在主窗口标题切换时把主进程
+  /// dispose 退掉（已实测复现）。如需秒开可启用，但接受偶发退出风险。
+  bool preCreate = false;
 
   /// 卡片样式：classic=经典列表（当前模式）；board=图钉板样式。
   String cardStyle = 'classic';
