@@ -30,6 +30,8 @@ import 'state/task_list_model.dart';
 import 'sync/sync_manager.dart';
 import 'sync/sync_settings_model.dart';
 import 'theme/app_theme.dart';
+import 'board/board_controller.dart';
+import 'data/board_repository.dart';
 import 'theme/theme_settings.dart';
 
 Future<void> main(List<String> args) async {
@@ -148,6 +150,12 @@ Future<void> _boot(List<String> args) async {
   taskModel.addListener(syncManager.scheduleSync);
   memoModel.addListener(syncManager.scheduleSync);
 
+  // 图钉板控制器（Board / Card 组织层，SPD Board 扩展）。
+  final boardController = BoardController(
+    boardRepository: BoardRepository(db.database, deviceId: device.id),
+    settingsStore: settingsStore,
+  );
+
   if (Platform.isWindows) {
     _setupDesktopWidget(taskModel, memoModel, desktopWidgetSettings);
     unawaited(TrayService.instance.init());
@@ -186,6 +194,7 @@ Future<void> _boot(List<String> args) async {
       ChangeNotifierProvider.value(value: desktopWidgetSettings),
       ChangeNotifierProvider.value(value: androidWidgetSettings),
       ChangeNotifierProvider.value(value: themeSettings),
+      ChangeNotifierProvider.value(value: boardController),
     ],
     child: const TodolistApp(),
   ));

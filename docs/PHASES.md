@@ -89,3 +89,44 @@ ServerSyncProvider（cursor 协议）留好了插入点。
 - `flutter build windows --release` ✅（`build/windows/x64/runner/Release/` 整文件夹分发）
 - `flutter build apk --release` ✅（55M+，`build/app/outputs/flutter-apk/app-release.apk`，含 INTERNET 权限与小组件）
 - README 更新（SPD 对齐）；本文件收尾；git 全程逐阶段提交，凭据文件未入库（已验证）
+
+---
+
+# Board 图钉板（v2 架构扩展）阶段记录
+
+按用户 Pinboard 实施规格（docs/BOARD.md）分阶段执行。
+
+## Board Phase 1-2 完工（审计 + BoardTheme）
+
+- Phase 1 审计：见 ARCHITECTURE.md（Provider/SQLite v3/桌面 FFI 集成等已确认复用）
+- `lib/board/board_theme.dart`：BoardThemeData + 软木板/毛玻璃主题（各含深浅态）
+- 关键裁定：**Card 只引用实体 uuid（ref_type+ref_uuid），不复制内容**（SPD 禁止 #2/#3）
+
+## Board Phase 3-4 完工（背景渲染）
+
+- `lib/board/board_background.dart`：软木板=底色渐变+固定种子噪点+暗角（无图片资产）；
+  毛玻璃=整板**唯一一层** BackdropFilter（规格 §11 禁止每卡 Blur）
+
+## Board Phase 5-6 完工（PinWidget / BaseCard / 内容卡）
+
+- `lib/board/pin_widget.dart`：CustomPaint 图钉（钉帽径向渐变+高光+投影+针杆），全本地渲染
+- `lib/board/base_card.dart`：BaseCard（纸面+图钉手柄+右下缩放手柄+阴影三态）
+- `lib/board/cards.dart`：TodoCardContent / MemoCardContent
+
+## Board Phase 7 完工（交互与持久化）
+
+- `lib/board/board_controller.dart`：BoardCardView（每卡独立 ValueNotifier，拖动不全局 rebuild）、
+  dragBy/resizeBy（内存）、endGesture（吸附 8px + 落盘）、bringToFront（严格置顶）、
+  布局持久化到 settings kv（key=board.layout.<boardId>，本机视觉状态不进同步协议）
+- `lib/data/app_database.dart`：**DB v4**（boards/cards 表，Card 引用式模型）
+- `lib/data/board_repository.dart`：默认板幂等创建、pin 去重、unpin 软删除墓碑
+
+## Board Phase 8a 完工（应用内图钉板页）
+
+- `lib/pages/board_page.dart`：第 4 个导航页——软木板/毛玻璃切换、网格吸附开关、
+  钉待办/钉备忘选择器（去重）、拖动/缩放/置顶、源删除占位卡
+- 导航加入第 4 目的地（侧栏+底栏）
+
+**测试**：25/25（新增 board_test 3 用例：幂等/去重/软删除、布局持久化往返、z 序递增）。
+**已知问题**：布局不跨设备同步（V1 设计，后续进快照 v4）；卡片编辑仍在主页面完成。
+**下一阶段**：Phase 8b 小组件窗口 Board 渲染模式 → Phase 9 安卓视觉一致 → Phase 10 同步接入。

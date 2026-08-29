@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'board_page.dart';
 import 'memos_page.dart';
 import 'settings_page.dart';
 import 'tasks_page.dart';
 
 /// 应用主框架：宽屏（Windows）用侧边导航栏，窄屏（手机）用底部导航栏。
+/// 四个页面：待办 / 备忘 / 图钉板 / 设置。
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -15,7 +17,12 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _index = 0;
 
-  static const _pages = <Widget>[TasksPage(), MemosPage(), SettingsPage()];
+  static const _pages = <Widget>[
+    TasksPage(),
+    MemosPage(),
+    BoardPage(),
+    SettingsPage(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +65,11 @@ class _HomePageState extends State<HomePage> {
                       label: Text('备忘'),
                     ),
                     NavigationRailDestination(
+                      icon: Icon(Icons.push_pin_outlined),
+                      selectedIcon: Icon(Icons.push_pin),
+                      label: Text('图钉板'),
+                    ),
+                    NavigationRailDestination(
                       icon: Icon(Icons.settings_outlined),
                       selectedIcon: Icon(Icons.settings),
                       label: Text('设置'),
@@ -86,6 +98,11 @@ class _HomePageState extends State<HomePage> {
               icon: Icon(Icons.sticky_note_2_outlined),
               selectedIcon: Icon(Icons.sticky_note_2),
               label: '备忘',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.push_pin_outlined),
+              selectedIcon: Icon(Icons.push_pin),
+              label: '图钉板',
             ),
             NavigationDestination(
               icon: Icon(Icons.settings_outlined),

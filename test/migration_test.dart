@@ -72,7 +72,7 @@ void main() {
     final appDb = await AppDatabase.open(path: dbPath);
     final db = appDb.database;
 
-    expect(await db.getVersion(), 3);
+    expect(await db.getVersion(), 4);
 
     final tasks = await db.query('tasks');
     expect(tasks, hasLength(1));

@@ -52,13 +52,40 @@ class AppDatabase {
     )
   ''';
 
+  // v4：图钉板（Board / Card）。Card 只引用 todo/memo 的 uuid，不复制内容。
+  static const _schemaBoards = '''
+    CREATE TABLE boards (
+      uuid TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      deleted_at INTEGER,
+      device_id TEXT,
+      deleted INTEGER NOT NULL DEFAULT 0
+    )
+  ''';
+
+  static const _schemaCards = '''
+    CREATE TABLE cards (
+      uuid TEXT PRIMARY KEY,
+      board_uuid TEXT NOT NULL,
+      ref_type TEXT NOT NULL,
+      ref_uuid TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      deleted_at INTEGER,
+      device_id TEXT,
+      deleted INTEGER NOT NULL DEFAULT 0
+    )
+  ''';
+
   /// [path] 传 ':memory:' 可在测试中用内存库。
   static Future<AppDatabase> open({String? path}) async {
     final file = path ??
         p.join((await getApplicationSupportDirectory()).path, 'todolist.db');
     final db = await openDatabase(
       file,
-      version: 3,
+      version: 4,
       onConfigure: (db) async {
         // 主窗口与桌面小组件子窗口是两个引擎并发访问同一个库文件。
         await db.execute('PRAGMA busy_timeout = 3000');
@@ -67,6 +94,8 @@ class AppDatabase {
         await db.execute(_schemaTasksV3);
         await db.execute(_schemaMemosV3);
         await db.execute(_schemaSettings);
+        await db.execute(_schemaBoards);
+        await db.execute(_schemaCards);
         await _createUuidIndexes(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
@@ -96,6 +125,11 @@ class AppDatabase {
           await db.execute('ALTER TABLE memos ADD COLUMN device_id TEXT');
           await _backfillDeletedAt(db, 'tasks');
           await _backfillDeletedAt(db, 'memos');
+        }
+        if (oldVersion < 4) {
+          // v3 -> v4：图钉板（Board / Card）。
+          await db.execute(_schemaBoards);
+          await db.execute(_schemaCards);
         }
       },
     );
