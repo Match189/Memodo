@@ -204,3 +204,32 @@ ServerSyncProvider（cursor 协议）留好了插入点。
 - 启动后窗口：主“念念 Memodo” + 子“念念小组件”（同一 pid）
 - 切换 dual → 仍同一 pid，子窗口仅重画
 - preCreate=true：子窗口在任务栏后已就绪，show 几乎瞬间完成
+
+---
+
+# 2026-08-29 启动挂起修复
+
+## 现象
+
+启动后"转圈 → 窗口消失 → 又出现"约 10s；日志显示"first frame rendered ✓"但主窗口过 6s 才出现。
+
+## 根因
+
+1. **主进程 main() 阶段同步 `createWindow`**：preCreate=true 时 boot() 立刻起
+   子进程，子进程反过来通过 desktop_multi_window 等主进程通道，形成"互相等"的活锁。
+2. **show 与自套样式未分离**：`showWindow()` 等 createWindow + show + 推设置同步完成，
+   拖慢主进程首屏。
+
+## 修复
+
+- `main()` 不再同步调 `boot()`，延后 100ms（让出主进程 event loop）
+- `showWindow()` 改为：show 立即返回，初始样式异步派发
+- `_createWindow()` 加 6s 超时（`getAllSubWindowIds` 3s、setFrame/show 3s），子进程
+  卡死不再拖死主进程
+- `preCreateHidden` 内部不再 `invokeMethod` 后等，createWindow 失败时彻底清空状态
+
+## 验证
+
+t=2s  仍为旧 RC 标题"todolist"（资源标题切换延迟）
+t=5s  主窗口"念念 Memodo" + 子窗口"念念小组件"已出现
+t=8s  同上（稳定）

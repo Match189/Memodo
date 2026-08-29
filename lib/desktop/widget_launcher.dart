@@ -69,8 +69,13 @@ class WidgetLauncher {
     final s = _settings;
     if (s == null) return;
     if (s.preCreate || s.enabled) {
-      await preCreateHidden();
-      if (s.enabled) await showWindow();
+      // 预创建：立即起子窗口但**保持隐藏**，用户打开时只 show() 不再起进程
+      if (s.preCreate) {
+        await preCreateHidden();
+      }
+      if (s.enabled) {
+        await showWindow();
+      }
     }
   }
 
@@ -136,29 +141,38 @@ class WidgetLauncher {
     if (s == null) return;
     try {
       // 自愈：清理遗留子窗口
-      final ids = await DesktopMultiWindow.getAllSubWindowIds();
-      for (final id in ids) {
-        if (_windowId == null) {
-          _windowId = id;
-        } else {
-          try {
-            await WindowController.fromWindowId(id).close();
-          } catch (_) {}
+      try {
+        final ids = await DesktopMultiWindow.getAllSubWindowIds()
+            .timeout(const Duration(seconds: 3));
+        for (final id in ids) {
+          if (_windowId == null) {
+            _windowId = id;
+          } else {
+            try {
+              await WindowController.fromWindowId(id).close();
+            } catch (_) {}
+          }
         }
-      }
+      } catch (_) {}
+
       if (_windowId == null) {
+        // 加超时：主进程不能等子进程太久，否则整个应用被拖死。
         final controller = await DesktopMultiWindow.createWindow(jsonEncode({
           'type': 'widget',
-          // dual 模式下 kind 决定子窗口分两栏；single 模式下从偏好推断
           'kind': s.layout == WidgetLayout.dual ? 'dual' : 'todo',
-        }));
+        })).timeout(const Duration(seconds: 6));
         _windowId = controller.windowId;
         await controller
           ..setTitle(widgetWindowTitle)
           ..setFrame(const Offset(1200, 260) & defaultSize)
-          ..show();
+          ..show()
+          .timeout(const Duration(seconds: 3));
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[launcher] createWindow failed: $e');
+      // 失败时彻底放弃此次创建，避免半状态阻塞后续 enable。
+      _windowId = null;
+    }
   }
 
   /// 小组件窗口自己点了关闭：清引用但不重复关。

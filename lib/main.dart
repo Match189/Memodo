@@ -293,8 +293,17 @@ void _setupDesktopWidget(
   widgetSettings.addListener(() => broadcastToWidget('settingsChanged'));
 
   // 应用启动时按设置预创建子窗口（藏在任务栏后），可见化只需 show。
+  // ⚠️ 不能在主进程 main() 阶段同步触发 createWindow，否则会形成
+  // 主进程与子引擎互等的死锁（窗口闪一下就消失）。延迟到下一个事件循环。
   if (widgetSettings.enabled || widgetSettings.preCreate) {
-    unawaited(WidgetLauncher.boot());
+    Future<void>.delayed(const Duration(milliseconds: 100), () async {
+      if (!Platform.isWindows) return;
+      try {
+        await WidgetLauncher.boot();
+      } catch (e) {
+        debugPrint('[launcher] boot failed: $e');
+      }
+    });
   } else {
     // 监听器兜底：用户在设置页开启/切换时再创建。
   }
