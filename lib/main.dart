@@ -33,14 +33,44 @@ import 'theme/theme_settings.dart';
 Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  final isDesktop =
+      !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+  // 桌面端没有平台内置的 SQLite 实现，切换到 FFI 驱动。
+  // ⚠️ 必须在小组件子窗口分支之前：子窗口引擎同样要开库。
+  if (isDesktop) {
+    sqfliteFfiInit();
+    sqflite.databaseFactory = databaseFactoryFfi;
+  }
+
   // 桌面小组件子窗口：独立引擎，自己开库、自建状态模型。
   // 0.2.x 的约定：args = ['multi_window', windowId, arguments]
   if (Platform.isWindows &&
       args.isNotEmpty &&
       args.first == 'multi_window') {
+    // 子窗口出错要落日志（否则就是用户看到的"白窗口"）。
+    FlutterError.onError = (details) {
+      debugPrint('[widget] FlutterError: ${details.exceptionAsString()}');
+      FlutterError.presentError(details);
+    };
     final windowId = int.parse(args[1]);
-    final db = await AppDatabase.open();
-    final subSettingsStore = SettingsStore(db.database);
+    final sqflite.Database db;
+    try {
+      final appDb = await AppDatabase.open();
+      db = appDb.database;
+    } catch (e) {
+      debugPrint('[widget] init failed: $e');
+      runApp(MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Text('小组件初始化失败：$e',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12)),
+          ),
+        ),
+      ));
+      return;
+    }
+    final subSettingsStore = SettingsStore(db);
     final device = await DeviceIdentity.load(subSettingsStore);
     final widgetSettings = DesktopWidgetSettingsModel(subSettingsStore);
     await widgetSettings.load();
@@ -49,24 +79,20 @@ Future<void> main(List<String> args) async {
     runApp(WidgetWindowApp(
       windowId: windowId,
       taskModel: TaskListModel(
-        TaskRepository(db.database, deviceId: device.id),
+        TaskRepository(db, deviceId: device.id),
       ),
       memoModel: MemoListModel(
-        MemoRepository(db.database, deviceId: device.id),
+        MemoRepository(db, deviceId: device.id),
       ),
       widgetSettings: widgetSettings,
       themeSettings: themeSettings,
     ));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      debugPrint('[widget] first frame rendered ✓');
+    });
     return;
   }
 
-  final isDesktop =
-      !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
-  // 桌面端没有平台内置的 SQLite 实现，切换到 FFI 驱动；安卓用平台自带实现。
-  if (isDesktop) {
-    sqfliteFfiInit();
-    sqflite.databaseFactory = databaseFactoryFfi;
-  }
   if (Platform.isWindows) {
     await migrateLegacyDatabase();
   }
