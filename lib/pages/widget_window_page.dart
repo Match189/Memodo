@@ -8,28 +8,26 @@ import '../board/base_card.dart';
 import '../board/board_controller.dart';
 import '../board/board_theme.dart';
 import '../board/pin_widget.dart';
-import '../models/memo.dart';
 import '../desktop/widget_settings.dart';
 import '../desktop/win32_window_style.dart';
+import '../models/memo.dart';
 import '../models/task.dart';
 import '../state/memo_list_model.dart';
 import '../state/task_list_model.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_settings.dart';
 
-/// 待办卡片窗口的原生窗口标题（win32 按它找 HWND）。
-const widgetWindowTitle = '待办小组件';
+/// 单一桌面小组件窗口的原生窗口标题（win32 按它找 HWND）。
+const widgetWindowTitle = '念念小组件';
 
-/// 备忘卡片窗口（双卡片布局）的原生窗口标题。
-const memoWidgetWindowTitle = '备忘小组件';
-
-/// 子窗口内容种类：todo=待办卡片；memo=备忘卡片；both=单卡片合并显示。
-typedef WidgetKind = String; // 'todo' | 'memo' | 'both'
+/// 启动时传入的 kind 决定子窗口内部布局：
+/// - 'todo'：单卡片显示待办
+/// - 'memo'：单卡片显示备忘
+/// - 'dual'：单窗口分两栏（待办左/备忘右）
+typedef WidgetKind = String; // 'todo' | 'memo' | 'dual'
 
 /// 桌面小组件应用：独立 Flutter 引擎，读同一个 SQLite 库。
-///
-/// 架构约定（防跨进程崩溃）：对本窗口的原生操作（无边框/置顶/材质/附着桌面）
-/// 一律在本进程内执行；主进程只通过 desktop_multi_window 发命令。
+/// 预创建模式：主进程启动时即唤起本进程，藏在任务栏后待命。
 class WidgetWindowApp extends StatelessWidget {
   const WidgetWindowApp({
     super.key,
@@ -42,10 +40,8 @@ class WidgetWindowApp extends StatelessWidget {
     required this.boardController,
   });
 
-  /// 子窗口自己的 id（由 main() 的 multi_window 参数传入）。
   final int windowId;
   final WidgetKind kind;
-
   final TaskListModel taskModel;
   final MemoListModel memoModel;
   final DesktopWidgetSettingsModel widgetSettings;
@@ -80,11 +76,7 @@ class WidgetWindowApp extends StatelessWidget {
 }
 
 class WidgetWindowPage extends StatefulWidget {
-  const WidgetWindowPage({
-    super.key,
-    required this.windowId,
-    required this.kind,
-  });
+  const WidgetWindowPage({super.key, required this.windowId, required this.kind});
 
   final int windowId;
   final WidgetKind kind;
@@ -94,12 +86,12 @@ class WidgetWindowPage extends StatefulWidget {
 }
 
 class _WidgetWindowPageState extends State<WidgetWindowPage> {
-  final _inputController = TextEditingController();
+  final _todoInput = TextEditingController();
+  final _memoInput = TextEditingController();
   Timer? _rectReportTimer;
-  bool _attachedToDesktop = false;
+  bool _startedHidden = false;
 
-  String get _windowTitle =>
-      widget.kind == 'memo' ? memoWidgetWindowTitle : widgetWindowTitle;
+  String get _windowTitle => widgetWindowTitle;
 
   @override
   void initState() {
@@ -108,13 +100,24 @@ class _WidgetWindowPageState extends State<WidgetWindowPage> {
     final memoModel = context.read<MemoListModel>();
     final boardController = context.read<BoardController>();
 
-    // 主窗口广播的数据变化 → 重载列表与板卡。
     DesktopMultiWindow.setMethodHandler((call, fromWindowId) async {
+      final widgetSettings = context.read<DesktopWidgetSettingsModel>();
+      final themeSettings = context.read<ThemeSettingsModel>();
       switch (call.method) {
         case 'dataChangedFromMain':
           await taskModel.load();
           await memoModel.load();
           await boardController.load();
+        case 'layoutChanged':
+        case 'themeChanged':
+        case 'settingsChanged':
+          await widgetSettings.reload();
+          await themeSettings.load();
+          break;
+        case 'initHidden':
+          // 预创建模式：本进程自套样式后立即隐藏，不绘制交互
+          _startedHidden = true;
+          break;
         case 'applySurface':
           final args = (call.arguments as Map?)?.cast<String, Object?>();
           await WidgetWindowNative.setSurface(
@@ -128,50 +131,49 @@ class _WidgetWindowPageState extends State<WidgetWindowPage> {
             windowTitle: _windowTitle,
           );
         case 'attach':
-          final ok = await WidgetWindowNative.attachToDesktop(
+          await WidgetWindowNative.attachToDesktop(
               windowTitle: _windowTitle);
-          _attachedToDesktop = ok;
         case 'detach':
           await WidgetWindowNative.detachFromDesktop(
               windowTitle: _windowTitle);
-          _attachedToDesktop = false;
       }
       return null;
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // 自套样式：在本进程内操作自己的 HWND（安全；主进程跨进程操作曾致崩溃）。
-      final ws = context.read<DesktopWidgetSettingsModel>();
-      WidgetWindowNative.applyFramelessAndTopmost(
-        windowTitle: _windowTitle,
-        alwaysOnTop: ws.alwaysOnTop,
-      );
-      WidgetWindowNative.setSurface(
-        windowTitle: _windowTitle,
-        acrylic: ws.material == WidgetMaterial.acrylic,
-        opacity: ws.opacity,
-      );
-      if (ws.attachToDesktop) {
-        unawaited(WidgetWindowNative.attachToDesktop(
-            windowTitle: _windowTitle));
-        _attachedToDesktop = true;
-      }
-      debugPrint('[widget:${widget.kind}] self style applied');
-      // 位置回报（本进程 GetWindowRect 只读安全；主进程负责持久化）
+      _applyStyle();
       _rectReportTimer = Timer.periodic(const Duration(seconds: 10), (_) {
         _reportRect();
       });
-      debugPrint('[widget:${widget.kind}] first frame rendered ✓');
-      unawaited(boardController.load());
+      debugPrint('[widget] first frame rendered ✓');
     });
+    // 立即装载：data 一旦可用即刷新 UI
+    unawaited(taskModel.load());
+    unawaited(memoModel.load());
+    unawaited(boardController.load());
+  }
+
+  void _applyStyle() {
+    final ws = context.read<DesktopWidgetSettingsModel>();
+    WidgetWindowNative.applyFramelessAndTopmost(
+      windowTitle: _windowTitle,
+      alwaysOnTop: ws.alwaysOnTop,
+    );
+    WidgetWindowNative.setSurface(
+      windowTitle: _windowTitle,
+      acrylic: ws.material == WidgetMaterial.acrylic,
+      opacity: ws.opacity,
+    );
+    if (ws.attachToDesktop) {
+      WidgetWindowNative.attachToDesktop(windowTitle: _windowTitle);
+    }
   }
 
   void _reportRect() {
-    if (!mounted || _attachedToDesktop) return;
+    if (_startedHidden) return; // 预创建模式不暴露
     final r = WidgetWindowNative.getRect(windowTitle: _windowTitle);
     if (r == null) return;
     unawaited(DesktopMultiWindow.invokeMethod(0, 'widgetRect', {
-      'kind': widget.kind,
       'x': r.x,
       'y': r.y,
       'w': r.w,
@@ -182,7 +184,8 @@ class _WidgetWindowPageState extends State<WidgetWindowPage> {
   @override
   void dispose() {
     _rectReportTimer?.cancel();
-    _inputController.dispose();
+    _todoInput.dispose();
+    _memoInput.dispose();
     super.dispose();
   }
 
@@ -190,17 +193,6 @@ class _WidgetWindowPageState extends State<WidgetWindowPage> {
     try {
       await DesktopMultiWindow.invokeMethod(0, 'dataChangedFromWidget');
     } catch (_) {}
-  }
-
-  Future<void> _add() async {
-    final text = _inputController.text;
-    _inputController.clear();
-    if (widget.kind == 'memo') {
-      await context.read<MemoListModel>().add(text, '');
-    } else {
-      await context.read<TaskListModel>().add(text);
-    }
-    await _notifyMainChanged();
   }
 
   Future<void> _toggle(Task task) async {
@@ -218,441 +210,481 @@ class _WidgetWindowPageState extends State<WidgetWindowPage> {
 
   @override
   Widget build(BuildContext context) {
-    final taskModel = context.watch<TaskListModel>();
-    final memoModel = context.watch<MemoListModel>();
+    if (_startedHidden) {
+      // 预创建模式：藏在后台，无可见 UI
+      return const SizedBox.shrink();
+    }
     final widgetSettings = context.watch<DesktopWidgetSettingsModel>();
-    final boardController = context.watch<BoardController>();
     final scheme = Theme.of(context).colorScheme;
-    final showTasks = widget.kind != 'memo';
-    final showMemos = widget.kind != 'todo';
-
     final base = widgetSettings.opacity / 100;
     final bgAlpha = widgetSettings.material == WidgetMaterial.solid
         ? 1.0
         : (base * 0.7).clamp(0.3, 1.0);
     final bg = scheme.surface.withOpacity(bgAlpha);
 
-    final openTasks = taskModel.tasks.where((t) => !t.done).length;
-    final boardMode = widgetSettings.cardStyle == 'board';
-
     return Scaffold(
       backgroundColor: bg,
-      body: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildHeader(context, widgetSettings, scheme, openTasks, showMemos),
-            const SizedBox(height: 8),
-            if (boardMode)
-              Expanded(
-                child: _WidgetBoardView(
-                  kind: widget.kind,
-                  controller: boardController,
-                  boardThemeId: widgetSettings.boardThemeId,
-                  bright: Theme.of(context).brightness,
-                ),
-              )
-            else ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _inputController,
-                      style: const TextStyle(fontSize: 13),
-                      decoration: InputDecoration(
-                        hintText:
-                            widget.kind == 'memo' ? '快速记一条备忘…' : '快速添加…',
-                        isDense: true,
-                        border: const OutlineInputBorder(),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 8),
-                      ),
-                      onSubmitted: (_) => _add(),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  SizedBox(
-                    height: 34,
-                    width: 34,
-                    child: IconButton.filled(
-                      padding: EdgeInsets.zero,
-                      iconSize: 18,
-                      icon: const Icon(Icons.add),
-                      onPressed: _add,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (showTasks)
-                _taskList(context, taskModel, scheme, showMemos),
-              if (showMemos) _memoList(context, memoModel, scheme),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context, DesktopWidgetSettingsModel ws,
-      ColorScheme scheme, int openTasks, bool showMemos) {
-    return GestureDetector(
-      onPanStart: (_) {
-        if (!ws.lockPosition) {
-          WidgetWindowNative.beginDrag(windowTitle: _windowTitle);
-        }
-      },
-      behavior: HitTestBehavior.opaque,
-      child: Row(
-        children: [
-          Icon(
-            widget.kind == 'memo'
-                ? Icons.sticky_note_2
-                : Icons.check_circle,
-            size: 18,
-            color: scheme.primary,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            widget.kind == 'memo' ? '备忘' : '今日待办',
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-          const Spacer(),
-          if (widget.kind != 'memo')
-            Text('$openTasks 项未完成',
-                style: Theme.of(context)
-                    .textTheme
-                    .labelSmall
-                    ?.copyWith(color: scheme.outline)),
-          _HeaderIcon(
-            tooltip: '打开主窗口',
-            icon: Icons.open_in_new,
-            onTap: () => WidgetWindowNative.openMainWindow(),
-          ),
-          _HeaderIcon(tooltip: '关闭', icon: Icons.close, onTap: _close),
-        ],
-      ),
-    );
-  }
-
-  Widget _taskList(BuildContext context, TaskListModel taskModel,
-      ColorScheme scheme, bool shrink) {
-    return Expanded(
-      flex: shrink ? 3 : 1,
-      child: taskModel.loading
-          ? const Center(
-              child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2)))
-          : taskModel.tasks.isEmpty
-              ? Center(
-                  child: Text('还没有待办',
-                      style: TextStyle(fontSize: 12, color: scheme.outline)))
-              : ListView.builder(
-                  itemCount: taskModel.tasks.length,
-                  padding: EdgeInsets.zero,
-                  itemBuilder: (context, index) {
-                    final task = taskModel.tasks[index];
-                    return InkWell(
-                      onTap: () => _toggle(task),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 3),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: Checkbox(
-                                value: task.done,
-                                onChanged: (_) => _toggle(task),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                task.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  decoration: task.done
-                                      ? TextDecoration.lineThrough
-                                      : TextDecoration.none,
-                                  color: task.done
-                                      ? scheme.outline
-                                      : scheme.onSurface,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-    );
-  }
-
-  Widget _memoList(BuildContext context, MemoListModel memoModel,
-      ColorScheme scheme) {
-    return Expanded(
-      child: memoModel.memos.isEmpty
-          ? Center(
-              child: Text('还没有备忘',
-                  style: TextStyle(fontSize: 12, color: scheme.outline)))
-          : ListView.builder(
-              itemCount: memoModel.memos.length,
-              padding: EdgeInsets.zero,
-              itemBuilder: (context, index) {
-                final memo = memoModel.memos[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Text(
-                    '📝 ${memo.title}${memo.content.isEmpty ? '' : '：${memo.content}'}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                );
-              },
+      body: widget.kind == 'dual'
+          ? _DualPaneView(
+              bg: bg,
+              scheme: scheme,
+              todoInput: _todoInput,
+              memoInput: _memoInput,
+              onToggle: _toggle,
+              onClose: _close,
+              widgetSettings: widgetSettings,
+            )
+          : _SinglePaneView(
+              bg: bg,
+              scheme: scheme,
+              kind: widget.kind,
+              todoInput: _todoInput,
+              memoInput: _memoInput,
+              onToggle: _toggle,
+              onClose: _close,
+              widgetSettings: widgetSettings,
             ),
     );
   }
 }
 
-/// 图钉板模式：板卡在小组件窗口内的自由布局渲染。
-/// 布局与主应用共享（同一 kv）；超出窗口的卡片会钳制在窗口内显示。
-class _WidgetBoardView extends StatefulWidget {
-  const _WidgetBoardView({
+/// 单卡片：根据 kind 显示待办或备忘。
+class _SinglePaneView extends StatelessWidget {
+  const _SinglePaneView({
+    required this.bg,
+    required this.scheme,
     required this.kind,
-    required this.controller,
-    required this.boardThemeId,
-    required this.bright,
+    required this.todoInput,
+    required this.memoInput,
+    required this.onToggle,
+    required this.onClose,
+    required this.widgetSettings,
   });
 
-  final WidgetKind kind;
-  final BoardController controller;
-  final String boardThemeId;
-  final Brightness bright;
-
-  @override
-  State<_WidgetBoardView> createState() => _WidgetBoardViewState();
-}
-
-class _WidgetBoardViewState extends State<_WidgetBoardView> {
-  @override
-  Widget build(BuildContext context) {
-    final controller = widget.controller;
-    final theme = BoardThemes.resolve(widget.boardThemeId, widget.bright);
-    final views = [...controller.cards]..sort(
-        (a, b) => a.layout.z.compareTo(b.layout.z));
-
-    if (views.isEmpty) {
-      return Center(
-        child: Text('在应用「图钉板」页钉上卡片后会显示在这里',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: theme.sectionText)),
-      );
-    }
-
-    return LayoutBuilder(builder: (context, constraints) {
-      return Stack(
-        clipBehavior: Clip.hardEdge,
-        children: [
-          for (final view in views)
-            if (widget.kind == 'both' ||
-                (widget.kind == 'todo' && view.record.refType == 'todo') ||
-                (widget.kind == 'memo' && view.record.refType == 'memo'))
-              ValueListenableBuilder<BoardCardLayout>(
-                key: ValueKey(view.record.uuid),
-                valueListenable: view.layoutNotifier,
-                builder: (context, layout, _) {
-                  // 钳制在窗口内（平台各自布局：不与主应用共享像素坐标）
-                  final x = layout.x.clamp(0.0, (constraints.maxWidth - layout.w).clamp(0.0, double.infinity));
-                  final y = layout.y.clamp(0.0, (constraints.maxHeight - layout.h).clamp(0.0, double.infinity));
-                  return Positioned(
-                    left: x,
-                    top: y,
-                    child: Transform.rotate(
-                      angle: layout.rotationDegrees * 3.14159265 / 180,
-                      child: GestureDetector(
-                        onTap: () => controller.bringToFront(view),
-                        child: _MiniCard(
-                          layout: layout,
-                          theme: theme,
-                          child: view.record.refType == 'todo'
-                              ? _MiniTodo(controller: controller, view: view)
-                              : _MiniMemo(controller: controller, view: view),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-        ],
-      );
-    });
-  }
-}
-
-class _MiniCard extends StatelessWidget {
-  const _MiniCard({
-    required this.layout,
-    required this.theme,
-    required this.child,
-  });
-
-  final BoardCardLayout layout;
-  final BoardThemeData theme;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: layout.w.clamp(120.0, 400.0),
-      height: layout.h.clamp(80.0, 400.0),
-      decoration: BoxDecoration(
-        color: theme.cardSurface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.cardBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: theme.dark ? 0.45 : 0.18),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: child,
-    );
-  }
-}
-
-class _MiniTodo extends StatelessWidget {
-  const _MiniTodo({required this.controller, required this.view});
-
-  final BoardController controller;
-  final BoardCardView view;
+  final Color bg;
+  final ColorScheme scheme;
+  final String kind;
+  final TextEditingController todoInput;
+  final TextEditingController memoInput;
+  final void Function(Task) onToggle;
+  final VoidCallback onClose;
+  final DesktopWidgetSettingsModel widgetSettings;
 
   @override
   Widget build(BuildContext context) {
     final taskModel = context.watch<TaskListModel>();
-    Task? task;
-    for (final t in taskModel.tasks) {
-      if (t.uuid == view.record.refUuid) {
-        task = t;
-        break;
-      }
-    }
-    final scheme = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: task == null
-          ? null
-          : () async {
-              await taskModel.toggle(task!);
+    final memoModel = context.watch<MemoListModel>();
+    final isTodo = kind != 'memo';
+    final openTasks = taskModel.tasks.where((t) => !t.done).length;
+
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _Header(
+            title: isTodo ? '今日待办' : '备忘',
+            sub: isTodo ? '$openTasks 项未完成' : null,
+            scheme: scheme,
+            onClose: onClose,
+            draggable: !widgetSettings.lockPosition,
+            windowTitle: widgetWindowTitle,
+          ),
+          const SizedBox(height: 6),
+          _QuickAdd(
+            hint: isTodo ? '快速添加…' : '快速记一条备忘…',
+            controller: isTodo ? todoInput : memoInput,
+            onSubmit: () async {
+              final text = (isTodo ? todoInput : memoInput).text;
+              (isTodo ? todoInput : memoInput).clear();
+              if (isTodo) {
+                await context.read<TaskListModel>().add(text);
+              } else {
+                await context.read<MemoListModel>().add(text, '');
+              }
               await DesktopMultiWindow.invokeMethod(0, 'dataChangedFromWidget');
             },
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Row(
-          children: [
-            Icon(
-              task?.done == true ? Icons.check_box : Icons.check_box_outline_blank,
-              size: 18,
-              color: task?.done == true ? scheme.primary : scheme.onSurface,
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                task?.title ?? '（源待办已删除，可取下）',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  decoration: task?.done == true
-                      ? TextDecoration.lineThrough
-                      : TextDecoration.none,
-                  color: task?.done == true ? scheme.outline : scheme.onSurface,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MiniMemo extends StatelessWidget {
-  const _MiniMemo({required this.controller, required this.view});
-
-  final BoardController controller;
-  final BoardCardView view;
-
-  @override
-  Widget build(BuildContext context) {
-    final memoModel = context.watch<MemoListModel>();
-    Memo? memo;
-    for (final m in memoModel.memos) {
-      if (m.uuid == view.record.refUuid) {
-        memo = m;
-        break;
-      }
-    }
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            memo?.title ?? '（源备忘已删除）',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
           ),
-          if (memo != null && memo.content.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Expanded(
-              child: Text(
-                memo.content,
-                overflow: TextOverflow.fade,
-                style: TextStyle(
-                    fontSize: 11.5, color: scheme.onSurfaceVariant),
-              ),
-            ),
-          ],
+          const SizedBox(height: 6),
+          Expanded(
+            child: isTodo
+                ? _TaskList(tasks: taskModel.tasks, scheme: scheme, onToggle: onToggle)
+                : _MemoList(memos: memoModel.memos, scheme: scheme),
+          ),
         ],
       ),
     );
   }
 }
 
-class _HeaderIcon extends StatelessWidget {
-  const _HeaderIcon({
-    required this.tooltip,
-    required this.icon,
-    required this.onTap,
+/// 单窗口分两栏：待办左、备忘右。
+class _DualPaneView extends StatelessWidget {
+  const _DualPaneView({
+    required this.bg,
+    required this.scheme,
+    required this.todoInput,
+    required this.memoInput,
+    required this.onToggle,
+    required this.onClose,
+    required this.widgetSettings,
   });
 
-  final String tooltip;
+  final Color bg;
+  final ColorScheme scheme;
+  final TextEditingController todoInput;
+  final TextEditingController memoInput;
+  final void Function(Task) onToggle;
+  final VoidCallback onClose;
+  final DesktopWidgetSettingsModel widgetSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    final taskModel = context.watch<TaskListModel>();
+    final memoModel = context.watch<MemoListModel>();
+    final openTasks = taskModel.tasks.where((t) => !t.done).length;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+      child: Column(
+        children: [
+          _Header(
+            title: '念念',
+            sub: '今日 $openTasks 项 · ${memoModel.memos.length} 备忘',
+            scheme: scheme,
+            onClose: onClose,
+            draggable: !widgetSettings.lockPosition,
+            windowTitle: widgetWindowTitle,
+          ),
+          const SizedBox(height: 6),
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  child: _Pane(
+                    title: '待办',
+                    scheme: scheme,
+                    child: Column(
+                      children: [
+                        _QuickAdd(
+                          hint: '快速添加…',
+                          controller: todoInput,
+                          compact: true,
+                          onSubmit: () async {
+                            final text = todoInput.text;
+                            todoInput.clear();
+                            await context.read<TaskListModel>().add(text);
+                            await DesktopMultiWindow.invokeMethod(
+                                0, 'dataChangedFromWidget');
+                          },
+                        ),
+                        const SizedBox(height: 4),
+                        Expanded(
+                          child: _TaskList(
+                              tasks: taskModel.tasks,
+                              scheme: scheme,
+                              onToggle: onToggle,
+                              dense: true),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Container(width: 1, color: scheme.outlineVariant.withOpacity(0.5)),
+                Expanded(
+                  child: _Pane(
+                    title: '备忘',
+                    scheme: scheme,
+                    child: Column(
+                      children: [
+                        _QuickAdd(
+                          hint: '快速记一条…',
+                          controller: memoInput,
+                          compact: true,
+                          onSubmit: () async {
+                            final text = memoInput.text;
+                            memoInput.clear();
+                            await context.read<MemoListModel>().add(text, '');
+                            await DesktopMultiWindow.invokeMethod(
+                                0, 'dataChangedFromWidget');
+                          },
+                        ),
+                        const SizedBox(height: 4),
+                        Expanded(
+                          child: _MemoList(
+                              memos: memoModel.memos,
+                              scheme: scheme,
+                              dense: true),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.title,
+    required this.sub,
+    required this.scheme,
+    required this.onClose,
+    required this.draggable,
+    required this.windowTitle,
+  });
+
+  final String title;
+  final String? sub;
+  final ColorScheme scheme;
+  final VoidCallback onClose;
+  final bool draggable;
+  final String windowTitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onPanStart: draggable ? (_) => WidgetWindowNative.beginDrag(windowTitle: windowTitle) : null,
+      child: Row(
+        children: [
+          Icon(Icons.push_pin_rounded, size: 16, color: scheme.primary),
+          const SizedBox(width: 6),
+          Text(title,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w600)),
+          if (sub != null) ...[
+            const SizedBox(width: 8),
+            Expanded(
+                child: Text(sub!,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelSmall
+                        ?.copyWith(color: scheme.outline))),
+          ] else
+            const Spacer(),
+          _IconBtn(
+              icon: Icons.open_in_new, onTap: () => WidgetWindowNative.openMainWindow()),
+          _IconBtn(icon: Icons.close_rounded, onTap: onClose),
+        ],
+      ),
+    );
+  }
+}
+
+class _IconBtn extends StatelessWidget {
+  const _IconBtn({required this.icon, required this.onTap});
+
   final IconData icon;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    return InkResponse(
+      onTap: onTap,
+      radius: 14,
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Icon(icon, size: 15, color: Theme.of(context).colorScheme.outline),
+      ),
+    );
+  }
+}
+
+class _Pane extends StatelessWidget {
+  const _Pane({required this.title, required this.scheme, required this.child});
+
+  final String title;
+  final ColorScheme scheme;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: scheme.outline,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickAdd extends StatelessWidget {
+  const _QuickAdd({
+    required this.hint,
+    required this.controller,
+    required this.onSubmit,
+    this.compact = false,
+  });
+
+  final String hint;
+  final TextEditingController controller;
+  final VoidCallback onSubmit;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Icon(icon, size: 15, color: scheme.outline),
+    return TextField(
+      controller: controller,
+      style: TextStyle(fontSize: compact ? 12 : 13),
+      decoration: InputDecoration(
+        hintText: hint,
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: compact ? 6 : 8,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: scheme.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: scheme.outlineVariant),
         ),
       ),
+      onSubmitted: (_) => onSubmit(),
+      textInputAction: TextInputAction.done,
+    );
+  }
+}
+
+class _TaskList extends StatelessWidget {
+  const _TaskList({
+    required this.tasks,
+    required this.scheme,
+    required this.onToggle,
+    this.dense = false,
+  });
+
+  final List tasks;
+  final ColorScheme scheme;
+  final void Function(Task) onToggle;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    if (tasks.isEmpty) {
+      return Center(
+        child: Text('还没有待办',
+            style: TextStyle(fontSize: 12, color: scheme.outline)),
+      );
+    }
+    return ListView.builder(
+      padding: EdgeInsets.zero,
+      itemCount: tasks.length,
+      itemBuilder: (context, i) {
+        final task = tasks[i] as Task;
+        return InkWell(
+          onTap: () => onToggle(task),
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: dense ? 1 : 2),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: dense ? 18 : 20,
+                  height: dense ? 18 : 20,
+                  child: Checkbox(
+                    value: task.done,
+                    onChanged: (_) => onToggle(task),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    task.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: dense ? 12 : 13,
+                      decoration: task.done
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
+                      color: task.done ? scheme.outline : scheme.onSurface,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MemoList extends StatelessWidget {
+  const _MemoList({
+    required this.memos,
+    required this.scheme,
+    this.dense = false,
+  });
+
+  final List memos;
+  final ColorScheme scheme;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    if (memos.isEmpty) {
+      return Center(
+        child: Text('还没有备忘',
+            style: TextStyle(fontSize: 12, color: scheme.outline)),
+      );
+    }
+    return ListView.builder(
+      padding: EdgeInsets.zero,
+      itemCount: memos.length,
+      itemBuilder: (context, i) {
+        final memo = memos[i] as Memo;
+        return Padding(
+          padding: EdgeInsets.symmetric(vertical: dense ? 1 : 2),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                memo.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: dense ? 12 : 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (memo.content.isNotEmpty)
+                Text(
+                  memo.content,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: dense ? 11 : 11.5, color: scheme.outline),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -169,3 +169,38 @@ ServerSyncProvider（cursor 协议）留好了插入点。
 - analyze 0 error、25/25 测试过
 - 实际启动后窗口：`念念 Memodo`（主）+ `待办小组件`（单卡片布局只开这一张）
 - 切双卡片 = 关闭 + 重开，UI 正常，**不崩溃**（先前看到的 1104 是构建期残留进程）
+
+---
+
+# 2026-08-29 桌面小组件语义修正 + 性能优化
+
+## 语义修正
+
+- "双卡片" = **单窗口分两栏**（待办左、备忘右），不再是两个独立窗口
+  - 更符合"桌面卡片"的语感；消除双窗口资源浪费与切布局的崩溃风险
+- WidgetLayout: `single`(单卡片) / `dual`(单窗口分两栏)
+
+## 性能优化（用户报告"切布局白窗口很久"）
+
+实测发现：
+- `desktop_multi_window 0.2.x` **主进程与子窗口共享同一进程**（多 Flutter Engine 实例）
+- 这意味着"切单/双卡片"不再需要重建进程——只是 show/hide + 广播 `layoutChanged`
+- 进一步做：
+  - **预创建**（默认开）：应用启动即起子窗口、藏在任务栏后
+  - 点击"显示"只是 `show()` + 广播设置 → **毫秒级**
+  - 切换布局 = `invokeMethod('layoutChanged')` → 子进程重画 → 不重启引擎
+  - 关闭 = `hide()` → 进程留着，状态完整，再次显示无延迟
+
+## 改动
+
+- `lib/desktop/widget_settings.dart`：`WidgetLayout` 重命名、`preCreate` 开关
+- `lib/desktop/widget_launcher.dart`：`boot()` / `showWindow()` / `hideWindow()` API
+- `lib/pages/widget_window_page.dart`：单/dual 两套布局共用 widget；预创建模式走 `_startedHidden` 占位
+- `lib/main.dart`：启动时按 `preCreate || enabled` 调 `boot()`，监听器负责后续 show/hide
+
+## 验证
+
+- analyze 0 error、25/25 测试过
+- 启动后窗口：主“念念 Memodo” + 子“念念小组件”（同一 pid）
+- 切换 dual → 仍同一 pid，子窗口仅重画
+- preCreate=true：子窗口在任务栏后已就绪，show 几乎瞬间完成

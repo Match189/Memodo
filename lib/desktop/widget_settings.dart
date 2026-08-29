@@ -4,8 +4,10 @@ import 'package:flutter/foundation.dart';
 
 import '../data/settings_store.dart';
 
-/// 小组件显示布局：单卡片（待办+备忘合并）或双卡片（两个独立窗口）。
-enum WidgetLayout { single, split }
+/// 小组件显示布局：
+/// - [single]：单卡片（按内容类型显示待办或备忘）
+/// - [dual]：单窗口分两栏（待办在左、备忘在右，同时可见）
+enum WidgetLayout { single, dual }
 
 /// 小组件窗口材质（Windows 窗口合成）。
 enum WidgetMaterial {
@@ -55,6 +57,9 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
   /// 关闭主窗口时最小化到托盘（true=不退出，托盘图标可恢复）。
   bool closeToTray = true;
 
+  /// 启动时是否预创建子窗口（藏在任务栏后），打开时只需 show()。
+  bool preCreate = true;
+
   /// 卡片样式：classic=经典列表（当前模式）；board=图钉板样式。
   String cardStyle = 'classic';
 
@@ -85,11 +90,12 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
       attachToDesktop = json['attachToDesktop'] as bool? ?? false;
       autostart = json['autostart'] as bool? ?? false;
       closeToTray = json['closeToTray'] as bool? ?? true;
+      preCreate = json['preCreate'] as bool? ?? true;
       cardStyle = json['cardStyle'] as String? ?? cardStyle;
       boardThemeId = json['boardThemeId'] as String? ?? boardThemeId;
       material = WidgetMaterial.from(json['material'] as String?);
-      layout = json['layout'] == 'split'
-          ? WidgetLayout.split
+      layout = json['layout'] == 'dual'
+          ? WidgetLayout.dual
           : WidgetLayout.single;
       posX = json['posX'] as int?;
       posY = json['posY'] as int?;
@@ -159,6 +165,18 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
     await save();
   }
 
+  /// 主进程广播设置变化后调用：重新加载并通知本引擎的 UI。
+  Future<void> reload() async {
+    await load();
+    notifyListeners();
+  }
+
+  Future<void> setPreCreate(bool value) async {
+    if (preCreate == value) return;
+    preCreate = value;
+    await save();
+  }
+
   Future<void> setCardStyle(String value) async {
     if (cardStyle == value) return;
     cardStyle = value;
@@ -216,6 +234,7 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
         'attachToDesktop': attachToDesktop,
         'autostart': autostart,
         'closeToTray': closeToTray,
+        'preCreate': preCreate,
         'cardStyle': cardStyle,
         'boardThemeId': boardThemeId,
         'posX': posX,

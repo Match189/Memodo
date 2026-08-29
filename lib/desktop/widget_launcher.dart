@@ -7,183 +7,197 @@ import 'package:flutter/material.dart';
 import 'widget_settings.dart';
 import '../pages/widget_window_page.dart';
 
-/// Windows 桌面小组件窗口管理（SPD §11/§12）。
+/// Windows 桌面小组件窗口管理（SPD §11/§12 + 用户确认的语义）。
 ///
-/// 架构约定（防跨进程崩溃）：主进程只做窗口创建/关闭/发命令
-/// （desktop_multi_window 插件级 API，进程安全）；**对本窗口的原生加工
-/// （无边框/置顶/材质/附着桌面/位置采样）由小组件子窗口进程自己执行**
-/// （见 widget_window_page 的自套样式与命令响应）。
+/// - 单窗口多布局：single=按内容类型显示；dual=窗口内分两栏（待办+备忘）
+/// - 预创建（preCreate=true）：应用启动时即起子进程，藏在任务栏后，
+///   切换 enabled/layout 时只需 show()/hide()，无 Flutter 引擎启动延迟
 class WidgetLauncher {
   WidgetLauncher._();
 
-  static const singleSize = Size(300, 430);
-  static const todoSplitSize = Size(300, 380);
-  static const memoSplitSize = Size(300, 300);
+  static const defaultSize = Size(360, 480);
 
-  static int? _todoWindowId;
-  static int? _memoWindowId;
+  static int? _windowId;
   static bool _opening = false;
+  static bool _preCreated = false;
+  static bool _isShown = false;
   static DesktopWidgetSettingsModel? _settings;
   static bool _lastEnabled = false;
-  static bool _lastLayoutNotified = false;
+  static bool _lastPreCreate = false;
   static WidgetLayout _lastLayout = WidgetLayout.single;
 
   static void bind(DesktopWidgetSettingsModel settings) {
     _settings = settings;
     _lastEnabled = settings.enabled;
     _lastLayout = settings.layout;
+    _lastPreCreate = settings.preCreate;
     settings.addListener(_onSettingsChanged);
   }
 
-  /// 只对布局/开关变化做出反应（这些会改变窗口集合）。
   static Future<void> _onSettingsChanged() async {
     final s = _settings;
     if (s == null) return;
     if (s.enabled != _lastEnabled) {
       _lastEnabled = s.enabled;
       if (s.enabled) {
-        await ensureOpen();
+        await showWindow();
       } else {
-        await close();
+        await hideWindow();
       }
       return;
     }
     if (s.layout != _lastLayout) {
       _lastLayout = s.layout;
-      // 布局切换 = 关掉按新布局重开（各自位置记忆保留）。
-      await close();
-      if (s.enabled) await ensureOpen();
+      // 布局变化时向子进程广播，让它重画（无需重启进程）
+      try {
+        await DesktopMultiWindow.invokeMethod(_windowId!, 'layoutChanged');
+      } catch (_) {}
+    }
+    if (s.preCreate != _lastPreCreate) {
+      _lastPreCreate = s.preCreate;
+      if (s.preCreate && !_preCreated) {
+        await preCreateHidden();
+      } else if (!s.preCreate && !_isShown) {
+        // 关掉预创建 = 关闭已有窗口
+        await destroyWindow();
+      }
     }
   }
 
-  static bool get isOpen => _todoWindowId != null || _memoWindowId != null;
+  /// 应用启动时调用：按设置预创建/显示窗口。
+  static Future<void> boot() async {
+    final s = _settings;
+    if (s == null) return;
+    if (s.preCreate || s.enabled) {
+      await preCreateHidden();
+      if (s.enabled) await showWindow();
+    }
+  }
 
-  static List<int> get _openIds => [
-        if (_todoWindowId != null) _todoWindowId!,
-        if (_memoWindowId != null) _memoWindowId!,
-      ];
+  static bool get isOpen => _isShown;
 
-  /// 打开（或按布局补齐）小组件窗口组。
-  ///
-  /// 可被多条路径并发触发，用 [_opening] 单飞 + 孤儿子窗口收养，
-  /// 保证任何时刻至多一组窗口。原生样式由子窗口进程自己套。
-  static Future<void> ensureOpen() async {
+  static Future<void> showWindow() async {
     if (_opening) return;
     _opening = true;
     try {
-      final s = _settings;
-      if (s == null) return;
-      final wantMemo = s.layout == WidgetLayout.split;
-
-      // 自愈：遗留的孤儿子窗口先收养（第一个归待办，第二个归备忘），多余关掉。
-      try {
-        final ids = await DesktopMultiWindow.getAllSubWindowIds();
-        for (final id in ids) {
-          if (_todoWindowId == null) {
-            _todoWindowId = id;
-          } else if (wantMemo && _memoWindowId == null) {
-            _memoWindowId = id;
-          } else {
-            await WindowController.fromWindowId(id).close();
-          }
-        }
-      } catch (_) {}
-
-      if (_todoWindowId == null) {
-        final controller = await DesktopMultiWindow.createWindow(jsonEncode({
-          'type': 'widget',
-          'kind': 'todo',
-        }));
-        _todoWindowId = controller.windowId;
-        final size = wantMemo ? todoSplitSize : singleSize;
-        await controller
-          ..setTitle(widgetWindowTitle)
-          ..setFrame(const Offset(1200, 260) & size)
-          ..show();
+      if (_windowId == null) {
+        await _createWindow();
       }
-      if (wantMemo && _memoWindowId == null) {
-        final controller = await DesktopMultiWindow.createWindow(jsonEncode({
-          'type': 'widget',
-          'kind': 'memo',
-        }));
-        _memoWindowId = controller.windowId;
-        await controller
-          ..setTitle(memoWidgetWindowTitle)
-          ..setFrame(const Offset(960, 460) & memoSplitSize)
-          ..show();
-      }
-      // 单卡片布局下备忘窗口不应存在。
-      if (!wantMemo && _memoWindowId != null) {
-        final id = _memoWindowId!;
-        _memoWindowId = null;
-        try {
-          await WindowController.fromWindowId(id).close();
-        } catch (_) {}
+      if (_windowId != null) {
+        await WindowController.fromWindowId(_windowId!).show();
+        _isShown = true;
       }
     } finally {
       _opening = false;
     }
   }
 
-  static Future<void> close() async {
-    final ids = [_todoWindowId, _memoWindowId].whereType<int>().toList();
-    _todoWindowId = null;
-    _memoWindowId = null;
-    for (final id in ids) {
-      try {
-        await WindowController.fromWindowId(id).close();
-      } catch (_) {}
-    }
-    // desktop_multi_window 0.2.x 的 close() 只发原生信号，子进程退出有延迟。
-    // 紧接着的 createWindow 可能撞上仍持着 exe 的子进程（Windows LNK1104 风险）。
-    // 轮询等待子进程窗口彻底消失，最多 ~1.5s。
-    for (var i = 0; i < 15; i++) {
-      try {
-        final left = await DesktopMultiWindow.getAllSubWindowIds();
-        if (left.isEmpty) break;
-      } catch (_) {
-        break;
+  static Future<void> hideWindow() async {
+    if (_windowId == null) return;
+    _isShown = false;
+    try {
+      await WindowController.fromWindowId(_windowId!).hide();
+    } catch (_) {}
+  }
+
+  static Future<void> destroyWindow() async {
+    final id = _windowId;
+    _windowId = null;
+    _preCreated = false;
+    _isShown = false;
+    if (id == null) return;
+    try {
+      await WindowController.fromWindowId(id).close();
+    } catch (_) {}
+  }
+
+  /// 启动一个 Flutter 引擎子进程（窗口先藏起来），供后续秒开。
+  static Future<void> preCreateHidden() async {
+    if (_windowId != null) return;
+    if (_opening) return;
+    _opening = true;
+    try {
+      await _createWindow();
+      if (_windowId != null) {
+        // 让子窗口自套样式后立即隐藏
+        try {
+          await DesktopMultiWindow.invokeMethod(_windowId!, 'initHidden');
+          await WindowController.fromWindowId(_windowId!).hide();
+        } catch (_) {}
+        _preCreated = true;
       }
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+    } finally {
+      _opening = false;
     }
+  }
+
+  static Future<void> _createWindow() async {
+    final s = _settings;
+    if (s == null) return;
+    try {
+      // 自愈：清理遗留子窗口
+      final ids = await DesktopMultiWindow.getAllSubWindowIds();
+      for (final id in ids) {
+        if (_windowId == null) {
+          _windowId = id;
+        } else {
+          try {
+            await WindowController.fromWindowId(id).close();
+          } catch (_) {}
+        }
+      }
+      if (_windowId == null) {
+        final controller = await DesktopMultiWindow.createWindow(jsonEncode({
+          'type': 'widget',
+          // dual 模式下 kind 决定子窗口分两栏；single 模式下从偏好推断
+          'kind': s.layout == WidgetLayout.dual ? 'dual' : 'todo',
+        }));
+        _windowId = controller.windowId;
+        await controller
+          ..setTitle(widgetWindowTitle)
+          ..setFrame(const Offset(1200, 260) & defaultSize)
+          ..show();
+      }
+    } catch (_) {}
   }
 
   /// 小组件窗口自己点了关闭：清引用但不重复关。
   static void forget(int windowId) {
-    if (_todoWindowId == windowId) _todoWindowId = null;
-    if (_memoWindowId == windowId) _memoWindowId = null;
+    if (_windowId == windowId) {
+      _windowId = null;
+      _preCreated = false;
+      _isShown = false;
+    }
   }
 
-  /// 广播材质/透明度变化给小组件（子窗口在本进程内自套 accent）。
+  /// 广播材质/透明度给子进程（由子进程自己套样式）。
   static Future<void> updateSurface({
     required WidgetMaterial material,
     required int opacity,
   }) async {
-    for (final id in _openIds) {
-      try {
-        await DesktopMultiWindow.invokeMethod(id, 'applySurface', {
-          'acrylic': material == WidgetMaterial.acrylic,
-          'opacity': opacity,
-        });
-      } catch (_) {}
-    }
+    final id = _windowId;
+    if (id == null) return;
+    try {
+      await DesktopMultiWindow.invokeMethod(id, 'applySurface', {
+        'acrylic': material == WidgetMaterial.acrylic,
+        'opacity': opacity,
+      });
+    } catch (_) {}
   }
 
-  /// 广播置顶变化。
   static Future<void> updateTopmost(bool topmost) async {
-    for (final id in _openIds) {
-      try {
-        await DesktopMultiWindow.invokeMethod(id, 'setTopmost', topmost);
-      } catch (_) {}
-    }
+    final id = _windowId;
+    if (id == null) return;
+    try {
+      await DesktopMultiWindow.invokeMethod(id, 'setTopmost', topmost);
+    } catch (_) {}
   }
 
-  /// 广播附着桌面/脱离（子窗口在本进程内 WorkerW SetParent，安全）。
   static Future<void> updateAttach(bool attach) async {
-    for (final id in _openIds) {
-      try {
-        await DesktopMultiWindow.invokeMethod(id, attach ? 'attach' : 'detach');
-      } catch (_) {}
-    }
+    final id = _windowId;
+    if (id == null) return;
+    try {
+      await DesktopMultiWindow.invokeMethod(id, attach ? 'attach' : 'detach');
+    } catch (_) {}
   }
 }

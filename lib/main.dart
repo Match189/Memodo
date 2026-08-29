@@ -257,20 +257,15 @@ void _setupDesktopWidget(
         // 子窗口进程回报自己的位置（只读采样在子进程内完成，安全）。
         final a = (call.arguments as Map?)?.cast<String, Object?>();
         if (a != null) {
-          final kind = a['kind'] as String? ?? '';
           final x = (a['x'] as num?)?.toInt();
           final y = (a['y'] as num?)?.toInt();
           final w = (a['w'] as num?)?.toInt();
           final h = (a['h'] as num?)?.toInt();
           if (x != null && y != null && w != null && h != null) {
-            if (kind == 'memo') {
-              await widgetSettings.saveMemoWindowRect(
-                  x: x, y: y, w: w, h: h);
-            } else {
-              await widgetSettings.saveWindowRect(x: x, y: y, w: w, h: h);
-            }
+            await widgetSettings.saveWindowRect(x: x, y: y, w: w, h: h);
           }
         }
+        return;
       case 'widgetClosed':
         final id = call.arguments is int ? call.arguments as int : null;
         if (id != null) WidgetLauncher.forget(id);
@@ -297,9 +292,11 @@ void _setupDesktopWidget(
   // 外观/小组件设置变化（卡片样式等）。
   widgetSettings.addListener(() => broadcastToWidget('settingsChanged'));
 
-  // 应用启动时若上次开着小组件，则自动恢复。
-  if (widgetSettings.enabled) {
-    unawaited(WidgetLauncher.ensureOpen());
+  // 应用启动时按设置预创建子窗口（藏在任务栏后），可见化只需 show。
+  if (widgetSettings.enabled || widgetSettings.preCreate) {
+    unawaited(WidgetLauncher.boot());
+  } else {
+    // 监听器兜底：用户在设置页开启/切换时再创建。
   }
 }
 

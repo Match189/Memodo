@@ -398,7 +398,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         label: Text('单卡片'),
                         icon: Icon(Icons.crop_square_rounded)),
                     ButtonSegment(
-                        value: WidgetLayout.split,
+                        value: WidgetLayout.dual,
                         label: Text('双卡片'),
                         icon: Icon(Icons.splitscreen_rounded)),
                   ],
@@ -538,6 +538,19 @@ class _SettingsPageState extends State<SettingsPage> {
                   }
                 }
               },
+            ),
+            SwitchListTile(
+              title: const Text('启动时预创建小组件窗口'),
+              subtitle: const Text('开启后应用启动即创建小组件进程并隐藏；点击“显示”时秒开'),
+              value: widgetSettings.preCreate,
+              onChanged: widgetSettings.enabled
+                  ? (v) => widgetSettings.setPreCreate(v)
+                  : (v) async {
+                      if (v) {
+                        await widgetSettings.setEnabled(true);
+                        await widgetSettings.setPreCreate(v);
+                      }
+                    },
             ),
             SwitchListTile(
               title: const Text('关闭主窗口时最小化到托盘'),
