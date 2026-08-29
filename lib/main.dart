@@ -32,6 +32,16 @@ import 'theme/app_theme.dart';
 import 'theme/theme_settings.dart';
 
 Future<void> main(List<String> args) async {
+  // 全局错误兜底：release 模式下未捕获异常不再"无声卡启动屏"，
+  // 而是把错误直接画在屏幕上，方便用户截图反馈（尤其手机端无 adb 时）。
+  await runZonedGuarded<Future<void>>(() async {
+    await _boot(args);
+  }, (error, stack) {
+    _showFatalError(error, stack);
+  });
+}
+
+Future<void> _boot(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final isDesktop =
@@ -256,6 +266,26 @@ void _setupAndroidWidget(
   taskModel.addListener(schedulePush);
   memoModel.addListener(schedulePush);
   widgetSettings.addListener(schedulePush);
+}
+
+/// 致命错误展示：把异常与堆栈直接渲染出来（release 也能看到）。
+void _showFatalError(Object error, StackTrace stack) {
+  FlutterError.presentError(
+      FlutterErrorDetails(exception: error, stack: stack));
+  runApp(MaterialApp(
+    debugShowCheckedModeBanner: false,
+    home: Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: SelectableText(
+            '启动失败，请截图反馈给开发者：\n\n$error\n\n$stack',
+            style: const TextStyle(fontSize: 12),
+          ),
+        ),
+      ),
+    ),
+  ));
 }
 
 class TodolistApp extends StatelessWidget {
