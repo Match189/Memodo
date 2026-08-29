@@ -1,4 +1,5 @@
 """密码哈希与 JWT（SPD §15：禁止明文密码；日志禁止输出 Token）。"""
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from jose import JWTError, jwt
@@ -24,6 +25,8 @@ def _make_token(subject: str, kind: str, minutes: int) -> str:
     payload = {
         "sub": subject,
         "typ": kind,
+        # 随机 jti：同秒内刷新也产生不同 token（可轮换、可吊销追踪）
+        "jti": secrets.token_hex(8),
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(minutes=minutes)).timestamp()),
     }

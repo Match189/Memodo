@@ -1,4 +1,4 @@
-package com.example.todolist
+package app.memodo
 
 import android.content.Context
 import android.content.Intent

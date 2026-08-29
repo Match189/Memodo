@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todolist/home_widget_bridge.dart';
-import 'package:todolist/models/memo.dart';
-import 'package:todolist/models/task.dart';
+import 'package:memodo/home_widget_bridge.dart';
+import 'package:memodo/models/memo.dart';
+import 'package:memodo/models/task.dart';
 
 void main() {
   List<Task> makeTasks(int n) => List.generate(

@@ -1,4 +1,4 @@
-package com.example.todolist
+package app.memodo
 
 import io.flutter.embedding.android.FlutterActivity
 

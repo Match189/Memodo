@@ -20,7 +20,7 @@ class HomeWidgetBridge {
   static const _dbPathKey = 'db_path';
   static const _showCompletedKey = 'show_completed';
   static const _maxItemsKey = 'max_items';
-  static const _providerClass = 'com.example.todolist.TodayWidgetProvider';
+  static const _providerClass = 'app.memodo.TodayWidgetProvider';
 
   static int maxItems = 12;
   static bool showCompleted = false;

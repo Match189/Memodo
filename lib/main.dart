@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:sqflite/sqflite.dart' as sqflite;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -15,6 +16,7 @@ import 'data/settings_store.dart';
 import 'data/task_repository.dart';
 import 'desktop/android_widget_settings.dart';
 import 'desktop/main_window.dart' show mainWindowDisplayTitle;
+import 'desktop/tray_service.dart';
 import 'desktop/widget_launcher.dart';
 import 'desktop/widget_settings.dart';
 import 'desktop/win32_window_style.dart';
@@ -65,6 +67,9 @@ Future<void> main(List<String> args) async {
     sqfliteFfiInit();
     sqflite.databaseFactory = databaseFactoryFfi;
   }
+  if (Platform.isWindows) {
+    await migrateLegacyDatabase();
+  }
   final db = await AppDatabase.open();
 
   // SPD §9：本机设备身份（同步 LWW 平局决胜）。
@@ -99,6 +104,7 @@ Future<void> main(List<String> args) async {
 
   if (Platform.isWindows) {
     _setupDesktopWidget(taskModel, memoModel, desktopWidgetSettings);
+    unawaited(TrayService.instance.init());
     // 品牌化窗口标题（运行时改，规避 Runner 模板编码问题）。
     Timer(const Duration(milliseconds: 800), () {
       unawaited(
@@ -133,6 +139,20 @@ Future<void> main(List<String> args) async {
     ],
     child: const TodolistApp(),
   ));
+}
+
+/// R1 包名迁移：老版本（com.example\todolist）的库文件搬到新品牌位置。
+/// 只在新位置没有库时搬一次；两处都存在则信任新位置。
+Future<void> migrateLegacyDatabase() async {
+  final appData = Platform.environment['APPDATA'];
+  if (appData == null) return;
+  final legacy = File(p.join(appData, 'com.example', 'todolist', 'todolist.db'));
+  if (!legacy.existsSync()) return;
+  final support = await getApplicationSupportDir();
+  final target = File(p.join(support, 'todolist.db'));
+  if (target.existsSync()) return;
+  await legacy.copy(target.path);
+  debugPrint('[migrate] legacy db -> ${target.path}');
 }
 
 /// Windows 桌面小组件：跟随设置开关；小组件与主窗口互相同步数据变化。

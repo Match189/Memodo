@@ -40,16 +40,36 @@
 
 | 轮次 | 主题 | 内容 | 工作量 |
 | --- | --- | --- | --- |
-| **R1 v1.0 发布就绪** | 正式身份 | ① 包名迁移（数据迁移方案）② 应用图标（flutter_launcher_icons 全尺寸生成）③ Android 签名（keystore 本地、密码不入库）④ 系统托盘 + 开机自启 ⑤ 远程私有仓库 + CI（analyze/test/pytest） | 2~3 天 |
-| **R2 同步深化** | 本提案落地 | ① 上传冲突重检 ② 归档功能 ③ 数据导出/导入 JSON ④ pull 请求携带 deviceId（服务器心跳修正） | 1~1.5 天 |
+| **R1 v1.0 发布就绪** | 正式身份 | ① 定名 **Memodo** + 包名迁移 `app.memodo`（Dart/Android/Windows 全栈 + 旧数据自动迁移）② 应用图标（flutter_launcher_icons 全尺寸 + 托盘图标）③ Android 签名（PKCS12 keystore，CN=Memodo，密钥本地不入库）④ 系统托盘 + 开机自启 ⑤ 服务器公网准备（pull deviceId 心跳、Caddyfile 示例） | ✅ 完成 |
+| **R2 同步深化** | 冲突重检 + 归档 | ① 上传冲突重检 ② 归档功能 ③ 数据导出/导入 JSON ④ ~~pull 携带 deviceId~~（已并入 R1） | 1 天 |
 | **R3 提醒与详情** | 激活数据字段 | ① 任务详情页（description/dueAt/priority 编辑）② 到期本地通知（双端）③ 搜索过滤 | 1~2 天 |
-| **R4 服务器正式化**（可选） | 公网部署 | Alembic 迁移、Caddy HTTPS、push 分页、部署到 VPS/NAS | 1~2 天 |
+| **R4 服务器正式化** | 公网测试（用户已确认会做） | 按 todo-server/README 部署：compose + Caddy HTTPS + 公网客户端连通测试 | 用户执行 |
 
-**依赖关系**：R1 的包名迁移要在手机端大量使用数据前完成（最痛的一次性成本）；
-R2 与 R3 无依赖可并行；R4 独立。
+| 决策项 | 决定 |
+| --- | --- |
+| 项目名 / 包名 | **Memodo** / `app.memodo` |
+| 远程仓库 | 所有工作完工后统一上传（本地 git 逐阶段提交已就绪） |
+| 服务器 | 将在公网测试 → HTTPS 部署按 todo-server/README + Caddyfile.example 执行 |
 
-## 3. 决策项（R1 开工前需要确认）
+---
 
-1. 包名：建议 `dev.<标识>.todolist`，确定后不再改
-2. 是否推远程私有仓库（GitHub/Gitee），CI 用哪个
-3. 服务器是否公网部署（决定 R4 优先级）
+## R1 完工记录（Memodo v1.0 发布就绪）
+
+**定名**：Memodo（Memo + Todo 合成词）。包名 `app.memodo`；Windows 产品名 Memodo、exe `memodo.exe`。
+
+**修改文件**
+- `pubspec.yaml`（name: memodo + tray 图标资产）、全部 `package:memodo/` 导入
+- Android：`build.gradle.kts`（namespace/applicationId/签名配置）、Kotlin 包目录 `app/memodo/*`、key.properties（本地）、`memodo-release.jks`（本地）
+- Windows：`CMakeLists.txt`（BINARY_NAME memodo）、`Runner.rc`（公司/产品/描述）、运行时窗口标题 `待办备忘`
+- 新增：`lib/desktop/{autostart,tray_service,main_window}.dart`、`assets/icon/*`（GDI+ 绘制源图 + ico）
+- `lib/main.dart`：旧数据迁移（`%APPDATA%\com.example\todolist` → 新支持目录，幂等）、托盘初始化
+- 服务器：`/sync/pull` 可选 deviceId 心跳、`Caddyfile.example`、token 加 jti 防同秒重复
+
+**验证**：analyze 0 error；Flutter 22/22、pytest 6/6；`memodo.exe` 启动 + 小组件自动恢复（位置记忆）+
+旧库自动迁移实测（32KB 新库）；APK 签名证书 `CN=Memodo, OU=Personal, O=Memodo, C=CN` 验证通过。
+
+**已知问题 / 用户须知**
+- ⚠️ **务必备份 `android/app/memodo-release.jks` 和 `android/key.properties`**（丢失后无法再发布同应用更新）
+- 安卓端包名变了 = 全新应用：手机重装后需重新登录坚果云/服务器，云端数据会自动拉回
+- Windows 首次启动自动把旧库复制到 `%APPDATA%\app.memodo\Memodo\`（旧文件保留未删）
+- 公网部署按 `todo-server/README.md` + `Caddyfile.example`；测试期也建议至少改默认 JWT 密钥

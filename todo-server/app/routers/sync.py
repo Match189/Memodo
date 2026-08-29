@@ -95,14 +95,18 @@ async def push(
 @router.get("/pull", response_model=PullOut)
 async def pull(
     cursor: int = Query(default=0, ge=0),
+    deviceId: str | None = Query(default=None, max_length=64),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
     """SPD §7/§8：返回 cursor 之后的变化，按 server 序分页。
 
-    cursor 用服务端自增 id，单调不回退；客户端持久化它实现增量。
+    cursor 用服务端自增 server_seq，单调不回退；客户端持久化它实现增量。
+    可选 deviceId 用于设备心跳。
     """
     page = get_settings().pull_page_size
+    if deviceId:
+        await touch_device(session, user.id, deviceId)
     rows = (
         await session.execute(
             select(Item)

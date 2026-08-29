@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite/sqflite.dart' as sqflite;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:todolist/data/app_database.dart';
-import 'package:todolist/data/memo_repository.dart';
-import 'package:todolist/data/settings_store.dart';
-import 'package:todolist/data/task_repository.dart';
-import 'package:todolist/models/memo.dart';
-import 'package:todolist/models/task.dart';
+import 'package:memodo/data/app_database.dart';
+import 'package:memodo/data/memo_repository.dart';
+import 'package:memodo/data/settings_store.dart';
+import 'package:memodo/data/task_repository.dart';
+import 'package:memodo/models/memo.dart';
+import 'package:memodo/models/task.dart';
 
 void main() {
   sqfliteFfiInit();

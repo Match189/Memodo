@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../desktop/android_widget_settings.dart';
+import '../desktop/autostart.dart';
 import '../desktop/widget_launcher.dart';
 import '../desktop/widget_settings.dart';
 import '../home_widget_bridge.dart';
@@ -438,6 +439,31 @@ class _SettingsPageState extends State<SettingsPage> {
                       if (ok) await widgetSettings.setAttachToDesktop(v);
                     }
                   : null,
+            ),
+            SwitchListTile(
+              title: const Text('开机自启'),
+              subtitle: const Text('登录 Windows 后自动运行 Memodo（含小组件自动恢复）'),
+              value: widgetSettings.autostart,
+              onChanged: (v) async {
+                try {
+                  await Autostart.setEnabled(v);
+                  await widgetSettings.setAutostart(v);
+                } catch (_) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('设置开机自启失败'),
+                      width: 320,
+                      behavior: SnackBarBehavior.floating,
+                    ));
+                  }
+                }
+              },
+            ),
+            SwitchListTile(
+              title: const Text('系统托盘'),
+              subtitle: const Text('在任务栏托盘显示图标，可快速打开主窗口'),
+              value: true,
+              onChanged: null,
             ),
           ],
         ),

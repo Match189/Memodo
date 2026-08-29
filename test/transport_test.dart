@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:todolist/sync/transports/oss_transport.dart';
+import 'package:memodo/sync/transports/oss_transport.dart';
 
 void main() {
   group('OSS 通道（MockClient 校验签名请求）', () {

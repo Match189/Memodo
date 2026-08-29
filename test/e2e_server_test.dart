@@ -11,13 +11,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import 'package:todolist/data/app_database.dart';
-import 'package:todolist/data/memo_repository.dart';
-import 'package:todolist/data/task_repository.dart';
-import 'package:todolist/models/task.dart';
-import 'package:todolist/sync/server_sync_provider.dart';
-import 'package:todolist/sync/sync_provider.dart';
-import 'package:todolist/sync/sync_settings_model.dart' show ServerConfig;
+import 'package:memodo/data/app_database.dart';
+import 'package:memodo/data/memo_repository.dart';
+import 'package:memodo/data/task_repository.dart';
+import 'package:memodo/models/task.dart';
+import 'package:memodo/sync/server_sync_provider.dart';
+import 'package:memodo/sync/sync_provider.dart';
+import 'package:memodo/sync/sync_settings_model.dart' show ServerConfig;
 
 const serverPort = 18123;
 

@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:todolist/data/app_database.dart';
+import 'package:memodo/data/app_database.dart';
 
 /// SPD Phase 1：数据库迁移回归测试。
 /// 从手工构造的 v1 旧库出发，经 AppDatabase.open 走完 v1→v2→v3 全链路。

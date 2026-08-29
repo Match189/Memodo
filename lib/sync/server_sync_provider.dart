@@ -190,12 +190,12 @@ class ServerSyncProvider implements SyncProvider {
         if (m.uuid != null) memoChange(m),
     ]);
 
-    // ---- pull：cursor 增量，循环到 hasMore=false ----
+    // ---- pull：cursor 增量，循环到 hasMore=false（带设备心跳） ----
     var changedRemote = 0;
     var guard = 0;
     while (true) {
-      final page = await _getJson(
-          '/api/v1/sync/pull', {'cursor': '${config.cursor}'});
+      final page = await _getJson('/api/v1/sync/pull',
+          {'cursor': '${config.cursor}', 'deviceId': ctx.deviceId});
       config.cursor = (page['cursor']! as num).toInt();
 
       for (final raw in (page['changes']! as List).cast<Map>()) {

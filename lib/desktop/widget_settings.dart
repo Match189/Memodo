@@ -27,6 +27,9 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
   /// 不稳定/失败时自动回退普通窗口模式。
   bool attachToDesktop = false;
 
+  /// 开机自启（Windows：HKCU Run 注册表，无需管理员）。
+  bool autostart = false;
+
   /// 上次窗口位置与尺寸（恢复用；由主进程周期性采样保存）。
   int? posX;
   int? posY;
@@ -43,6 +46,7 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
       opacity = (json['opacity'] as int? ?? 90).clamp(30, 100);
       lockPosition = json['lockPosition'] as bool? ?? false;
       attachToDesktop = json['attachToDesktop'] as bool? ?? false;
+      autostart = json['autostart'] as bool? ?? false;
       posX = json['posX'] as int?;
       posY = json['posY'] as int?;
       width = json['width'] as int?;
@@ -83,6 +87,12 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
     await save();
   }
 
+  Future<void> setAutostart(bool value) async {
+    if (autostart == value) return;
+    autostart = value;
+    await save();
+  }
+
   Future<void> saveWindowRect({
     required int x,
     required int y,
@@ -108,6 +118,7 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
         'opacity': opacity,
         'lockPosition': lockPosition,
         'attachToDesktop': attachToDesktop,
+        'autostart': autostart,
         'posX': posX,
         'posY': posY,
         'width': width,

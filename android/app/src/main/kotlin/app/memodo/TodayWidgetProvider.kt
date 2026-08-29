@@ -1,4 +1,4 @@
-package com.example.todolist
+package app.memodo
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -107,7 +107,7 @@ class TodayWidgetProvider : HomeWidgetProvider() {
     }
 
     companion object {
-        const val ACTION_TOGGLE = "com.example.todolist.TOGGLE_TODO"
+        const val ACTION_TOGGLE = "app.memodo.TOGGLE_TODO"
         const val EXTRA_UUID = "uuid"
 
         /** 让所有已添加的小组件立刻重绘（Flutter 侧推送数据后调用）。 */
