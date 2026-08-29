@@ -44,6 +44,10 @@ class HomeWidgetBridge {
         'tasks': tasks.length,
         'memos': memos.length,
       }),
+      'memo_preview': jsonEncode([
+        for (final m in memos.take(2))
+          {'t': m.title, 'c': m.content},
+      ]),
     };
   }
 

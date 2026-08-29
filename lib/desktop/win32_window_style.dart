@@ -6,21 +6,22 @@ import 'dart:ffi';
 import 'package:ffi/ffi.dart';
 import 'package:win32/win32.dart';
 
-import '../pages/widget_window_page.dart' show widgetWindowTitle;
-import 'main_window.dart'
-    show mainWindowTitle, mainWindowDisplayTitle;
+import '../pages/widget_window_page.dart'
+    show widgetWindowTitle, memoWidgetWindowTitle;
+import 'main_window.dart' show mainWindowTitle, mainWindowDisplayTitle;
 
 /// 用 Win32 API 给小组件子窗口做样式加工（SPD §11 Windows Native API）：
-/// 去标题栏但保留可缩放边框、可选置顶、右下角定位、位置采样、透明度、拖拽。
-/// desktop_multi_window 0.2.x 没有暴露这些能力，直接调 user32。
+/// 去标题栏但保留可缩放边框、可选置顶、材质（不透明/毛玻璃/透明）、
+/// 位置采样与拖拽。desktop_multi_window 0.2.x 未暴露这些能力，直接调 user32。
 class WidgetWindowNative {
   WidgetWindowNative._();
 
-  static int _findWidgetHwnd() => FindWindow(nullptr, TEXT(widgetWindowTitle));
+  static int _findByTitle(String title) => FindWindow(nullptr, TEXT(title));
 
-  /// 去掉标题栏（保留 WS_THICKFRAME → 仍可用边框缩放），并按需置顶。
-  static Future<void> applyFramelessAndTopmost({required bool alwaysOnTop}) async {
-    final hwnd = _findWidgetHwnd();
+  /// 去掉标题栏（保留 WS_THICKFRAME → 仍可缩放），并按需置顶。
+  static Future<void> applyFramelessAndTopmost(
+      {required String windowTitle, required bool alwaysOnTop}) async {
+    final hwnd = _findByTitle(windowTitle);
     if (hwnd == 0) return;
     final style = GetWindowLongPtr(hwnd, WINDOW_LONG_PTR_INDEX.GWL_STYLE);
     final frameless = style &
@@ -29,12 +30,13 @@ class WidgetWindowNative {
             WINDOW_STYLE.WS_MINIMIZEBOX |
             WINDOW_STYLE.WS_MAXIMIZEBOX);
     SetWindowLongPtr(hwnd, WINDOW_LONG_PTR_INDEX.GWL_STYLE, frameless);
-    setTopmost(alwaysOnTop);
+    setTopmost(alwaysOnTop, windowTitle: windowTitle);
   }
 
-  /// 只切换置顶（设置里的开关；默认关闭，绝不强制）。
-  static Future<void> setTopmost(bool topmost) async {
-    final hwnd = _findWidgetHwnd();
+  /// 只切换置顶。
+  static Future<void> setTopmost(bool topmost,
+      {required String windowTitle}) async {
+    final hwnd = _findByTitle(windowTitle);
     if (hwnd == 0) return;
     SetWindowPos(
       hwnd,
@@ -50,8 +52,9 @@ class WidgetWindowNative {
   }
 
   /// 当前窗口矩形（外框，屏幕坐标）；取不到返回 null。
-  static ({int x, int y, int w, int h})? getRect() {
-    final hwnd = _findWidgetHwnd();
+  static ({int x, int y, int w, int h})? getRect(
+      {required String windowTitle}) {
+    final hwnd = _findByTitle(windowTitle);
     if (hwnd == 0) return null;
     final rect = calloc<RECT>();
     try {
@@ -68,25 +71,35 @@ class WidgetWindowNative {
   }
 
   /// 把窗口放到指定矩形。
-  static Future<void> setRect(int x, int y, int w, int h) async {
-    final hwnd = _findWidgetHwnd();
+  static Future<void> setRect(int x, int y, int w, int h,
+      {required String windowTitle}) async {
+    final hwnd = _findByTitle(windowTitle);
     if (hwnd == 0) return;
     SetWindowPos(hwnd, 0, x, y, w, h, SWP_NOZORDER | SWP_NOACTIVATE);
   }
 
   /// 把窗口放到主屏右下角（留一点边距）。
-  static Future<void> placeAtBottomRight(int width, int height) async {
+  static Future<void> placeAtBottomRight(int width, int height,
+      {required String windowTitle}) async {
     final screenW = GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXSCREEN);
     final screenH = GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CYSCREEN);
     final left = screenW - width - 24;
     final top = screenH - height - 96;
-    await setRect(left < 0 ? 24 : left, top < 0 ? 24 : top, width, height);
+    await setRect(
+        left < 0 ? 24 : left, top < 0 ? 24 : top, width, height,
+        windowTitle: windowTitle);
   }
 
-  /// 窗口透明度（0-100）：经 SetWindowCompositionAttribute 设置分层混合。
-  /// 未文档化 API，但被广泛使用且稳定；失败时静默降级为不透明。
-  static Future<void> setOpacity(int percent) async {
-    final hwnd = _findWidgetHwnd();
+  /// 窗口材质与不透明度（30-100）：
+  /// - solid：正常窗口
+  /// - acrylic：毛玻璃（ACCENT_ENABLE_BLURBEHIND，背景模糊）
+  /// - transparent：透明渐变（ACCENT_ENABLE_TRANSPARENTGRADIENT + alpha）
+  /// 未文档化 API，广泛使用且稳定；失败静默降级为不透明。
+  static Future<void> setSurface(
+      {required String windowTitle,
+      required bool acrylic,
+      required int opacity}) async {
+    final hwnd = _findByTitle(windowTitle);
     if (hwnd == 0) return;
     final user32 = DynamicLibrary.open('user32.dll');
     final setAttr = user32.lookupFunction<
@@ -96,16 +109,18 @@ class WidgetWindowNative {
     final data = calloc<WindowCompositionAttribData>();
     final policy = calloc<AccentPolicy>();
     try {
-      if (percent >= 100) {
+      final alpha = (opacity.clamp(30, 100) * 255 ~/ 100);
+      if (!acrylic && opacity >= 100) {
         policy.ref.AccentState = ACCENT_DISABLED;
+      } else if (acrylic) {
+        policy.ref.AccentState = ACCENT_ENABLE_BLURBEHIND;
+        policy.ref.GradientColor = (alpha << 24) | 0x101418;
       } else {
         policy.ref.AccentState = ACCENT_ENABLE_TRANSPARENTGRADIENT;
-        final alpha = (percent.clamp(30, 100) * 255 ~/ 100);
-        // ABGR
         policy.ref.GradientColor = (alpha << 24) | 0x00FFFFFF;
       }
       policy.ref.AccentFlags = 2;
-      data.ref.Attribute = ACCENT_ENABLE_TRANSPARENTGRADIENT;
+      data.ref.Attribute = policy.ref.AccentState;
       data.ref.Data = policy;
       data.ref.DataSize = sizeOf<AccentPolicy>();
       setAttr(hwnd, data);
@@ -116,17 +131,17 @@ class WidgetWindowNative {
   }
 
   /// 无边框窗口的拖拽：模拟按下标题栏。
-  static void beginDrag() {
-    final hwnd = _findWidgetHwnd();
+  static void beginDrag({required String windowTitle}) {
+    final hwnd = _findByTitle(windowTitle);
     if (hwnd == 0) return;
     ReleaseCapture();
     SendMessage(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
   }
 
-  /// SPD §13 V2：把小组件附到桌面层（WorkerW），成为壁纸一样的存在。
+  /// SPD §13 V2：把窗口附到桌面层（WorkerW），成为壁纸一样的存在。
   /// 返回是否成功；失败时调用方应回退普通窗口模式。
-  static Future<bool> attachToDesktop() async {
-    final hwnd = _findWidgetHwnd();
+  static Future<bool> attachToDesktop({required String windowTitle}) async {
+    final hwnd = _findByTitle(windowTitle);
     if (hwnd == 0) return false;
     final progman = FindWindow(nullptr, TEXT('Program Manager'));
     if (progman == 0) return false;
@@ -145,13 +160,14 @@ class WidgetWindowNative {
 
     // 作为 WorkerW 子窗口时不再需要任何顶层样式交互。
     if (SetParent(hwnd, worker) == 0) return false;
-    setTopmost(false);
+    setTopmost(false, windowTitle: windowTitle);
     return true;
   }
 
   /// 从桌面层脱离，恢复普通顶层窗口。
-  static Future<void> detachFromDesktop() async {
-    final hwnd = _findWidgetHwnd();
+  static Future<void> detachFromDesktop(
+      {required String windowTitle}) async {
+    final hwnd = _findByTitle(windowTitle);
     if (hwnd == 0) return;
     SetParent(hwnd, 0);
     SetWindowPos(
@@ -182,8 +198,21 @@ class WidgetWindowNative {
     }
   }
 
-  /// 小组件上的"打开主窗口"：把主窗口恢复并带到前台。
-  /// 兼容重命名前后两种标题。
+  /// 批量把多个窗口附到桌面层；任一失败则全部脱离并返回 false。
+  static Future<bool> attachToDesktopAll(
+      {required List<String> titles}) async {
+    for (final title in titles) {
+      if (!await attachToDesktop(windowTitle: title)) {
+        for (final t in titles) {
+          await detachFromDesktop(windowTitle: t);
+        }
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// 小组件上的"打开主窗口"：把主窗口恢复并带到前台。兼容重命名前后标题。
   static Future<void> openMainWindow() async {
     var hwnd = FindWindow(nullptr, TEXT(mainWindowDisplayTitle));
     if (hwnd == 0) hwnd = FindWindow(nullptr, TEXT(mainWindowTitle));
@@ -227,4 +256,5 @@ final class AccentPolicy extends Struct {
 }
 
 const int ACCENT_DISABLED = 0;
+const int ACCENT_ENABLE_BLURBEHIND = 3;
 const int ACCENT_ENABLE_TRANSPARENTGRADIENT = 4;

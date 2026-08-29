@@ -386,6 +386,48 @@ class _SettingsPageState extends State<SettingsPage> {
               // 开/关的窗口操作由 WidgetLauncher 的设置监听器统一执行（防并发重复创建）。
               onChanged: (v) => widgetSettings.setEnabled(v),
             ),
+            ListTile(
+              title: const Text('布局'),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: SegmentedButton<WidgetLayout>(
+                  segments: const [
+                    ButtonSegment(
+                        value: WidgetLayout.single,
+                        label: Text('单卡片'),
+                        icon: Icon(Icons.crop_square_rounded)),
+                    ButtonSegment(
+                        value: WidgetLayout.split,
+                        label: Text('双卡片'),
+                        icon: Icon(Icons.splitscreen_rounded)),
+                  ],
+                  selected: {widgetSettings.layout},
+                  onSelectionChanged: widgetSettings.enabled
+                      ? (s) => widgetSettings.setLayout(s.first)
+                      : null,
+                ),
+              ),
+            ),
+            ListTile(
+              title: const Text('材质'),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: SegmentedButton<WidgetMaterial>(
+                  segments: [
+                    for (final m in WidgetMaterial.values)
+                      ButtonSegment(value: m, label: Text(m.label)),
+                  ],
+                  selected: {widgetSettings.material},
+                  onSelectionChanged: widgetSettings.enabled
+                      ? (s) async {
+                          await widgetSettings.setMaterial(s.first);
+                          await WidgetLauncher.updateOpacity(
+                              widgetSettings.opacity);
+                        }
+                      : null,
+                ),
+              ),
+            ),
             SwitchListTile(
               title: const Text('窗口置顶'),
               subtitle: const Text('卡片浮在其他窗口上方（默认关闭）'),

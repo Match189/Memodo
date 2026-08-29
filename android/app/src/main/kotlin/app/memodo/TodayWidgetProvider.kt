@@ -74,6 +74,16 @@ class TodayWidgetProvider : HomeWidgetProvider() {
             "$taskCount 条待办 · $memoCount 条备忘",
         )
 
+        // 备忘预览（最多 2 条标题）
+        val memos = JSONArray(prefs.getString("memo_preview", "[]") ?: "[]")
+        val memoText = (0 until minOf(memos.length(), 2))
+            .joinToString("  ·  ") { i -> memos.getJSONObject(i).optString("t") }
+        views.setViewVisibility(
+            R.id.widget_memo,
+            if (memoText.isEmpty()) View.GONE else View.VISIBLE,
+        )
+        views.setTextViewText(R.id.widget_memo, memoText)
+
         val tasks = JSONArray(prefs.getString("widget_tasks", "[]") ?: "[]")
         if (tasks.length() == 0) {
             views.setViewVisibility(R.id.widget_list, View.GONE)

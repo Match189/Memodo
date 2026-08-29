@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:desktop_multi_window/desktop_multi_window.dart';
@@ -53,6 +54,13 @@ Future<void> main(List<String> args) async {
       FlutterError.presentError(details);
     };
     final windowId = int.parse(args[1]);
+    var kind = 'todo';
+    if (args.length > 2) {
+      try {
+        kind =
+            ((jsonDecode(args[2]) as Map)['kind'] as String?) ?? 'todo';
+      } catch (_) {}
+    }
     final sqflite.Database db;
     try {
       final appDb = await AppDatabase.open();
@@ -78,6 +86,7 @@ Future<void> main(List<String> args) async {
     await themeSettings.load();
     runApp(WidgetWindowApp(
       windowId: windowId,
+      kind: kind,
       taskModel: TaskListModel(
         TaskRepository(db, deviceId: device.id),
       ),
@@ -219,10 +228,7 @@ void _setupDesktopWidget(
 
   // 应用启动时若上次开着小组件，则自动恢复。
   if (widgetSettings.enabled) {
-    unawaited(WidgetLauncher.ensureOpen(
-      alwaysOnTop: widgetSettings.alwaysOnTop,
-      opacity: widgetSettings.opacity,
-    ));
+    unawaited(WidgetLauncher.ensureOpen());
   }
 }
 

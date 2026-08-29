@@ -8,21 +8,27 @@ import 'win32_window_style.dart';
 import 'widget_settings.dart';
 import '../pages/widget_window_page.dart';
 
-/// 主窗口侧的桌面小组件窗口管理：创建、关闭、位置/尺寸记忆、透明度，
-/// 并跟随设置变化（SPD §11/§12）。小组件窗口本身是独立 Flutter 引擎，
-/// 跑 [WidgetWindowApp]。
+/// Windows 桌面小组件窗口管理（SPD §11/§12）：
+/// - 布局可切换：单卡片（待办+备忘合并）/ 双卡片（待办、备忘两个独立窗口）
+/// - 位置尺寸按窗口分别记忆；材质（不透明/毛玻璃/透明）与透明度可调
+/// - 任何时刻至多一组窗口；并发触发被单飞吸收，孤儿子窗口自动收养/清理
 class WidgetLauncher {
   WidgetLauncher._();
 
-  static const widgetSize = Size(300, 430);
+  static const singleSize = Size(300, 430);
+  static const todoSplitSize = Size(300, 380);
+  static const memoSplitSize = Size(300, 300);
 
-  static int? _windowId;
+  static int? _todoWindowId;
+  static int? _memoWindowId;
   static bool _opening = false;
   static DesktopWidgetSettingsModel? _settings;
   static Timer? _rectWatcher;
   static bool _lastEnabled = false;
   static bool _lastTopmost = false;
   static int _lastOpacity = 90;
+  static WidgetMaterial _lastMaterial = WidgetMaterial.solid;
+  static WidgetLayout _lastLayout = WidgetLayout.single;
   static bool _lastAttach = false;
 
   static void bind(DesktopWidgetSettingsModel settings) {
@@ -30,6 +36,8 @@ class WidgetLauncher {
     _lastEnabled = settings.enabled;
     _lastTopmost = settings.alwaysOnTop;
     _lastOpacity = settings.opacity;
+    _lastMaterial = settings.material;
+    _lastLayout = settings.layout;
     _lastAttach = settings.attachToDesktop;
     settings.addListener(_onSettingsChanged);
   }
@@ -42,176 +50,240 @@ class WidgetLauncher {
     if (s.enabled != _lastEnabled) {
       _lastEnabled = s.enabled;
       if (s.enabled) {
-        await ensureOpen(alwaysOnTop: s.alwaysOnTop, opacity: s.opacity);
+        await ensureOpen();
       } else {
         await close();
       }
       return;
     }
+    if (s.layout != _lastLayout) {
+      _lastLayout = s.layout;
+      // 布局切换 = 关掉按新布局重开（各自位置记忆保留）。
+      await close();
+      if (s.enabled) await ensureOpen();
+      return;
+    }
     if (s.alwaysOnTop != _lastTopmost) {
       _lastTopmost = s.alwaysOnTop;
-      if (_windowId != null) await WidgetWindowNative.setTopmost(s.alwaysOnTop);
+      await _forEachWindow(
+          (title) => WidgetWindowNative.setTopmost(s.alwaysOnTop, windowTitle: title));
     }
-    if (s.opacity != _lastOpacity) {
+    if (s.opacity != _lastOpacity || s.material != _lastMaterial) {
       _lastOpacity = s.opacity;
-      if (_windowId != null) await WidgetWindowNative.setOpacity(s.opacity);
+      _lastMaterial = s.material;
+      await _applySurface();
     }
     if (s.attachToDesktop != _lastAttach) {
       _lastAttach = s.attachToDesktop;
-      if (_windowId != null) await applyAttachState();
+      if (isOpen) await applyAttachState();
     }
+  }
+
+  static bool get isOpen => _todoWindowId != null || _memoWindowId != null;
+
+  static List<String> get _openTitles => [
+        if (_todoWindowId != null) widgetWindowTitle,
+        if (_memoWindowId != null) memoWidgetWindowTitle,
+      ];
+
+  static Future<void> _forEachWindow(
+      Future<void> Function(String title) action) async {
+    for (final title in _openTitles) {
+      await action(title);
+    }
+  }
+
+  static Future<void> _applySurface() async {
+    final s = _settings;
+    if (s == null) return;
+    await _forEachWindow((title) => WidgetWindowNative.setSurface(
+          windowTitle: title,
+          acrylic: s.material == WidgetMaterial.acrylic,
+          opacity: s.opacity,
+        ));
   }
 
   /// 应用"桌面层模式"开关；失败自动回退普通窗口并改回设置。
   static Future<void> applyAttachState() async {
     final s = _settings;
-    if (s == null || _windowId == null) return;
+    if (s == null || !isOpen) return;
     if (!s.attachToDesktop) {
-      await WidgetWindowNative.detachFromDesktop();
-      await WidgetWindowNative.setTopmost(s.alwaysOnTop);
+      await _forEachWindow((title) async {
+        await WidgetWindowNative.detachFromDesktop(windowTitle: title);
+        await WidgetWindowNative.setTopmost(s.alwaysOnTop, windowTitle: title);
+      });
       return;
     }
-    final ok = await WidgetWindowNative.attachToDesktop();
+    final ok = await WidgetWindowNative.attachToDesktopAll(titles: _openTitles);
     if (!ok) {
       await s.setAttachToDesktop(false);
       _lastAttach = false;
     }
   }
 
-  static bool get isOpen => _windowId != null;
-
-  /// 打开（或复用）小组件窗口；有记忆位置则恢复，否则放右下角。
+  /// 打开（或按布局补齐）小组件窗口组。
   ///
-  /// 可被多条路径并发触发（设置监听器、设置页显式调用、启动恢复），
-  /// 用 [_opening] 单飞 + 先收养已有子窗口，保证任何时刻至多一个小组件窗口。
-  static Future<void> ensureOpen({
-    required bool alwaysOnTop,
-    required int opacity,
-  }) async {
+  /// 可被多条路径并发触发（设置监听器、启动恢复），用 [_opening] 单飞 +
+  /// 孤儿子窗口收养，保证任何时刻至多一组窗口。
+  static Future<void> ensureOpen() async {
     if (_opening) return;
     _opening = true;
     try {
-      if (_windowId != null) return;
+      final s = _settings;
+      if (s == null) return;
+      final wantMemo = s.layout == WidgetLayout.split;
 
-      // 自愈：异常路径遗留的孤儿小组件窗口先收养/清理，避免叠加。
+      // 自愈：遗留的孤儿子窗口先收养（第一个归待办，第二个归备忘），多余关掉。
       try {
         final ids = await DesktopMultiWindow.getAllSubWindowIds();
         for (final id in ids) {
-          if (_windowId == null) {
-            _windowId = id; // 收养为我们的窗口
+          if (_todoWindowId == null) {
+            _todoWindowId = id;
+          } else if (wantMemo && _memoWindowId == null) {
+            _memoWindowId = id;
           } else {
             await WindowController.fromWindowId(id).close();
           }
         }
       } catch (_) {}
 
-      if (_windowId != null) {
-        await WindowController.fromWindowId(_windowId!).show();
-        return;
+      final created = <String>[];
+      if (_todoWindowId == null) {
+        final controller = await DesktopMultiWindow.createWindow(jsonEncode({
+          'type': 'widget',
+          'kind': 'todo',
+        }));
+        _todoWindowId = controller.windowId;
+        final size = wantMemo ? todoSplitSize : singleSize;
+        await controller
+          ..setTitle(widgetWindowTitle)
+          ..setFrame(const Offset(1200, 260) & size)
+          ..show();
+        created.add(widgetWindowTitle);
+      }
+      if (wantMemo && _memoWindowId == null) {
+        final controller = await DesktopMultiWindow.createWindow(jsonEncode({
+          'type': 'widget',
+          'kind': 'memo',
+        }));
+        _memoWindowId = controller.windowId;
+        await controller
+          ..setTitle(memoWidgetWindowTitle)
+          ..setFrame(const Offset(960, 460) & memoSplitSize)
+          ..show();
+        created.add(memoWidgetWindowTitle);
+      }
+      // 单卡片布局下备忘窗口不应存在。
+      if (!wantMemo && _memoWindowId != null) {
+        final id = _memoWindowId!;
+        _memoWindowId = null;
+        try {
+          await WindowController.fromWindowId(id).close();
+        } catch (_) {}
       }
 
-      final s = _settings;
-      final controller = await DesktopMultiWindow.createWindow(
-        jsonEncode({'type': 'widget'}),
-      );
-      _windowId = controller.windowId;
-      await controller.setTitle(widgetWindowTitle);
-
-      final hasSaved = s != null && s.posX != null && s.width != null;
-      if (hasSaved) {
-        await controller.setFrame(
-          Offset(s!.posX!.toDouble(), s.posY!.toDouble()) &
-              Size(s.width!.toDouble(), s.height!.toDouble()),
+      // 窗口样式加工（去标题栏/置顶/材质/位置恢复）。
+      for (final title in _openTitles) {
+        final isMemo = title == memoWidgetWindowTitle;
+        final hasSaved = isMemo
+            ? (s.memoPosX != null && s.memoWidth != null)
+            : (s.posX != null && s.width != null);
+        await WidgetWindowNative.applyFramelessAndTopmost(
+          windowTitle: title,
+          alwaysOnTop: s.alwaysOnTop,
         );
-      } else {
-        await controller.setFrame(
-          const Offset(1200, 260) & widgetSize,
-        );
+        if (created.contains(title)) {
+          if (hasSaved) {
+            if (isMemo) {
+              await WidgetWindowNative.setRect(s.memoPosX!, s.memoPosY!,
+                  s.memoWidth!, s.memoHeight!,
+                  windowTitle: title);
+            } else {
+              await WidgetWindowNative.setRect(
+                  s.posX!, s.posY!, s.width!, s.height!,
+                  windowTitle: title);
+            }
+          } else {
+            final size = isMemo ? memoSplitSize : (wantMemo ? todoSplitSize : singleSize);
+            await WidgetWindowNative.placeAtBottomRight(
+                size.width.toInt(), size.height.toInt(),
+                windowTitle: title);
+          }
+          await WidgetWindowNative.setSurface(
+            windowTitle: title,
+            acrylic: s.material == WidgetMaterial.acrylic,
+            opacity: s.opacity,
+          );
+        }
       }
-      await controller.show();
-
-      // 去标题栏（保留缩放边框）、置顶、透明度、落位。
-      await WidgetWindowNative.applyFramelessAndTopmost(alwaysOnTop: alwaysOnTop);
-      if (!hasSaved) {
-        await WidgetWindowNative.placeAtBottomRight(
-          widgetSize.width.toInt(),
-          widgetSize.height.toInt(),
-        );
-      }
-      await WidgetWindowNative.setOpacity(opacity);
-      // 记忆的桌面层状态
-      if ((s?.attachToDesktop ?? false)) {
+      if (s.attachToDesktop && _openTitles.isNotEmpty) {
         _lastAttach = true;
-        final ok = await WidgetWindowNative.attachToDesktop();
-        if (!ok && s != null) await s.setAttachToDesktop(false);
+        final ok = await WidgetWindowNative.attachToDesktopAll(
+            titles: _openTitles);
+        if (!ok) await s.setAttachToDesktop(false);
       }
-      _startRectWatcher();
+      // 位置记忆：布局完成即保存一次；后续在关闭卡片/应用时保存。
+      // （周期轮询采样在部分环境下触发原生崩溃，暂停使用，待 debug 会话排查。）
+      for (final title in _openTitles) {
+        final r = WidgetWindowNative.getRect(windowTitle: title);
+        if (r == null) continue;
+        if (title == memoWidgetWindowTitle) {
+          await s.saveMemoWindowRect(x: r.x, y: r.y, w: r.w, h: r.h);
+        } else {
+          await s.saveWindowRect(x: r.x, y: r.y, w: r.w, h: r.h);
+        }
+      }
     } finally {
       _opening = false;
     }
   }
 
-  /// 周期采样窗口矩形，变化时写回设置（关闭应用也能记住位置/尺寸）。
-  static void _startRectWatcher() {
-    _rectWatcher?.cancel();
-    _rectWatcher = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (_windowId == null) return;
-      final rect = WidgetWindowNative.getRect();
-      final s = _settings;
-      if (rect == null || s == null) return;
-      // 与记忆值不同才写（save 内部也会去重）。
-      unawaited(s.saveWindowRect(
-        x: rect.x,
-        y: rect.y,
-        w: rect.w,
-        h: rect.h,
-      ));
-    });
-  }
-
   static Future<void> close() async {
-    final id = _windowId;
-    if (id == null) return;
-    _windowId = null;
     _rectWatcher?.cancel();
     _rectWatcher = null;
-    try {
-      await WindowController.fromWindowId(id).close();
-    } catch (_) {
-      // 窗口可能已经自行关闭。
+    final ids = [_todoWindowId, _memoWindowId].whereType<int>().toList();
+    _todoWindowId = null;
+    _memoWindowId = null;
+    for (final id in ids) {
+      try {
+        await WindowController.fromWindowId(id).close();
+      } catch (_) {}
     }
   }
 
-  /// 小组件窗口自己点了关闭：清引用但不重复关。
+  /// 小组件窗口自己点了关闭：清引用但不重复关；一组全关时停采样。
   static void forget(int windowId) {
-    if (_windowId == windowId) {
-      _windowId = null;
+    if (_todoWindowId == windowId) _todoWindowId = null;
+    if (_memoWindowId == windowId) _memoWindowId = null;
+    if (!isOpen) {
       _rectWatcher?.cancel();
       _rectWatcher = null;
     }
   }
 
-  /// 设置里的置顶开关变化时调用。
+  /// 设置里的置顶/透明度(材质)/桌面层变化时调用。
   static Future<void> updateTopmost(bool topmost) async {
-    if (_windowId == null) return;
-    await WidgetWindowNative.setTopmost(topmost);
+    if (!isOpen) return;
+    await _forEachWindow(
+        (title) => WidgetWindowNative.setTopmost(topmost, windowTitle: title));
   }
 
-  /// 设置里的透明度滑杆变化时调用。
   static Future<void> updateOpacity(int opacity) async {
-    if (_windowId == null) return;
-    await WidgetWindowNative.setOpacity(opacity);
+    if (!isOpen) return;
+    await _applySurface();
   }
 
-  /// 设置里的桌面层开关变化时调用；失败返回 false（UI 回退开关）。
   static Future<bool> updateAttachToDesktop(bool attach) async {
-    if (_windowId == null) return false;
+    if (!isOpen) return false;
     if (!attach) {
-      await WidgetWindowNative.detachFromDesktop();
-      await WidgetWindowNative.setTopmost(_settings?.alwaysOnTop ?? false);
+      await _forEachWindow((title) async {
+        await WidgetWindowNative.detachFromDesktop(windowTitle: title);
+        await WidgetWindowNative.setTopmost(
+            _settings?.alwaysOnTop ?? false,
+            windowTitle: title);
+      });
       return true;
     }
-    final ok = await WidgetWindowNative.attachToDesktop();
-    return ok;
+    return WidgetWindowNative.attachToDesktopAll(titles: _openTitles);
   }
 }

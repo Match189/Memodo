@@ -4,6 +4,22 @@ import 'package:flutter/foundation.dart';
 
 import '../data/settings_store.dart';
 
+/// 小组件显示布局：单卡片（待办+备忘合并）或双卡片（两个独立窗口）。
+enum WidgetLayout { single, split }
+
+/// 小组件窗口材质（Windows 窗口合成）。
+enum WidgetMaterial {
+  solid('不透明'),
+  acrylic('毛玻璃'),
+  transparent('透明');
+
+  const WidgetMaterial(this.label);
+  final String label;
+
+  static WidgetMaterial from(String? name) => WidgetMaterial.values
+      .firstWhere((m) => m.name == name, orElse: () => WidgetMaterial.solid);
+}
+
 /// Windows 桌面小组件的本地设置（不参与同步）。SPD §14。
 class DesktopWidgetSettingsModel extends ChangeNotifier {
   DesktopWidgetSettingsModel(this._store);
@@ -20,6 +36,12 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
   /// 卡片不透明度百分比（100 = 完全不透明）。
   int opacity = 90;
 
+  /// 窗口材质：不透明 / 毛玻璃（acrylic 模糊）/ 透明。
+  WidgetMaterial material = WidgetMaterial.solid;
+
+  /// 布局：单卡片（待办+备忘合并）或双卡片（待办、备忘两个独立窗口）。
+  WidgetLayout layout = WidgetLayout.single;
+
   /// 锁定位置后禁止拖动。
   bool lockPosition = false;
 
@@ -30,11 +52,17 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
   /// 开机自启（Windows：HKCU Run 注册表，无需管理员）。
   bool autostart = false;
 
-  /// 上次窗口位置与尺寸（恢复用；由主进程周期性采样保存）。
+  /// 待办（/单卡片）窗口上次位置与尺寸。
   int? posX;
   int? posY;
   int? width;
   int? height;
+
+  /// 备忘窗口（双卡片布局）上次位置与尺寸。
+  int? memoPosX;
+  int? memoPosY;
+  int? memoWidth;
+  int? memoHeight;
 
   Future<void> load() async {
     final raw = await _store.read(_storageKey);
@@ -47,10 +75,18 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
       lockPosition = json['lockPosition'] as bool? ?? false;
       attachToDesktop = json['attachToDesktop'] as bool? ?? false;
       autostart = json['autostart'] as bool? ?? false;
+      material = WidgetMaterial.from(json['material'] as String?);
+      layout = json['layout'] == 'split'
+          ? WidgetLayout.split
+          : WidgetLayout.single;
       posX = json['posX'] as int?;
       posY = json['posY'] as int?;
       width = json['width'] as int?;
       height = json['height'] as int?;
+      memoPosX = json['memoPosX'] as int?;
+      memoPosY = json['memoPosY'] as int?;
+      memoWidth = json['memoWidth'] as int?;
+      memoHeight = json['memoHeight'] as int?;
     } catch (_) {
       // 配置损坏时用默认值。
     }
@@ -72,6 +108,18 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
     final clamped = value.clamp(30, 100);
     if (opacity == clamped) return;
     opacity = clamped;
+    await save();
+  }
+
+  Future<void> setMaterial(WidgetMaterial value) async {
+    if (material == value) return;
+    material = value;
+    await save();
+  }
+
+  Future<void> setLayout(WidgetLayout value) async {
+    if (layout == value) return;
+    layout = value;
     await save();
   }
 
@@ -107,6 +155,22 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
     await save();
   }
 
+  Future<void> saveMemoWindowRect({
+    required int x,
+    required int y,
+    required int w,
+    required int h,
+  }) async {
+    if (memoPosX == x && memoPosY == y && memoWidth == w && memoHeight == h) {
+      return;
+    }
+    memoPosX = x;
+    memoPosY = y;
+    memoWidth = w;
+    memoHeight = h;
+    await save();
+  }
+
   Future<void> save() async {
     await _store.write(_storageKey, toJson());
     notifyListeners();
@@ -116,6 +180,8 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
         'enabled': enabled,
         'alwaysOnTop': alwaysOnTop,
         'opacity': opacity,
+        'material': material.name,
+        'layout': layout.name,
         'lockPosition': lockPosition,
         'attachToDesktop': attachToDesktop,
         'autostart': autostart,
@@ -123,5 +189,9 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
         'posY': posY,
         'width': width,
         'height': height,
+        'memoPosX': memoPosX,
+        'memoPosY': memoPosY,
+        'memoWidth': memoWidth,
+        'memoHeight': memoHeight,
       };
 }
