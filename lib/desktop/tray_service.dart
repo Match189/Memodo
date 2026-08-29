@@ -26,7 +26,7 @@ class TrayService with TrayListener {
 
       final tray = TrayManager.instance;
       await tray.setIcon(iconPath);
-      await tray.setToolTip('Memodo · 待办备忘');
+      await tray.setToolTip('念念 Memodo');
       await tray.setContextMenu(Menu(
         items: [
           MenuItem(key: 'show', label: '显示主窗口'),

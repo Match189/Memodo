@@ -2,7 +2,7 @@
     <!-- 正式包默认不带网络权限，必须显式声明（同步功能需要） -->
     <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="待办备忘"
+        android:label="念念"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">

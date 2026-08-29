@@ -1,5 +1,5 @@
 name: memodo
-description: "待办与备忘：跨平台（Windows + Android）的 todolist 和备忘录应用。"
+description: "Memodo 念念 —— 跨平台（Windows + Android）的 Todo 与备忘应用。"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
