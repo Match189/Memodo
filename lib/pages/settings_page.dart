@@ -383,15 +383,8 @@ class _SettingsPageState extends State<SettingsPage> {
               title: const Text('在桌面显示待办卡片'),
               subtitle: const Text('可缩放、可拖动的小卡片，勾选和添加实时同步'),
               value: widgetSettings.enabled,
-              onChanged: (v) async {
-                await widgetSettings.setEnabled(v);
-                if (v && !WidgetLauncher.isOpen) {
-                  await WidgetLauncher.ensureOpen(
-                    alwaysOnTop: widgetSettings.alwaysOnTop,
-                    opacity: widgetSettings.opacity,
-                  );
-                }
-              },
+              // 开/关的窗口操作由 WidgetLauncher 的设置监听器统一执行（防并发重复创建）。
+              onChanged: (v) => widgetSettings.setEnabled(v),
             ),
             SwitchListTile(
               title: const Text('窗口置顶'),

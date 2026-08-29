@@ -17,6 +17,7 @@ class WidgetLauncher {
   static const widgetSize = Size(300, 430);
 
   static int? _windowId;
+  static bool _opening = false;
   static DesktopWidgetSettingsModel? _settings;
   static Timer? _rectWatcher;
   static bool _lastEnabled = false;
@@ -80,47 +81,74 @@ class WidgetLauncher {
   static bool get isOpen => _windowId != null;
 
   /// 打开（或复用）小组件窗口；有记忆位置则恢复，否则放右下角。
+  ///
+  /// 可被多条路径并发触发（设置监听器、设置页显式调用、启动恢复），
+  /// 用 [_opening] 单飞 + 先收养已有子窗口，保证任何时刻至多一个小组件窗口。
   static Future<void> ensureOpen({
     required bool alwaysOnTop,
     required int opacity,
   }) async {
-    if (_windowId != null) return;
-    final s = _settings;
-    final controller = await DesktopMultiWindow.createWindow(
-      jsonEncode({'type': 'widget'}),
-    );
-    _windowId = controller.windowId;
-    await controller.setTitle(widgetWindowTitle);
+    if (_opening) return;
+    _opening = true;
+    try {
+      if (_windowId != null) return;
 
-    final hasSaved = s != null && s.posX != null && s.width != null;
-    if (hasSaved) {
-      await controller.setFrame(
-        Offset(s!.posX!.toDouble(), s.posY!.toDouble()) &
-            Size(s.width!.toDouble(), s.height!.toDouble()),
-      );
-    } else {
-      await controller.setFrame(
-        const Offset(1200, 260) & widgetSize,
-      );
-    }
-    await controller.show();
+      // 自愈：异常路径遗留的孤儿小组件窗口先收养/清理，避免叠加。
+      try {
+        final ids = await DesktopMultiWindow.getAllSubWindowIds();
+        for (final id in ids) {
+          if (_windowId == null) {
+            _windowId = id; // 收养为我们的窗口
+          } else {
+            await WindowController.fromWindowId(id).close();
+          }
+        }
+      } catch (_) {}
 
-    // 去标题栏（保留缩放边框）、置顶、透明度、落位。
-    await WidgetWindowNative.applyFramelessAndTopmost(alwaysOnTop: alwaysOnTop);
-    if (!hasSaved) {
-      await WidgetWindowNative.placeAtBottomRight(
-        widgetSize.width.toInt(),
-        widgetSize.height.toInt(),
+      if (_windowId != null) {
+        await WindowController.fromWindowId(_windowId!).show();
+        return;
+      }
+
+      final s = _settings;
+      final controller = await DesktopMultiWindow.createWindow(
+        jsonEncode({'type': 'widget'}),
       );
+      _windowId = controller.windowId;
+      await controller.setTitle(widgetWindowTitle);
+
+      final hasSaved = s != null && s.posX != null && s.width != null;
+      if (hasSaved) {
+        await controller.setFrame(
+          Offset(s!.posX!.toDouble(), s.posY!.toDouble()) &
+              Size(s.width!.toDouble(), s.height!.toDouble()),
+        );
+      } else {
+        await controller.setFrame(
+          const Offset(1200, 260) & widgetSize,
+        );
+      }
+      await controller.show();
+
+      // 去标题栏（保留缩放边框）、置顶、透明度、落位。
+      await WidgetWindowNative.applyFramelessAndTopmost(alwaysOnTop: alwaysOnTop);
+      if (!hasSaved) {
+        await WidgetWindowNative.placeAtBottomRight(
+          widgetSize.width.toInt(),
+          widgetSize.height.toInt(),
+        );
+      }
+      await WidgetWindowNative.setOpacity(opacity);
+      // 记忆的桌面层状态
+      if ((s?.attachToDesktop ?? false)) {
+        _lastAttach = true;
+        final ok = await WidgetWindowNative.attachToDesktop();
+        if (!ok && s != null) await s.setAttachToDesktop(false);
+      }
+      _startRectWatcher();
+    } finally {
+      _opening = false;
     }
-    await WidgetWindowNative.setOpacity(opacity);
-    // 记忆的桌面层状态
-    if ((s?.attachToDesktop ?? false)) {
-      _lastAttach = true;
-      final ok = await WidgetWindowNative.attachToDesktop();
-      if (!ok && s != null) await s.setAttachToDesktop(false);
-    }
-    _startRectWatcher();
   }
 
   /// 周期采样窗口矩形，变化时写回设置（关闭应用也能记住位置/尺寸）。
