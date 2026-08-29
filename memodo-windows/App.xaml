@@ -1,0 +1,49 @@
+<Application x:Class="Memodo.Windows.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Memodo.Windows.Views">
+    <Application.Resources>
+        <ResourceDictionary>
+            <SolidColorBrush x:Key="AppBackground" Color="#FFFAFAFA" />
+            <SolidColorBrush x:Key="SidebarBackground" Color="#FFEEEEEE" />
+            <SolidColorBrush x:Key="SubtleText" Color="#FF666666" />
+
+            <!-- 侧栏导航按钮：方框选中态 + 文字标签 -->
+            <Style x:Key="NavButton" TargetType="RadioButton">
+                <Setter Property="Width" Value="48" />
+                <Setter Property="Height" Value="48" />
+                <Setter Property="Margin" Value="8,2,8,2" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                <Setter Property="Foreground" Value="#FF555555" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <Grid>
+                                <Border x:Name="Back"
+                                        Background="Transparent"
+                                        CornerRadius="6" />
+                                <Ellipse x:Name="Dot"
+                                         Width="18" Height="18"
+                                         HorizontalAlignment="Center"
+                                         VerticalAlignment="Center"
+                                         Fill="#FF666666" />
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Back" Property="Background" Value="#22000000" />
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Dot" Property="Fill" Value="#FF0080A0" />
+                                    <Setter TargetName="Back" Property="Background" Value="#22FFFFFF" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <conv:StrikeThroughConverter x:Key="StrikeThrough" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

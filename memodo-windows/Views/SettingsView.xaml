@@ -1,0 +1,35 @@
+<UserControl x:Class="Memodo.Windows.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Margin="20">
+        <TextBlock Text="设置" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,16" />
+
+        <Border Padding="16" CornerRadius="8" Background="#11000000" Margin="0,0,0,12">
+            <StackPanel>
+                <TextBlock Text="同步" FontWeight="SemiBold" Margin="0,0,0,8" />
+                <TextBlock Text="V1：暂不接 WebDAV/OSS/服务器（先做两端纯本地）"
+                           Foreground="{DynamicResource SubtleText}"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+
+        <Border Padding="16" CornerRadius="8" Background="#11000000" Margin="0,0,0,12">
+            <StackPanel>
+                <TextBlock Text="主题" FontWeight="SemiBold" Margin="0,0,0,8" />
+                <TextBlock Text="V1：跟随系统（深/浅色随 Windows 设置）"
+                           Foreground="{DynamicResource SubtleText}" />
+            </StackPanel>
+        </Border>
+
+        <Border Padding="16" CornerRadius="8" Background="#11000000" Margin="0,0,0,12">
+            <StackPanel>
+                <TextBlock Text="关于" FontWeight="SemiBold" Margin="0,0,0,8" />
+                <TextBlock Text="Memodo 念念 · P1 Windows C#/WPF 阶段"
+                           Foreground="{DynamicResource SubtleText}" />
+                <TextBlock Text="数据库：%APPDATA%\app.memodo\Memodo\memodo.db"
+                           Foreground="{DynamicResource SubtleText}"
+                           FontSize="11" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

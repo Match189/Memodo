@@ -29,3 +29,18 @@ todo-server/*.db
 android/key.properties
 android/app/*.jks
 *.keystore
+
+# Windows (WPF / .NET)
+memodo-windows/bin/
+memodo-windows/obj/
+
+# Android (Gradle)
+memodo-android/.gradle/
+memodo-android/local.properties
+*.apk
+*.aab
+
+# 同步服务器 (Python)
+memodo-server/**/__pycache__/
+memodo-server/.venv/
+memodo-server/.env
