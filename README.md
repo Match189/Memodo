@@ -2,7 +2,7 @@
 
 跨平台（Windows 桌面 + Android 手机）的待办清单与备忘录应用，Flutter 一套代码构建。
 开发标准见 [docs/SPD.md](docs/SPD.md)，架构审计见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)，
-阶段完工记录见 [docs/PHASES.md](docs/PHASES.md)。
+阶段完工记录见 [docs/PHASES.md](docs/PHASES.md)；滚动计划见 [docs/ROADMAP.md](docs/ROADMAP.md)。
 
 ## 当前功能
 
