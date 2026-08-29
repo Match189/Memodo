@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:desktop_multi_window/desktop_multi_window.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'widget_settings.dart';
@@ -48,34 +49,36 @@ class WidgetLauncher {
     }
     if (s.layout != _lastLayout) {
       _lastLayout = s.layout;
-      // 布局变化时向子进程广播，让它重画（无需重启进程）
-      try {
-        await DesktopMultiWindow.invokeMethod(_windowId!, 'layoutChanged');
-      } catch (_) {}
+      // ⚠️ 必须 unawaited：不阻塞主线程（之前 await 拖死主线程 = 转圈）
+      unawaited(_dispatchLayout());
     }
     if (s.preCreate != _lastPreCreate) {
       _lastPreCreate = s.preCreate;
       if (s.preCreate && !_preCreated) {
         await preCreateHidden();
       } else if (!s.preCreate && !_isShown) {
-        // 关掉预创建 = 关闭已有窗口
         await destroyWindow();
       }
     }
+  }
+
+  static Future<void> _dispatchLayout() async {
+    final id = _windowId;
+    if (id == null) return;
+    try {
+      await DesktopMultiWindow.invokeMethod(id, 'layoutChanged');
+    } catch (_) {}
   }
 
   /// 应用启动时调用：按设置预创建/显示窗口。
   static Future<void> boot() async {
     final s = _settings;
     if (s == null) return;
-    if (s.preCreate || s.enabled) {
-      // 预创建：立即起子窗口但**保持隐藏**，用户打开时只 show() 不再起进程
-      if (s.preCreate) {
-        await preCreateHidden();
-      }
-      if (s.enabled) {
-        await showWindow();
-      }
+    if (s.preCreate) {
+      await preCreateHidden();
+    }
+    if (s.enabled) {
+      await showWindow();
     }
   }
 
@@ -89,19 +92,37 @@ class WidgetLauncher {
         await _createWindow();
       }
       if (_windowId != null) {
-        await WindowController.fromWindowId(_windowId!).show();
+        // 先 show，再异步推设置（不等子进程自套样式，避免拖死主线程）
+        try {
+          await WindowController.fromWindowId(_windowId!).show()
+              .timeout(const Duration(seconds: 3));
+        } catch (_) {}
         _isShown = true;
+        unawaited(_dispatchInitialSettings());
       }
     } finally {
       _opening = false;
     }
   }
 
+  static Future<void> _dispatchInitialSettings() async {
+    final s = _settings;
+    final id = _windowId;
+    if (s == null || id == null) return;
+    try {
+      await DesktopMultiWindow.invokeMethod(id, 'applySurface', {
+        'acrylic': s.material == WidgetMaterial.acrylic,
+        'opacity': s.opacity,
+      });
+    } catch (_) {}
+  }
+
   static Future<void> hideWindow() async {
     if (_windowId == null) return;
     _isShown = false;
     try {
-      await WindowController.fromWindowId(_windowId!).hide();
+      await WindowController.fromWindowId(_windowId!).hide()
+          .timeout(const Duration(seconds: 3));
     } catch (_) {}
   }
 
@@ -112,11 +133,11 @@ class WidgetLauncher {
     _isShown = false;
     if (id == null) return;
     try {
-      await WindowController.fromWindowId(id).close();
+      await WindowController.fromWindowId(id).close()
+          .timeout(const Duration(seconds: 3));
     } catch (_) {}
   }
 
-  /// 启动一个 Flutter 引擎子进程（窗口先藏起来），供后续秒开。
   static Future<void> preCreateHidden() async {
     if (_windowId != null) return;
     if (_opening) return;
@@ -124,10 +145,11 @@ class WidgetLauncher {
     try {
       await _createWindow();
       if (_windowId != null) {
-        // 让子窗口自套样式后立即隐藏
         try {
-          await DesktopMultiWindow.invokeMethod(_windowId!, 'initHidden');
-          await WindowController.fromWindowId(_windowId!).hide();
+          await DesktopMultiWindow.invokeMethod(_windowId!, 'initHidden')
+              .timeout(const Duration(seconds: 3));
+          await WindowController.fromWindowId(_windowId!).hide()
+              .timeout(const Duration(seconds: 3));
         } catch (_) {}
         _preCreated = true;
       }
@@ -156,21 +178,21 @@ class WidgetLauncher {
       } catch (_) {}
 
       if (_windowId == null) {
-        // 加超时：主进程不能等子进程太久，否则整个应用被拖死。
-        final controller = await DesktopMultiWindow.createWindow(jsonEncode({
-          'type': 'widget',
-          'kind': s.layout == WidgetLayout.dual ? 'dual' : 'todo',
-        })).timeout(const Duration(seconds: 6));
+        final controller = await DesktopMultiWindow
+            .createWindow(jsonEncode({
+              'type': 'widget',
+              'kind': s.layout == WidgetLayout.dual ? 'dual' : 'todo',
+            }))
+            .timeout(const Duration(seconds: 6));
         _windowId = controller.windowId;
-        await controller
-          ..setTitle(widgetWindowTitle)
-          ..setFrame(const Offset(1200, 260) & defaultSize)
-          ..show()
-          .timeout(const Duration(seconds: 3));
+        try {
+          await controller.setTitle(widgetWindowTitle);
+          await controller.setFrame(const Offset(1200, 260) & defaultSize);
+          await controller.show();
+        } catch (_) {}
       }
     } catch (e) {
       debugPrint('[launcher] createWindow failed: $e');
-      // 失败时彻底放弃此次创建，避免半状态阻塞后续 enable。
       _windowId = null;
     }
   }

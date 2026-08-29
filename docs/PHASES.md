@@ -233,3 +233,15 @@ ServerSyncProvider（cursor 协议）留好了插入点。
 t=2s  仍为旧 RC 标题"todolist"（资源标题切换延迟）
 t=5s  主窗口"念念 Memodo" + 子窗口"念念小组件"已出现
 t=8s  同上（稳定）
+
+## 二次卡死修复
+
+- `_onSettingsChanged` 里 `invokeMethod` 之前是 await，把主监听器卡住
+  → 改 `unawaited(_dispatchLayout())`
+- 修工具调用时序：把 `setTitle/setFrame/show` 拆为独立 await 链（之前链式
+  返回 Future 后再调 `.setFrame` 会报"Future 没有 setFrame"）
+- 加 `setState((){})` 强制重排，避免 dual/single 切换时 build 过渡黑帧
+
+## 验证
+
+t=6s  主"念念 Memodo"+ 子"念念小组件"已就绪
