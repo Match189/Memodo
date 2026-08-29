@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../desktop/android_widget_settings.dart';
 import '../desktop/autostart.dart';
 import '../desktop/widget_launcher.dart';
+import '../desktop/tray_service.dart';
 import '../desktop/widget_settings.dart';
 import '../home_widget_bridge.dart';
 import '../sync/sync_manager.dart';
@@ -492,6 +493,15 @@ class _SettingsPageState extends State<SettingsPage> {
                     ));
                   }
                 }
+              },
+            ),
+            SwitchListTile(
+              title: const Text('关闭主窗口时最小化到托盘'),
+              subtitle: const Text('点关闭不退出应用，从托盘图标可再次打开'),
+              value: widgetSettings.closeToTray,
+              onChanged: (v) async {
+                await widgetSettings.setCloseToTray(v);
+                TrayService.instance.closeToTray = v;
               },
             ),
             SwitchListTile(

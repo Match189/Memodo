@@ -30,6 +30,10 @@ class WidgetWindowNative {
             WINDOW_STYLE.WS_MINIMIZEBOX |
             WINDOW_STYLE.WS_MAXIMIZEBOX);
     SetWindowLongPtr(hwnd, WINDOW_LONG_PTR_INDEX.GWL_STYLE, frameless);
+    // 工具窗口样式：不占任务栏、不进 Alt-Tab（桌面挂件的定位）。
+    final ex = GetWindowLongPtr(hwnd, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE);
+    SetWindowLongPtr(hwnd, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE,
+        ex | WINDOW_EX_STYLE.WS_EX_TOOLWINDOW);
     setTopmost(alwaysOnTop, windowTitle: windowTitle);
   }
 

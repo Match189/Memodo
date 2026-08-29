@@ -52,6 +52,9 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
   /// 开机自启（Windows：HKCU Run 注册表，无需管理员）。
   bool autostart = false;
 
+  /// 关闭主窗口时最小化到托盘（true=不退出，托盘图标可恢复）。
+  bool closeToTray = true;
+
   /// 待办（/单卡片）窗口上次位置与尺寸。
   int? posX;
   int? posY;
@@ -75,6 +78,7 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
       lockPosition = json['lockPosition'] as bool? ?? false;
       attachToDesktop = json['attachToDesktop'] as bool? ?? false;
       autostart = json['autostart'] as bool? ?? false;
+      closeToTray = json['closeToTray'] as bool? ?? true;
       material = WidgetMaterial.from(json['material'] as String?);
       layout = json['layout'] == 'split'
           ? WidgetLayout.split
@@ -141,6 +145,12 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
     await save();
   }
 
+  Future<void> setCloseToTray(bool value) async {
+    if (closeToTray == value) return;
+    closeToTray = value;
+    await save();
+  }
+
   Future<void> saveWindowRect({
     required int x,
     required int y,
@@ -185,6 +195,7 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
         'lockPosition': lockPosition,
         'attachToDesktop': attachToDesktop,
         'autostart': autostart,
+        'closeToTray': closeToTray,
         'posX': posX,
         'posY': posY,
         'width': width,

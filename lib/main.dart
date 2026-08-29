@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 import 'package:sqflite/sqflite.dart' as sqflite;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -150,10 +151,14 @@ Future<void> _boot(List<String> args) async {
   if (Platform.isWindows) {
     _setupDesktopWidget(taskModel, memoModel, desktopWidgetSettings);
     unawaited(TrayService.instance.init());
-    // 品牌化窗口标题（运行时改，规避 Runner 模板编码问题）。
-    Timer(const Duration(milliseconds: 800), () {
+    // 品牌化窗口标题 + 主窗口关闭拦截（800ms 后窗口已就绪）。
+    Timer(const Duration(milliseconds: 800), () async {
       unawaited(
           WidgetWindowNative.setMainWindowTitle(mainWindowDisplayTitle));
+      try {
+        await windowManager.setPreventClose(true);
+        TrayService.instance.closeToTray = desktopWidgetSettings.closeToTray;
+      } catch (_) {}
     });
   }
   if (Platform.isAndroid) {
