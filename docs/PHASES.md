@@ -130,3 +130,12 @@ ServerSyncProvider（cursor 协议）留好了插入点。
 **测试**：25/25（新增 board_test 3 用例：幂等/去重/软删除、布局持久化往返、z 序递增）。
 **已知问题**：布局不跨设备同步（V1 设计，后续进快照 v4）；卡片编辑仍在主页面完成。
 **下一阶段**：Phase 8b 小组件窗口 Board 渲染模式 → Phase 9 安卓视觉一致 → Phase 10 同步接入。
+
+## 缺陷修复记录（真机验收）
+
+- **手机启动卡系统启动屏（关键）**：`onConfigure` 里的 `PRAGMA busy_timeout` 在
+  安卓平台版 sqflite 上不被 `execute` 支持 → 开库抛异常 → runApp 前死亡。
+  Windows FFI 不受影响，因此只在真机暴露。修复：改用 `rawQuery`（双端通用）。
+  已 adb 真机验证：release 包零错误、界面完整渲染、用户可继续 WebDAV 配置。
+- **经验**：桌面端通过的代码不等于全端通过；涉及平台差异的 sqflite API
+  （execute/PRAGMA）必须用 rawQuery/数据库选项表达，并优先真机验证。

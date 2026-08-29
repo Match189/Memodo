@@ -88,7 +88,8 @@ class AppDatabase {
       version: 4,
       onConfigure: (db) async {
         // 主窗口与桌面小组件子窗口是两个引擎并发访问同一个库文件。
-        await db.execute('PRAGMA busy_timeout = 3000');
+        // ⚠️ 安卓平台版 sqflite 不允许 execute 执行 PRAGMA，必须 rawQuery。
+        await db.rawQuery('PRAGMA busy_timeout = 3000');
       },
       onCreate: (db, version) async {
         await db.execute(_schemaTasksV3);
