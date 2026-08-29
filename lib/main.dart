@@ -37,14 +37,22 @@ import 'theme/theme_settings.dart';
 Future<void> main(List<String> args) async {
   // 全局错误兜底：release 模式下未捕获异常不再"无声卡启动屏"，
   // 而是把错误直接画在屏幕上，方便用户截图反馈（尤其手机端无 adb 时）。
-  await runZonedGuarded<Future<void>>(() async {
-    await _boot(args);
-  }, (error, stack) {
-    _showFatalError(error, stack);
-  });
+  try {
+    await runZonedGuarded<Future<void>>(() async {
+      await _boot(args);
+    }, (error, stack) {
+      _showFatalError(error, stack);
+    });
+  } catch (e, st) {
+    // ignore: avoid_print
+    print('[fatal] $e\n$st');
+    _showFatalError(e, st);
+  }
 }
 
 Future<void> _boot(List<String> args) async {
+  // ignore: avoid_print
+  print('[boot] args=$args');
   WidgetsFlutterBinding.ensureInitialized();
 
   final isDesktop =
@@ -97,6 +105,11 @@ Future<void> _boot(List<String> args) async {
     await widgetSettings.load();
     final themeSettings = ThemeSettingsModel(subSettingsStore);
     await themeSettings.load();
+    // 图钉板模式：子窗口自己装载板卡（同一库、同一布局 kv）。
+    final boardController = BoardController(
+      boardRepository: BoardRepository(db, deviceId: device.id),
+      settingsStore: subSettingsStore,
+    );
     runApp(WidgetWindowApp(
       windowId: windowId,
       kind: kind,
@@ -108,6 +121,7 @@ Future<void> _boot(List<String> args) async {
       ),
       widgetSettings: widgetSettings,
       themeSettings: themeSettings,
+      boardController: boardController,
     ));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       debugPrint('[widget] first frame rendered ✓');
@@ -157,7 +171,13 @@ Future<void> _boot(List<String> args) async {
   );
 
   if (Platform.isWindows) {
-    _setupDesktopWidget(taskModel, memoModel, desktopWidgetSettings);
+    _setupDesktopWidget(
+      taskModel,
+      memoModel,
+      desktopWidgetSettings,
+      themeSettings,
+      syncManager,
+    );
     unawaited(TrayService.instance.init());
     // 品牌化窗口标题 + 主窗口关闭拦截（800ms 后窗口已就绪）。
     Timer(const Duration(milliseconds: 800), () async {
@@ -219,6 +239,8 @@ void _setupDesktopWidget(
   TaskListModel taskModel,
   MemoListModel memoModel,
   DesktopWidgetSettingsModel widgetSettings,
+  ThemeSettingsModel themeSettings,
+  SyncManager syncManager,
 ) {
   WidgetLauncher.bind(widgetSettings);
 
@@ -228,6 +250,27 @@ void _setupDesktopWidget(
       case 'dataChangedFromWidget':
         await taskModel.load();
         await memoModel.load();
+        // 同步函数返回 void（防抖触发），无需 await
+        syncManager.scheduleSync();
+        return;
+      case 'widgetRect':
+        // 子窗口进程回报自己的位置（只读采样在子进程内完成，安全）。
+        final a = (call.arguments as Map?)?.cast<String, Object?>();
+        if (a != null) {
+          final kind = a['kind'] as String? ?? '';
+          final x = (a['x'] as num?)?.toInt();
+          final y = (a['y'] as num?)?.toInt();
+          final w = (a['w'] as num?)?.toInt();
+          final h = (a['h'] as num?)?.toInt();
+          if (x != null && y != null && w != null && h != null) {
+            if (kind == 'memo') {
+              await widgetSettings.saveMemoWindowRect(
+                  x: x, y: y, w: w, h: h);
+            } else {
+              await widgetSettings.saveWindowRect(x: x, y: y, w: w, h: h);
+            }
+          }
+        }
       case 'widgetClosed':
         final id = call.arguments is int ? call.arguments as int : null;
         if (id != null) WidgetLauncher.forget(id);
@@ -236,12 +279,12 @@ void _setupDesktopWidget(
     return null;
   });
 
-  // 主窗口数据一变就广播给小组件重载（小组件不会回广播，不会成环）。
-  void broadcastToWidget() {
+  // 主窗口数据/设置一变就广播给小组件重载（小组件不会回广播，不会成环）。
+  void broadcastToWidget([String method = 'dataChangedFromMain']) {
     unawaited(() async {
       try {
         for (final id in await DesktopMultiWindow.getAllSubWindowIds()) {
-          await DesktopMultiWindow.invokeMethod(id, 'dataChangedFromMain');
+          await DesktopMultiWindow.invokeMethod(id, method);
         }
       } catch (_) {}
     }());
@@ -249,6 +292,10 @@ void _setupDesktopWidget(
 
   taskModel.addListener(broadcastToWidget);
   memoModel.addListener(broadcastToWidget);
+  // 主题（色/模式/AMOLED）变化也让小组件跟随。
+  themeSettings.addListener(() => broadcastToWidget('themeChanged'));
+  // 外观/小组件设置变化（卡片样式等）。
+  widgetSettings.addListener(() => broadcastToWidget('settingsChanged'));
 
   // 应用启动时若上次开着小组件，则自动恢复。
   if (widgetSettings.enabled) {

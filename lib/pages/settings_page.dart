@@ -422,8 +422,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   onSelectionChanged: widgetSettings.enabled
                       ? (s) async {
                           await widgetSettings.setMaterial(s.first);
-                          await WidgetLauncher.updateOpacity(
-                              widgetSettings.opacity);
+                          await WidgetLauncher.updateSurface(
+                            material: widgetSettings.material,
+                            opacity: widgetSettings.opacity,
+                          );
                         }
                       : null,
                 ),
@@ -451,7 +453,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 onChanged: widgetSettings.enabled
                     ? (v) async {
                         await widgetSettings.setOpacity(v.round());
-                        await WidgetLauncher.updateOpacity(v.round());
+                        await WidgetLauncher.updateSurface(
+                          material: widgetSettings.material,
+                          opacity: widgetSettings.opacity,
+                        );
                       }
                     : null,
               ),
@@ -465,14 +470,53 @@ class _SettingsPageState extends State<SettingsPage> {
                   ? (v) => widgetSettings.setLockPosition(v)
                   : null,
             ),
+            ListTile(
+              title: const Text('卡片样式'),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                      value: 'classic',
+                      label: Text('经典列表'),
+                      icon: Icon(Icons.list_alt_rounded),
+                    ),
+                    ButtonSegment(
+                      value: 'board',
+                      label: Text('图钉板'),
+                      icon: Icon(Icons.push_pin_rounded),
+                    ),
+                  ],
+                  selected: {widgetSettings.cardStyle},
+                  onSelectionChanged: widgetSettings.enabled
+                      ? (s) => widgetSettings.setCardStyle(s.first)
+                      : null,
+                ),
+              ),
+            ),
+            ListTile(
+              title: const Text('板主题'),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'cork', label: Text('软木板')),
+                    ButtonSegment(value: 'glass', label: Text('毛玻璃')),
+                  ],
+                  selected: {widgetSettings.boardThemeId},
+                  onSelectionChanged: (s) =>
+                      widgetSettings.setBoardThemeId(s.first),
+                ),
+              ),
+            ),
             SwitchListTile(
               title: const Text('桌面层模式（实验）'),
               subtitle: const Text('把卡片嵌进壁纸层，像桌面图标一样常驻；失败会自动退回普通窗口'),
               value: widgetSettings.attachToDesktop,
               onChanged: widgetSettings.enabled
                   ? (v) async {
-                      final ok = await WidgetLauncher.updateAttachToDesktop(v);
-                      if (ok) await widgetSettings.setAttachToDesktop(v);
+                      await WidgetLauncher.updateAttach(v);
+                      await widgetSettings.setAttachToDesktop(v);
                     }
                   : null,
             ),

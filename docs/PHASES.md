@@ -139,3 +139,33 @@ ServerSyncProvider（cursor 协议）留好了插入点。
   已 adb 真机验证：release 包零错误、界面完整渲染、用户可继续 WebDAV 配置。
 - **经验**：桌面端通过的代码不等于全端通过；涉及平台差异的 sqflite API
   （execute/PRAGMA）必须用 rawQuery/数据库选项表达，并优先真机验证。
+
+---
+
+# 2026-08-29 桌面小组件架构重构
+
+## 问题
+
+- 在设置页切换"单卡片/双卡片"时偶尔发生崩溃退出
+- 根因不是 Dart 业务逻辑，而是 desktop_multi_window 0.2.x 的"close → 紧接
+  createWindow"竞态：旧子进程未完全退出时新 build 启动并 createWindow →
+  Windows LNK1104（文件被占用）→ 进程级失败被误读为崩溃
+- 跨进程 FFI（SetWindowCompositionAttribute/SetParent）历史上也不安全
+
+## 架构修正（规格 §28/§33）
+
+- **主进程只做创建/关闭/发命令**（desktop_multi_window 插件级 API，进程安全）
+- **本窗口的原生加工（无边框/置顶/材质/附着桌面）一律在本进程内执行**
+- 小组件子窗口接 `'applySurface' / 'setTopmost' / 'attach' / 'detach'` 命令
+- 位置采样（GetWindowRect 只读安全）由子进程执行并 `'widgetRect'` 回报
+
+## 工具
+
+- `tool/enum_memodo_windows.ps1`：通过 P/Invoke EnumWindows 列出所有 memodo 窗口
+  （Get-Process 的 MainWindowTitle 只返回第一个窗口，对多窗口场景易误读）
+
+## 测试与现状
+
+- analyze 0 error、25/25 测试过
+- 实际启动后窗口：`念念 Memodo`（主）+ `待办小组件`（单卡片布局只开这一张）
+- 切双卡片 = 关闭 + 重开，UI 正常，**不崩溃**（先前看到的 1104 是构建期残留进程）

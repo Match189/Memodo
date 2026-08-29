@@ -55,6 +55,12 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
   /// 关闭主窗口时最小化到托盘（true=不退出，托盘图标可恢复）。
   bool closeToTray = true;
 
+  /// 卡片样式：classic=经典列表（当前模式）；board=图钉板样式。
+  String cardStyle = 'classic';
+
+  /// 图钉板主题（软木板/毛玻璃），应用与小组件共用。
+  String boardThemeId = 'cork';
+
   /// 待办（/单卡片）窗口上次位置与尺寸。
   int? posX;
   int? posY;
@@ -79,6 +85,8 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
       attachToDesktop = json['attachToDesktop'] as bool? ?? false;
       autostart = json['autostart'] as bool? ?? false;
       closeToTray = json['closeToTray'] as bool? ?? true;
+      cardStyle = json['cardStyle'] as String? ?? cardStyle;
+      boardThemeId = json['boardThemeId'] as String? ?? boardThemeId;
       material = WidgetMaterial.from(json['material'] as String?);
       layout = json['layout'] == 'split'
           ? WidgetLayout.split
@@ -151,6 +159,18 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
     await save();
   }
 
+  Future<void> setCardStyle(String value) async {
+    if (cardStyle == value) return;
+    cardStyle = value;
+    await save();
+  }
+
+  Future<void> setBoardThemeId(String value) async {
+    if (boardThemeId == value) return;
+    boardThemeId = value;
+    await save();
+  }
+
   Future<void> saveWindowRect({
     required int x,
     required int y,
@@ -196,6 +216,8 @@ class DesktopWidgetSettingsModel extends ChangeNotifier {
         'attachToDesktop': attachToDesktop,
         'autostart': autostart,
         'closeToTray': closeToTray,
+        'cardStyle': cardStyle,
+        'boardThemeId': boardThemeId,
         'posX': posX,
         'posY': posY,
         'width': width,
