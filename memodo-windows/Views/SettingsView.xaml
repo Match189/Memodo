@@ -5,27 +5,61 @@
         <StackPanel Margin="20" MaxWidth="560">
             <TextBlock Text="设置" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,16" />
 
-            <!-- 同步 -->
+            <!-- 同步（蓝图 §41-§45：WebDAV 先行，服务器 0.5） -->
             <Border Padding="16" CornerRadius="10" Background="White" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" Margin="0,0,0,12">
                 <StackPanel>
-                    <TextBlock Text="同步服务器" FontWeight="SemiBold" Margin="0,0,0,8" />
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="地址" VerticalAlignment="Center" Margin="0,0,8,6"/>
-                        <TextBox x:Name="ServerUrlBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,6" Padding="6"/>
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="账号" VerticalAlignment="Center" Margin="0,0,8,6"/>
-                        <TextBox x:Name="EmailBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,6" Padding="6"/>
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="密码" VerticalAlignment="Center" Margin="0,0,0,6"/>
-                        <PasswordBox x:Name="PwdBox" Grid.Row="2" Grid.Column="1" Padding="6"/>
-                    </Grid>
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                        <Button x:Name="LoginBtn" Content="登录" Style="{DynamicResource AccentBtn}" Click="Login_Click"/>
-                        <Button x:Name="SyncBtn" Content="立即同步" Margin="8,0,0,0" Style="{DynamicResource AccentBtn}" Click="Sync_Click"/>
+                    <TextBlock Text="同步" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="通道" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <ComboBox x:Name="ProviderBox" Width="260" SelectionChanged="Provider_SelectionChanged">
+                            <ComboBoxItem Content="WebDAV（坚果云 / NAS / Nextcloud）" Tag="webdav"/>
+                            <ComboBoxItem Content="自建服务器（0.5 版开放）" Tag="server"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <!-- WebDAV -->
+                    <StackPanel x:Name="WebDavPanel">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="地址" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                            <TextBox x:Name="WebDavUrlBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,6" Padding="6"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="账号" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                            <TextBox x:Name="WebDavUserBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,6" Padding="6"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="应用密码" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                            <PasswordBox x:Name="WebDavPwdBox" Grid.Row="2" Grid.Column="1" Padding="6"/>
+                        </Grid>
+                        <TextBlock Text="坚果云：网页端「账户信息 → 安全选项 → 添加应用密码」。密码加密存储，不落明文。"
+                                   Foreground="{DynamicResource SubtleText}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                    </StackPanel>
+
+                    <!-- Server（0.5） -->
+                    <StackPanel x:Name="ServerPanel" Visibility="Collapsed">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="地址" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                            <TextBox x:Name="ServerUrlBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,6" Padding="6"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="账号" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                            <TextBox x:Name="EmailBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,6" Padding="6"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="密码" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                            <PasswordBox x:Name="PwdBox" Grid.Row="2" Grid.Column="1" Padding="6"/>
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Button x:Name="LoginBtn" Content="登录" Style="{DynamicResource AccentBtn}" Click="Login_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <Button x:Name="SyncBtn" Content="立即同步" Style="{DynamicResource AccentBtn}" Click="Sync_Click"/>
                     </StackPanel>
                     <TextBlock x:Name="SyncStatus" Margin="0,8,0,0" Foreground="{DynamicResource SubtleText}" TextWrapping="Wrap"/>
                 </StackPanel>

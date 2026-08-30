@@ -4,6 +4,7 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using Hardcodet.Wpf.TaskbarNotification;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 using Memodo.Windows.Views;
 
@@ -38,11 +39,8 @@ public sealed class TrayService : IDisposable
         newTodo.Click += (_, _) => { ShowMainWindow(); (_mainWindow as ShellWindow)?.ShowPage("todo"); };
         var newMemo = new System.Windows.Controls.MenuItem { Header = "新建备忘" };
         newMemo.Click += (_, _) => { ShowMainWindow(); (_mainWindow as ShellWindow)?.ShowPage("memo"); };
-        var syncNow = new System.Windows.Controls.MenuItem
-        {
-            Header = "立即同步（0.5 版开放）",
-            IsEnabled = false, // 路线图裁定：0.1 置灰，避免未验证依赖
-        };
+        var syncNow = new System.Windows.Controls.MenuItem { Header = "立即同步" };
+        syncNow.Click += async (_, _) => await SyncNowAsync();
         var settings = new System.Windows.Controls.MenuItem { Header = "设置" };
         settings.Click += (_, _) => { ShowMainWindow(); (_mainWindow as ShellWindow)?.ShowPage("settings"); };
         var autostart = new System.Windows.Controls.MenuItem
@@ -75,6 +73,31 @@ public sealed class TrayService : IDisposable
         if (_widget is null) _widget = new DesktopWidgetWindow();
         if (!_widget.IsVisible) _widget.Show();
         _widget.Activate();
+    }
+
+    /// <summary>托盘立即同步：当前接 WebDAV（坚果云）；失败弹窗，成功静默+刷新组件。</summary>
+    private async System.Threading.Tasks.Task SyncNowAsync()
+    {
+        var s = SettingsStore.Current;
+        if (s.SyncProvider != "webdav")
+        {
+            System.Windows.MessageBox.Show("当前通道为自建服务器，请在 设置 → 同步 中操作（0.5 版）。",
+                "念念 Memodo");
+            return;
+        }
+        try
+        {
+            var engine = AppHost.Services.GetRequiredService<SyncEngine>();
+            var (_, _, err) = await engine.RunWebDavAsync();
+            if (err is not null)
+                System.Windows.MessageBox.Show("同步失败：" + err, "念念 Memodo");
+            else
+                _widget?.Reload();
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show("同步失败：" + ex.Message, "念念 Memodo");
+        }
     }
 
     public void Attach(Window mainWindow) => _mainWindow = mainWindow;

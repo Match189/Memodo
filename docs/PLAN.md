@@ -21,7 +21,7 @@
 | M0 基线 | 双端原生骨架可编译、本地库对齐 | P0 | ✅ 已完成 |
 | **0.1 MVP** | Board/Card/Todo/Memo/Checklist/Idea、Win 无限画布、**Win 桌面组件**、Quick Add、拖/缩/钉、托盘、Android App、Android Widget | P1 P2 P3 + P5/P6 基础 | 🟨 **当前主战场** |
 | 0.2 | Today、Inbox、Reminder、Search、Dark Mode、Cork/Glass 完整 | P1 P4 | ❌ |
-| 0.3 | WebDAV（坚果云/NAS/Nextcloud） | P7 | ❌ |
+| 0.3 | WebDAV（坚果云/NAS/Nextcloud） | P7 | 🟨 **提前完成-Win 端**（用户裁定：服务器延后） |
 | 0.4 | OSS / S3 Compatible | P8 | ❌ |
 | 0.5 | Self-hosted Server **实跑验证 + 双端接入** | P9 | 🟨 代码已提前建 |
 | 0.6 | Image / Link / Attachment | — | ❌ |
@@ -119,3 +119,9 @@ Changed / Added / Tests / Screenshots / Known issues / Next
 **Added** ExportService（§52 JSON 全量导出）、托盘 New Todo/Memo/Settings 导航、Sync Now 置灰(0.5 开放)
 **Tests** dotnet build 0 错误；`dotnet publish -c Release -r win-x64 --self-contained` ✅（publish/Memodo.Windows.exe，175MB）；`assembleRelease` ✅（app-release-unsigned.apk，12MB）
 **Known issues** Android release 未签名（安装需自建 keystore 签名）；Win 包为自包含未做单文件/MSIX
+
+### Round 6 · Phase 7 WebDAV 提前（用户裁定：先用坚果云，服务器延后）
+**Changed** SettingsStore（SyncProvider/WebDav*/DeviceId/LastSyncAt）、SettingsView 同步区（双通道切换）、SyncEngine、TrayService、.gitignore
+**Added** WebDavClient（GET/PUT/MKCOL，Basic 认证，纯 HttpClient）、快照同步（LWW+墓碑，§47/§49，平局 deviceId 字典序 §19）、SecretProtector（DPAPI，§53 不落明文）、托盘"立即同步"实接
+**Tests** 坚果云实测：MKCOL=201 / PUT=201 / GET 往返 ✅ / 缺文件=404；dotnet build 0 错误
+**Known issues** Android 端 WebDAV 同步未接（快照格式已定，下轮移植）；快照为全量（条目多时体积增长，后续可做差量/GC）

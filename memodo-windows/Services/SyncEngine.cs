@@ -37,6 +37,99 @@ public sealed class SyncEngine
         return (pulled, pushed, null);
     }
 
+    // ================= WebDAV（蓝图 §43，快照 + LWW） =================
+
+    private const string WebDavDir = "memodo";
+    private const string WebDavFile = "memodo/memodo-sync.json";
+
+    private sealed class Snapshot
+    {
+        public int format { get; set; } = 3;
+        public string device_id { get; set; } = "";
+        public long exported_at { get; set; }
+        public List<TaskItem> tasks { get; set; } = new();
+        public List<MemoItem> memos { get; set; } = new();
+    }
+
+    /// <summary>
+    /// WebDAV 快照同步：下载远端 → LWW 合并（含墓碑）→ 应用本地 → 上传合并结果。
+    /// 平局（updatedAt 相等）按 deviceId 字典序决胜（§19/§47）。
+    /// </summary>
+    public async Task<(int tasks, int memos, string? error)> RunWebDavAsync()
+    {
+        var s = SettingsStore.Current;
+        var client = new WebDavClient(s.WebDavUrl, s.WebDavUser, SecretProtector.Unprotect(s.WebDavPassProtected));
+        try
+        {
+            if (!await client.EnsureDirAsync(WebDavDir))
+                return (0, 0, "无法创建 WebDAV 目录，请检查地址/账号权限");
+
+            var remoteJson = await client.GetFileAsync(WebDavFile);
+            Snapshot remote = new();
+            if (remoteJson is not null)
+            {
+                try { remote = JsonSerializer.Deserialize<Snapshot>(remoteJson, Wire) ?? new Snapshot(); }
+                catch { remote = new Snapshot(); } // 远端损坏视作空快照，本地数据会覆盖之
+            }
+
+            var myDevice = s.EnsureDeviceId();
+            var local = new Snapshot
+            {
+                device_id = myDevice,
+                exported_at = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                tasks = _tasks.ListAllForSync(),
+                memos = _memos.ListAllForSync(),
+            };
+
+            var mergedTasks = MergeById(local.tasks, remote.tasks,
+                t => t.Id, t => t.UpdatedAt, remote.device_id, myDevice);
+            var mergedMemos = MergeById(local.memos, remote.memos,
+                m => m.Id, m => m.UpdatedAt, remote.device_id, myDevice);
+
+            // 应用到本地（不推进 updated_at，保 LWW 语义）
+            foreach (var t in mergedTasks) _tasks.UpsertFromSync(t);
+            foreach (var m in mergedMemos) _memos.UpsertFromSync(m);
+
+            // 上传合并结果（含墓碑，§49 删除传播）
+            var merged = new Snapshot
+            {
+                device_id = myDevice,
+                exported_at = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                tasks = mergedTasks,
+                memos = mergedMemos,
+            };
+            await client.PutFileAsync(WebDavFile, JsonSerializer.Serialize(merged, Wire));
+
+            s.LastSyncAt = merged.exported_at;
+            SettingsStore.Save();
+            return (mergedTasks.Count, mergedMemos.Count, null);
+        }
+        catch (Exception ex)
+        {
+            return (0, 0, ex.Message);
+        }
+    }
+
+    private static List<T> MergeById<T>(
+        List<T> local, List<T> remote,
+        Func<T, string> id, Func<T, long> ts,
+        string remoteDevice, string localDevice)
+    {
+        var map = local.ToDictionary(id, x => x);
+        foreach (var r in remote)
+        {
+            if (!map.TryGetValue(id(r), out var l))
+            {
+                map[id(r)] = r;
+                continue;
+            }
+            if (ts(r) > ts(l)) map[id(r)] = r;                                   // 新时间赢
+            else if (ts(r) == ts(l) && string.CompareOrdinal(remoteDevice, localDevice) > 0)
+                map[id(r)] = r;                                                  // 平局字典序决胜
+        }
+        return map.Values.ToList();
+    }
+
     private async Task<int> PullAsync()
     {
         int total = 0;

@@ -16,16 +16,104 @@ public partial class SettingsView : UserControl
         Loaded += (_, _) =>
         {
             var s = SettingsStore.Current;
-            ServerUrlBox.Text = s.ServerUrl;
-            EmailBox.Text = s.AccountEmail;
-            StartWidgetChk.IsChecked = s.ShowWidgetOnStartup;
-            TopmostChk.IsChecked = s.WidgetTopmost;
+
+            // 同步
+            foreach (ComboBoxItem it in ProviderBox.Items)
+                if ((string)it.Tag == s.SyncProvider) { ProviderBox.SelectedItem = it; break; }
+            ProviderBox.SelectedItem ??= ProviderBox.Items[0];
+            WebDavUrlBox.Text = string.IsNullOrEmpty(s.WebDavUrl)
+                ? "https://dav.jianguoyun.com/dav/" : s.WebDavUrl;
+            WebDavUserBox.Text = s.WebDavUser;
+            if (SecretProtector.Unprotect(s.WebDavPassProtected) is { Length: > 0 } savedPwd)
+                WebDavPwdBox.Password = savedPwd;
+            UpdateSyncStatus(null);
+
+            // 外观
             DarkChk.IsChecked = s.ThemeDark;
             foreach (ComboBoxItem it in ThemeBox.Items)
                 if ((string)it.Tag == s.ThemeStyle) { ThemeBox.SelectedItem = it; break; }
+
+            // 桌面组件
+            StartWidgetChk.IsChecked = s.ShowWidgetOnStartup;
+            TopmostChk.IsChecked = s.WidgetTopmost;
         };
     }
 
+    // ---------- 同步 ----------
+    private void Provider_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ProviderBox.SelectedItem is not ComboBoxItem it) return;
+        var provider = (string)it.Tag;
+        SettingsStore.Current.SyncProvider = provider;
+        SettingsStore.Save();
+        WebDavPanel.Visibility = provider == "webdav" ? Visibility.Visible : Visibility.Collapsed;
+        ServerPanel.Visibility = provider == "server" ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void SaveWebDav()
+    {
+        var s = SettingsStore.Current;
+        s.SyncProvider = "webdav";
+        s.WebDavUrl = WebDavUrlBox.Text.Trim();
+        s.WebDavUser = WebDavUserBox.Text.Trim();
+        if (WebDavPwdBox.Password.Length > 0)
+            s.WebDavPassProtected = SecretProtector.Protect(WebDavPwdBox.Password);
+        SettingsStore.Save();
+    }
+
+    private async void Sync_Click(object sender, RoutedEventArgs e)
+    {
+        var s = SettingsStore.Current;
+        if (s.SyncProvider == "webdav")
+        {
+            SaveWebDav();
+            if (string.IsNullOrWhiteSpace(s.WebDavUrl) || string.IsNullOrWhiteSpace(s.WebDavUser))
+            {
+                UpdateSyncStatus("请先填写 WebDAV 地址与账号"); return;
+            }
+            UpdateSyncStatus("同步中…");
+            var (tasks, memos, err) = await Engine.RunWebDavAsync();
+            UpdateSyncStatus(err is null
+                ? $"同步完成 ✓  云端共 {tasks} 条待办 / {memos} 条备忘"
+                : "同步失败：" + err);
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(s.ServerUrl))
+            {
+                UpdateSyncStatus("请先填写服务器地址"); return;
+            }
+            Sync.ServerUrl = s.ServerUrl;
+            UpdateSyncStatus("同步中…");
+            var (pulled, pushed, err) = await Engine.RunAsync(PwdBox.Password);
+            UpdateSyncStatus(err is null
+                ? $"同步完成：推送 {pushed} 条，拉取 {pulled} 条"
+                : "同步失败：" + err);
+        }
+    }
+
+    private void UpdateSyncStatus(string? message)
+    {
+        var last = SettingsStore.Current.LastSyncAt;
+        var lastText = last > 0
+            ? $"上次同步：{DateTimeOffset.FromUnixTimeMilliseconds(last).ToLocalTime():yyyy-MM-dd HH:mm}"
+            : "尚未同步";
+        SyncStatus.Text = message is null ? lastText : $"{message}（{lastText}）";
+    }
+
+    private async void Login_Click(object sender, RoutedEventArgs e)
+    {
+        var s = SettingsStore.Current;
+        s.ServerUrl = ServerUrlBox.Text.Trim();
+        s.AccountEmail = EmailBox.Text.Trim();
+        SettingsStore.Save();
+        Sync.ServerUrl = s.ServerUrl;
+        UpdateSyncStatus("登录中…");
+        var (ok, err) = await Sync.LoginAsync(s.AccountEmail, PwdBox.Password);
+        UpdateSyncStatus(ok ? "登录成功 ✓" : "登录失败：" + err);
+    }
+
+    // ---------- 外观 ----------
     private void Theme_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (ThemeBox.SelectedItem is ComboBoxItem it)
@@ -41,44 +129,7 @@ public partial class SettingsView : UserControl
         ThemeService.Apply();
     }
 
-    private void SaveBasic()
-    {
-        var s = SettingsStore.Current;
-        s.ServerUrl = ServerUrlBox.Text.Trim();
-        s.AccountEmail = EmailBox.Text.Trim();
-        SettingsStore.Save();
-    }
-
-    private async void Login_Click(object sender, RoutedEventArgs e)
-    {
-        SaveBasic();
-        if (string.IsNullOrWhiteSpace(SettingsStore.Current.ServerUrl))
-        {
-            SyncStatus.Text = "请先填写服务器地址，例如 http://localhost:8000";
-            return;
-        }
-        Sync.ServerUrl = SettingsStore.Current.ServerUrl;
-        SyncStatus.Text = "登录中…";
-        var (ok, err) = await Sync.LoginAsync(SettingsStore.Current.AccountEmail, PwdBox.Password);
-        SyncStatus.Text = ok ? "登录成功 ✓" : "登录失败：" + err;
-    }
-
-    private async void Sync_Click(object sender, RoutedEventArgs e)
-    {
-        SaveBasic();
-        if (string.IsNullOrWhiteSpace(SettingsStore.Current.ServerUrl))
-        {
-            SyncStatus.Text = "请先填写服务器地址";
-            return;
-        }
-        Sync.ServerUrl = SettingsStore.Current.ServerUrl;
-        SyncStatus.Text = "同步中…";
-        var (pulled, pushed, err) = await Engine.RunAsync(PwdBox.Password);
-        SyncStatus.Text = err is null
-            ? $"同步完成：推送 {pushed} 条，拉取 {pulled} 条"
-            : "同步失败：" + err;
-    }
-
+    // ---------- 桌面组件 ----------
     private void StartWidget_Changed(object sender, RoutedEventArgs e)
     {
         SettingsStore.Current.ShowWidgetOnStartup = StartWidgetChk.IsChecked == true;
@@ -91,6 +142,7 @@ public partial class SettingsView : UserControl
         SettingsStore.Save();
     }
 
+    // ---------- 数据 ----------
     /// 蓝图 §52：JSON 全量导出（第一版必须有，防数据锁死）
     private void Export_Click(object sender, RoutedEventArgs e)
     {
