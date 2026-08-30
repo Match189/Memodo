@@ -1,6 +1,7 @@
 package app.memodo.widget
 
 import android.content.Context
+import android.widget.Toast
 import androidx.glance.appwidget.updateAll
 
 /**
@@ -12,6 +13,11 @@ object WidgetRefresher {
         MemodoWidget().updateAll(context)
         BoardWidget().updateAll(context)
         MemosWidget().updateAll(context)
+        // 桌面组件经 RemoteViews IPC 更新需约300ms（Glance 架构限制），
+        // Toast 即时反馈让用户确认同步指令已发出。
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            Toast.makeText(context, "卡片已同步", Toast.LENGTH_SHORT).show()
+        }
     }
 
     /** ToggleTaskAction 复用的构造器 */

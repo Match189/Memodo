@@ -76,4 +76,3 @@ class BoardWidget : GlanceAppWidget() {
     }
 }
 class BoardWidgetReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget: GlanceAppWidget = BoardWidget() }
-class BoardWidgetLargeReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget: GlanceAppWidget = BoardWidget() }

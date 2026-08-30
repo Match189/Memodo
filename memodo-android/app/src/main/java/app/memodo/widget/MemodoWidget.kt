@@ -60,3 +60,4 @@ class MemodoWidget : GlanceAppWidget() {
     }
 }
 class MemodoWidgetReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget: GlanceAppWidget = MemodoWidget() }
+// MemodoWidgetLargeReceiver 已移除：保留一份 4×2 待办卡，减少桌面卡片数量
