@@ -76,6 +76,19 @@ public partial class MemoListView : UserControl
         if (item != null) _ = Vm.ToggleBoardVisibleCommand.ExecuteAsync(item);
     }
 
+    /// <summary>全部备忘恢复到钉板显示（批量救援，用户裁定 #1）。</summary>
+    private async void ShowAll_Click(object sender, RoutedEventArgs e)
+    {
+        var repo = AppHost.Services.GetRequiredService<Repositories.MemoRepository>();
+        foreach (var m in Vm.Memos.Where(m => !m.ShowOnBoard).ToList())
+        {
+            m.ShowOnBoard = true;
+            await System.Threading.Tasks.Task.Run(() => repo.Update(m));
+        }
+        await Vm.LoadCommand.ExecuteAsync(null);
+        App.NotifyDataChanged();
+    }
+
     private void Edit_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement fe || fe.Tag is not string id) return;

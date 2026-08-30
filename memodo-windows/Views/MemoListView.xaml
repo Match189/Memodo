@@ -8,8 +8,13 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="{DynamicResource S_PageMemo}" FontSize="24" FontWeight="SemiBold"
-                   Foreground="{DynamicResource Label}" Margin="0,0,0,16" />
+        <DockPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="{DynamicResource S_PageMemo}" FontSize="24" FontWeight="SemiBold"
+                       Foreground="{DynamicResource Label}" />
+            <Button DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center"
+                    Content="{DynamicResource S_show_all}" Style="{StaticResource PlainBtn}"
+                    Click="ShowAll_Click" ToolTip="全部备忘恢复到钉板显示"/>
+        </DockPanel>
 
         <Border Grid.Row="1" Background="{DynamicResource Fill}" CornerRadius="8"
                 BorderThickness="2" BorderBrush="Transparent" Margin="0,0,0,16">
@@ -77,11 +82,11 @@
                                             <Setter Property="FontSize" Value="14" />
                                             <Setter Property="Foreground" Value="{DynamicResource Accent}" />
                                             <Setter Property="Content" Value="&#xE7B3;" />
-                                            <Setter Property="ToolTip" Value="点击不在钉板显示" />
+                                            <Setter Property="ToolTip" Value="{DynamicResource S_memo_hide_tip}" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding ShowOnBoard}" Value="False">
                                                     <Setter Property="Content" Value="&#xED1A;" />
-                                                    <Setter Property="ToolTip" Value="点击在钉板显示" />
+                                                    <Setter Property="ToolTip" Value="{DynamicResource S_memo_show_tip}" />
                                                     <Setter Property="Foreground" Value="{DynamicResource SecondaryLabel}" />
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -108,11 +113,11 @@
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                     <Button Content="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                            ToolTip="编辑" Margin="0,0,6,0"
+                                            ToolTip="{DynamicResource S_tip_edit}" Margin="0,0,6,0"
                                             Foreground="{DynamicResource Accent}" Background="Transparent" BorderThickness="0"
                                             Click="Edit_Click" Tag="{Binding Id}" />
                                     <Button Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                            ToolTip="删除"
+                                            ToolTip="{DynamicResource S_tip_delete}"
                                             Foreground="{DynamicResource Danger}" Background="Transparent" BorderThickness="0"
                                             Click="Remove_Click" Tag="{Binding Id}" />
                                 </StackPanel>

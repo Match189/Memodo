@@ -76,10 +76,12 @@ public static class WindowChrome
     private const int ACCENT_DISABLED = 1;
     private const int ACCENT_ENABLE_TRANSPARENTGRADIENT = 3;
     private const int ACCENT_ENABLE_BLURBEHIND = 4;
+    private const int ACCENT_ENABLE_ACRYLICBLKBEHIND = 5;
 
     /// <summary>
-    /// 窗口材质（Flutter Phase 2 移植）：acrylic=毛玻璃(BLURBEHIND)，否则透明渐变；
-    /// opacity 30-100，alpha=opacity*255/100。未文档化 API，失败静默降级。
+    /// 窗口材质（Flutter Phase 2 移植 + 用户反馈修正）：acrylic 用 ACRYLICBLKBEHIND(5)，
+    /// tint alpha=不透明度（BLURBEHIND(4) 在部分系统上忽略 alpha → 滑杆无效的根因）；
+    /// 失败自动降级 TRANSPARENTGRADIENT(3) → DISABLED。
     /// </summary>
     public static void SetSurface(IntPtr hwnd, bool acrylic, int opacity, uint tintRgb)
     {
@@ -93,7 +95,7 @@ public static class WindowChrome
             }
             else if (acrylic)
             {
-                policy.AccentState = ACCENT_ENABLE_BLURBEHIND;
+                policy.AccentState = ACCENT_ENABLE_ACRYLICBLKBEHIND;
                 policy.GradientColor = (alpha << 24) | (tintRgb & 0x00FFFFFF);
             }
             else

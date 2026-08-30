@@ -219,3 +219,17 @@ Changed / Added / Tests / Screenshots / Known issues / Next
   头部统计），移除 cards/PinPicker/FAB 遗留
 **Tests** dotnet build 0 错误；assembleDebug/assembleRelease BUILD SUCCESSFUL（签名）；publish 更新
 **Known issues** BoardView/BoardViewModel/cards 数据链闲置待清理（Phase 10）；Android ServerSync 每次登录不缓存 token
+
+### Round 14 · 用户裁定批次（备忘眼睛/板面排布/贴纸外观/双语扫尾/背景图）
+**Changed** DesktopWidgetWindow（排布/便签外观/右键菜单/锁定按钮/背景图）、MemoListView（眼睛提示+全部上板）、ShellWindow/MemoList/TaskList（tooltip 双语）、SettingsStore（BoardBgPath/WidgetCardPos.NoteColor+NoteOpacity）、CorkTexture（自定义背景图）、WindowChrome（ACRYLICBLKBEHIND）、LocalizationService（+20 键，语言跟随系统首启）
+**Added**
+- 备忘救援：主窗口备忘页「全部上板」按钮（批量恢复 ShowOnBoard）
+- 板面排布（用户裁定 #2）：待办从左上角向下列满换列；备忘从右上角向下
+- 便签外观（#3/#8）：待办默认暖黄系/备忘默认蓝绿系；逐条右键改纸色(5)与不透明度(100/85/70/55%)，落盘本机 kv
+- 组件头部锁定小锁按钮（#4，置顶与选项之间），菜单项同步
+- 不透明度双保险（#5）：ACRYLICBLKBEHIND(5) 材质 alpha + RootSheet 面板透明度同时生效
+- 背景图（#7）：组件菜单更换/恢复，图片复制 AppData，压暗层保对比度
+- 双语扫尾（#6）：导航/标题栏/编辑删除 tooltip、眼睛提示、组件标题（英文态去掉中文「念念」→ Memodo）、全部上板等；首启语言跟随系统
+- 各端回顾（#9）：眼睛语义 Android 已对齐（Round 12）；本项贴纸外观/背景图为组件本机视觉（§11），不涉及 Android
+**Tests** dotnet build 0 错误；assembleDebug/assembleRelease BUILD SUCCESSFUL（签名）；publish 更新
+**Known issues** 自定义背景图引用原文件路径复制件；便签逐条不透明度低值在浅色背景可读性依赖纸色（已限最低 30%）

@@ -13,7 +13,19 @@ public static class LocalizationService
 
     public static string Lang
     {
-        get => SettingsStore.Current.Language;
+        get
+        {
+            var lang = SettingsStore.Current.Language;
+            if (string.IsNullOrEmpty(lang))
+            {
+                // 首次运行：跟随系统语言（zh 系 → 中文，否则英文）
+                lang = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "zh"
+                    ? "zh" : "en";
+                SettingsStore.Current.Language = lang;
+                SettingsStore.Save();
+            }
+            return lang;
+        }
         set { SettingsStore.Current.Language = value; SettingsStore.Save(); }
     }
 
@@ -25,6 +37,7 @@ public static class LocalizationService
     {
         var r = Application.Current.Resources;
         var zh = Lang != "en";
+
 
         void Set(string key, string zhText, string enText) => r["S_" + key] = zh ? zhText : enText;
 
@@ -71,8 +84,46 @@ public static class LocalizationService
         Set("settings_interval", "自动同步间隔", "Auto-sync interval");
         Set("settings_minutes", "分钟", "min");
         Set("settings_lang_hint", "切换后立即生效（部分文字重启后完全刷新）", "Applies immediately (restart for a full refresh)");
+        Set("memo_hide_tip", "点击不在钉板显示", "Hide from board");
+        Set("memo_show_tip", "点击在钉板显示", "Show on board");
+        Set("tip_edit", "编辑", "Edit");
+        Set("tip_delete", "删除", "Delete");
+        Set("tip_nav_todo", "待办", "To-dos");
+        Set("tip_nav_memo", "备忘", "Memos");
+        Set("tip_nav_settings", "设置", "Settings");
+        Set("tip_min", "最小化", "Minimize");
+        Set("tip_max", "最大化 / 还原", "Maximize / Restore");
+        Set("tip_close", "关闭到托盘", "Close to tray");
+        Set("show_all", "全部上板", "Show all on board");
         Set("group_open", "未完成", "Open");
         Set("group_done", "已完成", "Completed");
+        Set("group_on_board", "钉板显示中", "On board");
+        Set("group_off_board", "未在钉板显示", "Hidden from board");
+        Set("memo_hide", "不在钉板显示", "Hide from board");
+        Set("memo_show", "在钉板显示", "Show on board");
+        Set("show_all", "全部上板", "Show all on board");
+        Set("note_color", "纸色", "Paper");
+        Set("note_opacity", "不透明度", "Opacity");
+        Set("tip_edit", "编辑", "Edit");
+        Set("tip_delete", "删除", "Delete");
+        Set("tip_add", "添加", "Add");
+        Set("tip_nav_todo", "待办", "To-dos");
+        Set("tip_nav_memo", "备忘", "Memos");
+        Set("tip_nav_settings", "设置", "Settings");
+        Set("tip_min", "最小化", "Minimize");
+        Set("tip_max", "最大化 / 还原", "Maximize / Restore");
+        Set("tip_close", "关闭到托盘", "Close to tray");
+        Set("tip_topmost_on", "置顶：开（点击取消）", "On top: on (click to off)");
+        Set("tip_topmost_off", "置顶：关（点击开启）", "On top: off (click to on)");
+        Set("tip_lock_on", "锁定：开（点击解锁）", "Locked (click to unlock)");
+        Set("tip_lock_off", "锁定：关（点击锁定）", "Unlocked (click to lock)");
+        Set("tip_options", "选项", "Options");
+        Set("widget_title", "📌 念念", "📌 Memodo");
+        Set("board_pick", "更换背景图…", "Change board image…");
+        Set("board_reset", "恢复软木背景", "Cork background");
+        Set("menu_pin_color", "图钉色（分类）", "Pin color");
+        Set("menu_duplicate", "复制", "Duplicate");
+        Set("menu_unpin", "取消钉 / 删除", "Unpin / Delete");
         Set("group_on_board", "钉板显示中", "On board");
         Set("group_off_board", "未在钉板显示", "Hidden from board");
         Set("memo_hide", "不在钉板显示", "Hide from board");

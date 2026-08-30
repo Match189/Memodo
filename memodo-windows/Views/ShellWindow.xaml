@@ -29,9 +29,9 @@
                 <TextBlock Grid.Column="0" Text="{DynamicResource S_AppTitle}" Margin="14,0" VerticalAlignment="Center"
                            FontSize="13" Foreground="{DynamicResource SecondaryLabel}" />
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
-                    <Button Content="&#xE921;" Style="{StaticResource CapBtn}" Click="Min_Click"  ToolTip="最小化"/>
-                    <Button Content="&#xE922;" Style="{StaticResource CapBtn}" Click="Max_Click"  ToolTip="最大化"/>
-                    <Button Content="&#xE8BB;" Style="{StaticResource CapCloseBtn}" Click="CloseBtn_Click" ToolTip="关闭到托盘"/>
+                    <Button Content="&#xE921;" Style="{StaticResource CapBtn}" Click="Min_Click"  ToolTip="{DynamicResource S_tip_min}"/>
+                    <Button Content="&#xE922;" Style="{StaticResource CapBtn}" Click="Max_Click"  ToolTip="{DynamicResource S_tip_max}"/>
+                    <Button Content="&#xE8BB;" Style="{StaticResource CapCloseBtn}" Click="CloseBtn_Click" ToolTip="{DynamicResource S_tip_close}"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -39,9 +39,9 @@
         <!-- 侧栏：待办 / 备忘 / 设置（钉板经标题栏切换进入，不再单独占 tab） -->
         <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource SidebarBackground}">
             <StackPanel VerticalAlignment="Top" Margin="0,8,0,0">
-                <RadioButton x:Name="NavTodo"     Style="{StaticResource NavButton}" Tag="todo"     Content="&#xE73A;" Margin="0,0,0,8"  Click="Nav_Clicked" IsChecked="True" ToolTip="待办"/>
-                <RadioButton x:Name="NavMemo"     Style="{StaticResource NavButton}" Tag="memo"     Content="&#xE70F;" Margin="0,0,0,8"  Click="Nav_Clicked" ToolTip="备忘"/>
-                <RadioButton x:Name="NavSettings" Style="{StaticResource NavButton}" Tag="settings" Content="&#xE713;" Margin="0,0,0,8"  Click="Nav_Clicked" ToolTip="设置"/>
+                <RadioButton x:Name="NavTodo"     Style="{StaticResource NavButton}" Tag="todo"     Content="&#xE73A;" Margin="0,0,0,8"  Click="Nav_Clicked" IsChecked="True" ToolTip="{DynamicResource S_tip_nav_todo}"/>
+                <RadioButton x:Name="NavMemo"     Style="{StaticResource NavButton}" Tag="memo"     Content="&#xE70F;" Margin="0,0,0,8"  Click="Nav_Clicked" ToolTip="{DynamicResource S_tip_nav_memo}"/>
+                <RadioButton x:Name="NavSettings" Style="{StaticResource NavButton}" Tag="settings" Content="&#xE713;" Margin="0,0,0,8"  Click="Nav_Clicked" ToolTip="{DynamicResource S_tip_nav_settings}"/>
             </StackPanel>
         </Border>
 

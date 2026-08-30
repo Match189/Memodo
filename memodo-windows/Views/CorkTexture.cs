@@ -1,7 +1,9 @@
 using System;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Memodo.Windows.Services;
 
@@ -14,11 +16,50 @@ namespace Memodo.Windows.Views;
 /// </summary>
 public static class CorkTexture
 {
-    public static FrameworkElement Create(ThemeStyle style, bool dark)
+    /// <param name="bgPath">自定义背景图（用户裁定 #7）；空=软木/玻璃纹理。</param>
+    public static FrameworkElement Create(ThemeStyle style, bool dark, string bgPath = "")
     {
         var (baseC, altC, noise, vignette) = ThemeService.BoardPalette(style, dark);
 
         var root = new Grid();
+
+        // 自定义背景图（UniformToFill + 压暗层保证便签对比度）
+        if (!string.IsNullOrEmpty(bgPath) && File.Exists(bgPath))
+        {
+            try
+            {
+                var bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.UriSource = new Uri(bgPath, UriKind.Absolute);
+                bmp.EndInit();
+                bmp.Freeze();
+                root.Children.Add(new Image
+                {
+                    Source = bmp,
+                    Stretch = Stretch.UniformToFill,
+                });
+                root.Children.Add(new Border
+                {
+                    Background = new SolidColorBrush(Color.FromArgb(
+                        (byte)(dark ? 0x66 : 0x40), 0, 0, 0)),
+                });
+                root.Children.Add(new Border
+                {
+                    Background = new RadialGradientBrush
+                    {
+                        GradientStops =
+                        {
+                            new GradientStop(Colors.Transparent, 0),
+                            new GradientStop(Colors.Transparent, 0.55),
+                            new GradientStop(vignette, 1),
+                        },
+                    },
+                });
+                return root;
+            }
+            catch { /* 图片损坏回退纹理 */ }
+        }
 
         // 底色渐变（左上→右下，base → lerp(base, vignette, .25)）
         root.Children.Add(new Border

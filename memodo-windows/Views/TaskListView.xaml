@@ -89,11 +89,11 @@
                                 </TextBlock>
                                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                     <Button Content="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                            ToolTip="编辑" Margin="0,0,6,0"
+                                            ToolTip="{DynamicResource S_tip_edit}" Margin="0,0,6,0"
                                             Foreground="{DynamicResource Accent}" Background="Transparent" BorderThickness="0"
                                             Click="Edit_Click" Tag="{Binding Id}" />
                                     <Button Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                            ToolTip="删除"
+                                            ToolTip="{DynamicResource S_tip_delete}"
                                             Foreground="{DynamicResource Danger}" Background="Transparent" BorderThickness="0"
                                             Click="Remove_Click" Tag="{Binding Id}" />
                                 </StackPanel>

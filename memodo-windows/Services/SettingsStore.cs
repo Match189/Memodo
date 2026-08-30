@@ -47,6 +47,8 @@ public sealed class AppSettings
     public string MainViewMode { get; set; } = "list"; // list | board
     /// <summary>组件内卡片布局（本机视觉状态，不进同步协议——蓝图 §11 平台分离）。</summary>
     public Dictionary<string, WidgetCardPos> WidgetLayouts { get; set; } = new();
+    /// <summary>组件钉板自定义背景图（本机视觉，不进同步协议；空=软木纹理）。</summary>
+    public string BoardBgPath { get; set; } = "";
 
     /// <summary>设备标识（LWW 平局决胜，§19/§47）；首次访问自动生成。</summary>
     public string EnsureDeviceId()
@@ -102,6 +104,10 @@ public sealed class WidgetCardPos
     public double Y { get; set; }
     public double W { get; set; } = 150;
     public double H { get; set; } = 96;
+    /// <summary>便签纸色（按类型色系默认，可逐条设置）。</summary>
+    public string NoteColor { get; set; } = "";
+    /// <summary>便签不透明度 0.3-1.0（可逐条设置）。</summary>
+    public double NoteOpacity { get; set; } = 1.0;
 }
 
 /// <summary>机密保护（蓝图 §53）：DPAPI CurrentUser，settings.json 不落明文。</summary>

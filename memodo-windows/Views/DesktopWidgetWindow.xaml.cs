@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -54,6 +56,7 @@ public partial class DesktopWidgetWindow : Window
         {
             try { WindowChrome.ApplyFrameless(this); } catch { }
             ApplyMaterial();
+            ApplySheetOpacity();
             ApplyLockDrag();
             RefreshCork();
             ThemeService.ThemeChanged += RefreshCork;
@@ -69,8 +72,16 @@ public partial class DesktopWidgetWindow : Window
         Topmost = SettingsStore.Current.WidgetTopmost && !SettingsStore.Current.WidgetAttachDesktop;
         UpdateTopVisual();
         ApplyMaterial();
+        ApplySheetOpacity();
         ApplyLockDrag();
         Reload();
+    }
+
+    /// <summary>组件整体不透明度（用户裁定 #5：滑杆双保险——DWM 材质 + 面板透明度同时生效）。</summary>
+    private void ApplySheetOpacity()
+    {
+        var op = Math.Clamp(SettingsStore.Current.WidgetOpacity, 30, 100) / 100.0;
+        RootSheet.Opacity = op;
     }
 
     private void SaveWindowPos()
@@ -115,6 +126,11 @@ public partial class DesktopWidgetWindow : Window
         return items;
     }
 
+    /// <summary>逐条默认纸色：待办=暖黄系轮换，备忘=蓝绿系轮换（用户裁定 #2）。</summary>
+    private static string DefaultNoteColor(bool isTodo, int index) => isTodo
+        ? new[] { "yellow", "orange", "pink" }[index % 3]
+        : new[] { "blue", "green", "blue" }[index % 3];
+
     private void ReloadBoard()
     {
         Board.Children.Clear();
@@ -122,14 +138,40 @@ public partial class DesktopWidgetWindow : Window
         BoardEmpty.Text = LocalizationService.T("widget_empty_board");
         BoardEmpty.Visibility = items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
-        int i = 0;
+        // 用户裁定 #2：待办从左上角向下排列（列满换列），备忘从右上角向下排列
+        double boardW = Board.ActualWidth > 10 ? Board.ActualWidth : Math.Max(280, Width - 44);
+        double boardH = Board.ActualHeight > 10 ? Board.ActualHeight : Math.Max(320, Height - 90);
+        double cw = 150 + 12, ch = 96 + 10;
+        int rowsPerCol = Math.Max(1, (int)Math.Floor((boardH - 24) / ch));
+
+        int ti = 0, mi = 0;
         foreach (var it in items)
         {
-            var pos = SettingsStore.Current.WidgetLayouts.TryGetValue(it.Key, out var p)
-                ? p
-                : new WidgetCardPos { X = 16 + (i % 2) * 170, Y = 14 + (i / 2) * 116 };
+            WidgetCardPos pos;
+            if (SettingsStore.Current.WidgetLayouts.TryGetValue(it.Key, out var saved))
+            {
+                pos = saved;
+            }
+            else if (it.IsTodo)
+            {
+                int col = ti / rowsPerCol, row = ti % rowsPerCol;
+                pos = new WidgetCardPos { X = 8 + col * cw, Y = 8 + row * ch };
+                ti++;
+            }
+            else
+            {
+                int col = mi / rowsPerCol, row = mi % rowsPerCol;
+                pos = new WidgetCardPos
+                {
+                    X = Math.Max(8, boardW - cw - col * cw),
+                    Y = 8 + row * ch,
+                };
+                mi++;
+            }
+            // 默认纸色：待办暖黄系 / 备忘蓝绿系（用户裁定 #2）
+            if (string.IsNullOrEmpty(pos.NoteColor))
+                pos.NoteColor = DefaultNoteColor(it.IsTodo, it.IsTodo ? ti - 1 : mi - 1);
             Board.Children.Add(BuildCard(it, pos));
-            i++;
         }
     }
 
@@ -144,10 +186,13 @@ public partial class DesktopWidgetWindow : Window
     // ---------- 钉板便签 ----------
     private UIElement BuildCard(NoteVM it, WidgetCardPos pos)
     {
-        var paper = PinFactory.ResolveNote(it.IsTodo ? "yellow" : "blue");
+        // 纸色：逐条设置（ReloadBoard 已对未设置项按类型色系写入默认）
+        var paper = PinFactory.ResolveNote(pos.NoteColor);
+        if (paper == default) paper = ((SolidColorBrush)FindResource("CardSurface")).Color;
         var border = new Border
         {
             Background = new SolidColorBrush(paper),
+            Opacity = Math.Clamp(pos.NoteOpacity, 0.3, 1.0), // 用户裁定 #8：逐条不透明度
             CornerRadius = new CornerRadius(2, 2, 4, 4),
             BorderBrush = (Brush)FindResource("CardBorder"),
             BorderThickness = new Thickness(1),
@@ -273,6 +318,8 @@ public partial class DesktopWidgetWindow : Window
             grid.Children.Add(thumb);
         }
 
+        border.ContextMenu = BuildNoteMenu(it);
+
         border.MouseLeftButtonDown += (sender, e) =>
         {
             if (_locked) return;
@@ -314,6 +361,48 @@ public partial class DesktopWidgetWindow : Window
             BorderBrush = (Brush)FindResource("Separator"),
             Padding = new Thickness(0, 0, 0, 4),
         };
+    }
+
+    /// <summary>便签右键菜单（用户裁定 #3/#8）：编辑 / 纸色 / 不透明度。</summary>
+    private ContextMenu BuildNoteMenu(NoteVM it)
+    {
+        var menu = new ContextMenu();
+        var edit = new MenuItem { Header = LocalizationService.T("tip_edit") };
+        edit.Click += (_, _) => EditItem(it);
+        menu.Items.Add(edit);
+
+        var paperMenu = new MenuItem { Header = LocalizationService.T("note_color") };
+        foreach (var c in PinFactory.NoteColors)
+        {
+            var cc = c;
+            var item = new MenuItem { Header = cc, Icon = new Border { Width = 12, Height = 12, CornerRadius = new CornerRadius(6), Background = new SolidColorBrush(PinFactory.ResolveNote(cc)) } };
+            item.Click += (_, _) => SaveNoteLook(it.Key, noteColor: cc);
+            paperMenu.Items.Add(item);
+        }
+        menu.Items.Add(paperMenu);
+
+        var opMenu = new MenuItem { Header = LocalizationService.T("note_opacity") };
+        foreach (var op in new[] { 1.0, 0.85, 0.7, 0.55 })
+        {
+            var o = op;
+            var item = new MenuItem { Header = (int)(o * 100) + "%" };
+            item.Click += (_, _) => SaveNoteLook(it.Key, opacity: o);
+            opMenu.Items.Add(item);
+        }
+        menu.Items.Add(opMenu);
+        return menu;
+    }
+
+    /// <summary>便签外观落盘（本机 kv）并刷新。</summary>
+    private void SaveNoteLook(string key, string? noteColor = null, double? opacity = null)
+    {
+        if (!SettingsStore.Current.WidgetLayouts.TryGetValue(key, out var pos))
+            pos = new WidgetCardPos();
+        if (noteColor != null) pos.NoteColor = noteColor;
+        if (opacity.HasValue) pos.NoteOpacity = Math.Clamp(opacity.Value, 0.3, 1.0);
+        SettingsStore.Current.WidgetLayouts[key] = pos;
+        SettingsStore.Save();
+        Reload();
     }
 
     private Border? _dragEl;
@@ -462,7 +551,32 @@ public partial class DesktopWidgetWindow : Window
     private void UpdateTopVisual()
     {
         TopBtn.Opacity = Topmost ? 1 : 0.55;
-        TopBtn.ToolTip = Topmost ? "置顶：开（点击取消）" : "置顶：关（点击开启）";
+        TopBtn.ToolTip = Topmost
+            ? LocalizationService.T("tip_topmost_on")
+            : LocalizationService.T("tip_topmost_off");
+        UpdateLockVisual();
+    }
+
+    /// <summary>锁定小锁按钮（用户裁定 #4）：位于置顶与选项按钮之间。</summary>
+    private void LockBtn_Click(object sender, RoutedEventArgs e) => ToggleLock();
+
+    private void ToggleLock()
+    {
+        _locked = !_locked;
+        SettingsStore.Current.WidgetLocked = _locked;
+        SettingsStore.Save();
+        ApplyLockDrag();
+        UpdateLockVisual();
+        Reload();
+    }
+
+    private void UpdateLockVisual()
+    {
+        LockBtn.Content = _locked ? "\uE72E" : "\uE785";
+        LockBtn.Opacity = _locked ? 1 : 0.55;
+        LockBtn.ToolTip = _locked
+            ? LocalizationService.T("tip_lock_on")
+            : LocalizationService.T("tip_lock_off");
     }
 
     private void Menu_Click(object sender, RoutedEventArgs e)
@@ -485,15 +599,21 @@ public partial class DesktopWidgetWindow : Window
         menu.Items.Add(viewList);
 
         var lockItem = new MenuItem { Header = LocalizationService.T("widget_lock"), IsCheckable = true, IsChecked = _locked };
-        lockItem.Click += (_, _) =>
-        {
-            _locked = lockItem.IsChecked;
-            SettingsStore.Current.WidgetLocked = _locked;
-            SettingsStore.Save();
-            ApplyLockDrag();
-            Reload();
-        };
+        lockItem.Click += (_, _) => ToggleLock();
         menu.Items.Add(lockItem);
+
+        // 背景图（用户裁定 #7）：自定义图片 / 恢复软木
+        var bgPick = new MenuItem { Header = LocalizationService.T("board_pick") };
+        bgPick.Click += (_, _) => PickBoardImage();
+        var bgReset = new MenuItem { Header = LocalizationService.T("board_reset") };
+        bgReset.Click += (_, _) =>
+        {
+            SettingsStore.Current.BoardBgPath = "";
+            SettingsStore.Save();
+            RefreshCork();
+        };
+        menu.Items.Add(bgPick);
+        menu.Items.Add(bgReset);
 
         var attachItem = new MenuItem
         {
@@ -582,5 +702,33 @@ public partial class DesktopWidgetWindow : Window
     }
 
     private void RefreshCork() =>
-        CorkHost.Content = CorkTexture.Create(ThemeService.Style, ThemeService.Dark);
+        CorkHost.Content = CorkTexture.Create(ThemeService.Style, ThemeService.Dark,
+            SettingsStore.Current.BoardBgPath);
+
+    /// <summary>自定义钉板背景图（用户裁定 #7）：复制到 AppData 后应用。</summary>
+    private void PickBoardImage()
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = LocalizationService.T("board_pick"),
+            Filter = "图片|*.png;*.jpg;*.jpeg;*.bmp;*.webp",
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        try
+        {
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "app.memodo");
+            Directory.CreateDirectory(dir);
+            var dest = Path.Combine(dir, "board-bg" + Path.GetExtension(dlg.FileName).ToLowerInvariant());
+            File.Copy(dlg.FileName, dest, overwrite: true);
+            SettingsStore.Current.BoardBgPath = dest;
+            SettingsStore.Save();
+            RefreshCork();
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show("背景设置失败：" + ex.Message, "念念 Memodo");
+        }
+    }
 }
