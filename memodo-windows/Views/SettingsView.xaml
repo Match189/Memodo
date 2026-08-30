@@ -8,7 +8,7 @@
             <!-- 同步（蓝图 §41-§45：WebDAV 先行，服务器 0.5） -->
             <Border Padding="16" CornerRadius="10" Background="White" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" Margin="0,0,0,12">
                 <StackPanel>
-                    <TextBlock Text="同步" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <TextBlock Text="同步" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,10" />
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                         <TextBlock Text="同步方式" VerticalAlignment="Center" Margin="0,0,8,0"/>
                         <ComboBox x:Name="ProviderBox" Width="260" SelectionChanged="Provider_SelectionChanged">
@@ -66,9 +66,9 @@
             </Border>
 
             <!-- 外观 -->
-            <Border Padding="16" CornerRadius="10" Background="{DynamicResource CardSurface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" Margin="0,0,0,12">
+            <Border Padding="16" CornerRadius="12" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Separator}" BorderThickness="1" Margin="0,0,0,16">
                 <StackPanel>
-                    <TextBlock Text="外观（蓝图 §17：Cork / Glass / Hybrid）" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <TextBlock Text="外观（蓝图 §17：Cork / Glass / Hybrid）" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,10" />
                     <StackPanel Orientation="Horizontal">
                         <ComboBox x:Name="ThemeBox" Width="140" SelectionChanged="Theme_SelectionChanged">
                             <ComboBoxItem Content="Cork 软木" Tag="Cork" />
@@ -82,9 +82,9 @@
             </Border>
 
             <!-- 桌面组件 -->
-            <Border Padding="16" CornerRadius="10" Background="{DynamicResource CardSurface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" Margin="0,0,0,12">
+            <Border Padding="16" CornerRadius="12" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Separator}" BorderThickness="1" Margin="0,0,0,16">
                 <StackPanel>
-                    <TextBlock Text="桌面组件" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <TextBlock Text="桌面组件" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,10" />
                     <CheckBox x:Name="StartWidgetChk" Content="登录时显示桌面组件（下次启动生效）" Checked="StartWidget_Changed" Unchecked="StartWidget_Changed"/>
                     <CheckBox x:Name="TopmostChk" Content="组件始终置顶（立即生效，组件右上角也可切）" Margin="0,6,0,0" Checked="Topmost_Changed" Unchecked="Topmost_Changed"/>
                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
@@ -99,18 +99,18 @@
             </Border>
 
             <!-- 数据（蓝图 §52：Export JSON 全量备份） -->
-            <Border Padding="16" CornerRadius="10" Background="{DynamicResource CardSurface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" Margin="0,0,0,12">
+            <Border Padding="16" CornerRadius="12" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Separator}" BorderThickness="1" Margin="0,0,0,16">
                 <StackPanel>
-                    <TextBlock Text="数据" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <TextBlock Text="数据" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,10" />
                     <Button Content="导出 JSON 备份" Style="{DynamicResource AccentBtn}" Click="Export_Click"/>
                     <TextBlock x:Name="ExportStatus" Margin="0,8,0,0" Foreground="{DynamicResource SubtleText}"/>
                 </StackPanel>
             </Border>
 
             <!-- 关于 -->
-            <Border Padding="16" CornerRadius="10" Background="White" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
+            <Border Padding="16" CornerRadius="12" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Separator}" BorderThickness="1">
                 <StackPanel>
-                    <TextBlock Text="关于" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <TextBlock Text="关于" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,10" />
                     <TextBlock Text="Memodo 念念 · Windows 原生客户端 (C#/WPF)"
                                Foreground="{DynamicResource SubtleText}" />
                     <TextBlock Text="数据库：%APPDATA%\app.memodo\settings.json / memodo.db"

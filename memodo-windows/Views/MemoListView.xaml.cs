@@ -13,8 +13,16 @@ public partial class MemoListView : UserControl
     public MemoListView()
     {
         InitializeComponent();
-        Loaded += async (_, _) => await Vm.LoadCommand.ExecuteAsync(null);
+        Loaded += async (_, _) =>
+        {
+            await Vm.LoadCommand.ExecuteAsync(null);
+            UpdateEmpty();
+            Vm.Memos.CollectionChanged += (_, _) => UpdateEmpty();
+        };
     }
+
+    private void UpdateEmpty() =>
+        EmptyState.Visibility = Vm.Memos.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
     private async void Add_Click(object sender, RoutedEventArgs e)
     {

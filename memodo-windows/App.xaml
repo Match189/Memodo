@@ -4,48 +4,61 @@
              xmlns:conv="clr-namespace:Memodo.Windows.Views">
     <Application.Resources>
         <ResourceDictionary>
-            <!-- 设计令牌默认值（启动时由 ThemeService.Apply 覆盖，XAML 一律 DynamicResource） -->
-            <SolidColorBrush x:Key="AppBackground" Color="#FFF5F7F8" />
-            <SolidColorBrush x:Key="SidebarBackground" Color="#FFEAF1F3" />
-            <SolidColorBrush x:Key="SubtleText" Color="#FF66727A" />
-            <SolidColorBrush x:Key="TextPrimary" Color="#FF33302B" />
-            <SolidColorBrush x:Key="TextSecondary" Color="#FF8A8070" />
-            <SolidColorBrush x:Key="Accent" Color="#FF0080A0" />
-            <SolidColorBrush x:Key="Danger" Color="#FFB00020" />
-            <SolidColorBrush x:Key="BoardBackground" Color="#FFE8D5BC" />
-            <SolidColorBrush x:Key="BoardBackgroundAlt" Color="#FFDCC5A6" />
-            <SolidColorBrush x:Key="CardSurface" Color="#FFFDF8EC" />
-            <SolidColorBrush x:Key="CardBorder" Color="#FFE2D6C2" />
-            <SolidColorBrush x:Key="GlassPanel" Color="#FFF2FBFD" />
-            <SolidColorBrush x:Key="GlassBorder" Color="#FFBFE0E8" />
+            <!-- 设计令牌默认值（DESIGN_APPLE.md §1；启动时由 ThemeService.Apply 覆盖，XAML 一律 DynamicResource） -->
+            <SolidColorBrush x:Key="Background" Color="#FFF2F2F7" />
+            <SolidColorBrush x:Key="Surface" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="SurfaceElevated" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="Separator" Color="#1F3C3C43" />
+            <SolidColorBrush x:Key="Label" Color="#FF1C1C1E" />
+            <SolidColorBrush x:Key="SecondaryLabel" Color="#993C3C43" />
+            <SolidColorBrush x:Key="TertiaryLabel" Color="#4D3C3C43" />
+            <SolidColorBrush x:Key="Fill" Color="#1F767680" />
+            <SolidColorBrush x:Key="CheckRing" Color="#FFC7C7CC" />
+            <SolidColorBrush x:Key="AccentSoft" Color="#1FD4763B" />
+            <SolidColorBrush x:Key="Accent" Color="#FFD4763B" />
+            <SolidColorBrush x:Key="Danger" Color="#FFFF3B30" />
+            <SolidColorBrush x:Key="AppBackground" Color="#FFF2F2F7" />
+            <SolidColorBrush x:Key="SidebarBackground" Color="#FFECECF1" />
+            <SolidColorBrush x:Key="SubtleText" Color="#993C3C43" />
+            <SolidColorBrush x:Key="TextPrimary" Color="#FF1C1C1E" />
+            <SolidColorBrush x:Key="TextSecondary" Color="#993C3C43" />
+            <SolidColorBrush x:Key="CardSurface" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="CardBorder" Color="#1F3C3C43" />
+            <SolidColorBrush x:Key="BoardBackground" Color="#FFC9A66B" />
+            <SolidColorBrush x:Key="BoardBackgroundAlt" Color="#FFA88950" />
+            <SolidColorBrush x:Key="GlassPanel" Color="#FFFFFDF8" />
+            <SolidColorBrush x:Key="GlassBorder" Color="#1F3C3C43" />
 
             <DropShadowEffect x:Key="DropShadow" BlurRadius="18" ShadowDepth="0"
                               Color="#40000000" Opacity="0.22" />
-            <DropShadowEffect x:Key="CardShadow" BlurRadius="8" ShadowDepth="2"
-                              Color="#33000000" Opacity="0.35" />
+            <!-- 三档投影（DESIGN_APPLE.md §1.3）：E1 悬停 / E2 卡片 / E3 弹窗 -->
+            <DropShadowEffect x:Key="ShadowE1" BlurRadius="8" ShadowDepth="2" Color="#000000" Opacity="0.12" />
+            <DropShadowEffect x:Key="ShadowE2" BlurRadius="12" ShadowDepth="3" Color="#000000" Opacity="0.10" />
+            <DropShadowEffect x:Key="ShadowE3" BlurRadius="28" ShadowDepth="8" Color="#000000" Opacity="0.18" />
+            <DropShadowEffect x:Key="CardShadow" BlurRadius="12" ShadowDepth="3" Color="#000000" Opacity="0.10" />
 
-            <!-- 侧栏导航按钮（Segoe MDL2 图标） -->
+            <!-- 侧栏导航按钮：macOS 侧栏语感（选中=tint 12% 圆角块 + tint 图标） -->
             <Style x:Key="NavButton" TargetType="RadioButton">
                 <Setter Property="Width" Value="48" />
-                <Setter Property="Height" Value="48" />
+                <Setter Property="Height" Value="40" />
                 <Setter Property="Margin" Value="8,2,8,2" />
-                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+                <Setter Property="Foreground" Value="{DynamicResource SecondaryLabel}" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="RadioButton">
                             <Grid>
-                                <Border x:Name="Back" Background="Transparent" CornerRadius="10" />
+                                <Border x:Name="Back" Background="Transparent" CornerRadius="8" />
                                 <TextBlock Text="{TemplateBinding Content}"
                                            FontFamily="Segoe MDL2 Assets" FontSize="17"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Back" Property="Background" Value="#22000000" />
+                                    <Setter TargetName="Back" Property="Background" Value="#14000000" />
                                 </Trigger>
                                 <Trigger Property="IsChecked" Value="True">
                                     <Setter Property="Foreground" Value="{DynamicResource Accent}" />
-                                    <Setter TargetName="Back" Property="Background" Value="#33FFFFFF" />
+                                    <Setter TargetName="Back" Property="Background" Value="{DynamicResource AccentSoft}" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -53,24 +66,41 @@
                 </Setter>
             </Style>
 
-            <!-- 自绘标题栏按钮 -->
+            <!-- 自绘标题栏按钮；关闭钮 hover 变红（macOS 红绿灯语感） -->
             <Style x:Key="CapBtn" TargetType="Button">
                 <Setter Property="Width" Value="42" />
-                <Setter Property="Height" Value="30" />
+                <Setter Property="Height" Value="28" />
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="BorderThickness" Value="0" />
-                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+                <Setter Property="Foreground" Value="{DynamicResource SecondaryLabel}" />
                 <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
                 <Setter Property="FontSize" Value="11" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <Border x:Name="B" Background="{TemplateBinding Background}">
+                            <Border x:Name="B" Background="{TemplateBinding Background}" CornerRadius="6">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="B" Property="Background" Value="#22000000" />
+                                    <Setter TargetName="B" Property="Background" Value="#14000000" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="CapCloseBtn" TargetType="Button" BasedOn="{StaticResource CapBtn}">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="B" Background="{TemplateBinding Background}" CornerRadius="6">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="B" Property="Background" Value="#FFE81123" />
+                                    <Setter Property="Foreground" Value="White" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -112,12 +142,12 @@
                 <Setter Property="Cursor" Value="Hand" />
             </Style>
 
-            <!-- 主按钮 -->
+            <!-- 按钮三档（§4）：Filled / Plain / Gray，高 32 圆角 8 -->
             <Style x:Key="AccentBtn" TargetType="Button">
                 <Setter Property="Foreground" Value="White" />
                 <Setter Property="Background" Value="{DynamicResource Accent}" />
                 <Setter Property="BorderThickness" Value="0" />
-                <Setter Property="Padding" Value="14,6" />
+                <Setter Property="Padding" Value="16,7" />
                 <Setter Property="Cursor" Value="Hand" />
                 <Setter Property="Template">
                     <Setter.Value>
@@ -127,17 +157,29 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#FF0099BF" />
+                                    <Setter Property="Opacity" Value="0.9" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter Property="Opacity" Value="0.8" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
             </Style>
+            <Style x:Key="PlainBtn" TargetType="Button" BasedOn="{StaticResource AccentBtn}">
+                <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Padding" Value="12,7" />
+            </Style>
+            <Style x:Key="GrayBtn" TargetType="Button" BasedOn="{StaticResource AccentBtn}">
+                <Setter Property="Foreground" Value="{DynamicResource Label}" />
+                <Setter Property="Background" Value="{DynamicResource Fill}" />
+            </Style>
 
-            <!-- 显示方式分段切换（列表 / 钉板） -->
+            <!-- 分段切换（保留给组件菜单等处） -->
             <Style x:Key="SegRadio" TargetType="RadioButton">
-                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+                <Setter Property="Foreground" Value="{DynamicResource SecondaryLabel}" />
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="BorderThickness" Value="0" />
                 <Setter Property="Padding" Value="10,4" />
@@ -146,7 +188,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="RadioButton">
-                            <Border x:Name="B" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <Border x:Name="B" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <ControlTemplate.Triggers>
@@ -169,6 +211,37 @@
                 <Setter Property="Height" Value="22" />
                 <Setter Property="FontSize" Value="14" />
                 <Setter Property="Cursor" Value="Hand" />
+            </Style>
+
+            <!-- Apple 圆形勾（§3）：20px 圆环，选中=tint 实心 + 白对勾，双端同形 -->
+            <Style x:Key="AppleCheck" TargetType="CheckBox">
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="CheckBox">
+                            <Grid Width="20" Height="20" Background="Transparent">
+                                <Ellipse x:Name="Ring"
+                                         Stroke="{DynamicResource CheckRing}" StrokeThickness="1.5"
+                                         Fill="Transparent" />
+                                <TextBlock x:Name="CheckMark"
+                                           Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="White"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Visibility="Collapsed" />
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Ring" Property="Fill" Value="{DynamicResource Accent}" />
+                                    <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource Accent}" />
+                                    <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource Accent}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
 
             <conv:StrikeThroughConverter x:Key="StrikeThrough" />

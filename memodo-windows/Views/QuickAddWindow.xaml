@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="快速添加" Width="380" SizeToContent="Height"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
-        Background="{DynamicResource AppBackground}"
+        Background="{DynamicResource SurfaceElevated}"
         ShowInTaskbar="False">
     <StackPanel Margin="16">
         <TextBlock Text="快速添加" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,10"/>
@@ -15,7 +15,7 @@
         </StackPanel>
         <TextBox x:Name="InputBox" Padding="10,8" KeyDown="InputBox_KeyDown"/>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button Content="取消" Padding="14,6" Click="Cancel_Click"/>
+            <Button Content="取消" Padding="14,6" Style="{StaticResource PlainBtn}" Click="Cancel_Click"/>
             <Button Content="添加" Padding="14,6" Margin="8,0,0,0"
                     Style="{DynamicResource AccentBtn}" Click="Add_Click"/>
         </StackPanel>

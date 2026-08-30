@@ -154,7 +154,7 @@ public partial class DesktopWidgetWindow : Window
             Width = pos.W, Height = pos.H,
             Effect = new System.Windows.Media.Effects.DropShadowEffect
             {
-                BlurRadius = 8, ShadowDepth = 2, Opacity = 0.28, Direction = 315,
+                BlurRadius = 12, ShadowDepth = 3, Opacity = 0.16, Direction = 315,
             },
             Cursor = _locked ? Cursors.Arrow : Cursors.SizeAll,
             Tag = it,
@@ -304,6 +304,19 @@ public partial class DesktopWidgetWindow : Window
         return border;
     }
 
+    /// <summary>列表行发丝线分隔（DESIGN_APPLE.md §5）。</summary>
+    private UIElement WrapRow(Grid g)
+    {
+        g.Margin = new Thickness(0, 0, 0, 4);
+        return new Border
+        {
+            Child = g,
+            BorderThickness = new Thickness(0, 0, 0, 1),
+            BorderBrush = (Brush)FindResource("Separator"),
+            Padding = new Thickness(0, 0, 0, 4),
+        };
+    }
+
     private Border? _dragEl;
     private string? _dragKey;
     private Point _dragLast;
@@ -376,7 +389,7 @@ public partial class DesktopWidgetWindow : Window
         del.Click += (_, _) => { _tasks.SoftDelete(t.Id); App.NotifyDataChanged(); };
         Grid.SetColumn(del, 2);
         grid.Children.Add(cb); grid.Children.Add(tb); grid.Children.Add(del);
-        return grid;
+        return WrapRow(grid);
     }
 
     private UIElement BuildListRow(MemoItem m)
@@ -410,7 +423,7 @@ public partial class DesktopWidgetWindow : Window
         del.Click += (_, _) => { _memos.SoftDelete(m.Id); App.NotifyDataChanged(); };
         Grid.SetColumn(del, 2);
         grid.Children.Add(cb); grid.Children.Add(stack); grid.Children.Add(del);
-        return grid;
+        return WrapRow(grid);
     }
 
     // ---------- 双击显示区 → 快速添加 ----------

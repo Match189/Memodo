@@ -40,8 +40,8 @@ public static class ThemeService
                 ? (Col("14181C"), Col("14181C"), Col(0x22, "FFFFFF"), Col(0x99, "000000"))
                 : (Col("DFE7EC"), Col("DFE7EC"), Col(0x22, "FFFFFF"), Col(0x33, "546E7A")),
             _ => dark
-                ? (Col("2B211A"), Col("241B15"), Col(0x26, "4A3826"), Col(0x88, "000000"))
-                : (Col("C9A66B"), Col("A88950"), Col(0x14, "000000"), Col(0x2E, "000000")),
+                ? (Col("2B211A"), Col("241B15"), Col(0x1A, "4A3826"), Col(0x88, "000000"))
+                : (Col("C9A66B"), Col("A88950"), Col(0x0F, "000000"), Col(0x2E, "000000")),
         };
     }
 
@@ -72,16 +72,24 @@ public static class ThemeService
         r["TextPrimary"] = new SolidColorBrush(textPri);
         r["TextSecondary"] = new SolidColorBrush(textSec);
 
-        // ---- Glass 面板（现代感：工具栏/侧栏/弹层）----
-        r["GlassPanel"] = new SolidColorBrush(dark ? Col("262D33") : Col("FFFDF8"));
-        r["GlassBorder"] = new SolidColorBrush(dark ? Col("3A444C") : Col("E2DDD3"));
+        // ---- Apple 灰阶令牌（DESIGN_APPLE.md §1.1）----
+        r["Background"] = new SolidColorBrush(dark ? Col("1C1C1E") : Col("F2F2F7"));
+        r["Surface"] = new SolidColorBrush(dark ? Col("2C2C2E") : Col("FFFFFF"));
+        r["SurfaceElevated"] = new SolidColorBrush(dark ? Col("3A3A3C") : Col("FFFFFF"));
+        r["Separator"] = new SolidColorBrush(dark ? Col(0x99, "545458") : Col(0x1F, "3C3C43"));
+        r["Label"] = new SolidColorBrush(dark ? Col("FFFFFF") : Col("1C1C1E"));
+        r["SecondaryLabel"] = new SolidColorBrush(dark ? Col(0x99, "EBEBF5") : Col(0x99, "3C3C43"));
+        r["TertiaryLabel"] = new SolidColorBrush(dark ? Col(0x4D, "EBEBF5") : Col(0x4D, "3C3C43"));
+        r["Fill"] = new SolidColorBrush(dark ? Col(0x3D, "767680") : Col(0x1F, "767680"));
+        r["CheckRing"] = new SolidColorBrush(dark ? Col("55555A") : Col("C7C7CC"));
+        r["AccentSoft"] = new SolidColorBrush(dark ? Col(0x2E, "E89A62") : Col(0x1F, "D4763B"));
 
-        // ---- 品牌与语义（设计文档：暖橙 #D4763B）----
-        r["Accent"] = new SolidColorBrush(dark ? Col("E08A50") : Col("D4763B"));
-        r["AppBackground"] = new SolidColorBrush(dark ? Col("20262B") : Col("F7F4EF"));
-        r["SidebarBackground"] = new SolidColorBrush(dark ? Col("2A3138") : Col("F1EDE4"));
+        // ---- 品牌与语义（暖橙 tint + iOS 红）----
+        r["Accent"] = new SolidColorBrush(dark ? Col("E89A62") : Col("D4763B"));
+        r["AppBackground"] = new SolidColorBrush(dark ? Col("1C1C1E") : Col("F2F2F7"));
+        r["SidebarBackground"] = new SolidColorBrush(dark ? Col("222226") : Col("ECECF1"));
         r["SubtleText"] = r["TextSecondary"];
-        r["Danger"] = new SolidColorBrush(dark ? Col("FF6B6B") : Col("B00020"));
+        r["Danger"] = new SolidColorBrush(dark ? Col("FF453A") : Col("FF3B30"));
 
         ThemeChanged?.Invoke();
     }

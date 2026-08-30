@@ -26,8 +26,15 @@ public partial class TaskListView : UserControl
     private void UpdateCount()
     {
         var open = Vm.Tasks.Count(t => !t.Completed);
-        CountText.Text = $"{open} 项待完成 / 共 {Vm.Tasks.Count}";
+        CountText.Text = Vm.Tasks.Count == 0 ? "空空如也" : $"{open} 项待完成 / 共 {Vm.Tasks.Count} 项";
+        EmptyState.Visibility = Vm.Tasks.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
+
+    private void Input_GotFocus(object sender, RoutedEventArgs e) =>
+        InputBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Accent");
+
+    private void Input_LostFocus(object sender, RoutedEventArgs e) =>
+        InputBorder.BorderBrush = System.Windows.Media.Brushes.Transparent;
 
     private void NewTitle_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {

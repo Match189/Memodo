@@ -41,12 +41,24 @@ public partial class ShellWindow : Window
             "settings" => new SettingsView(),
             _ => ContentHost.Content,
         };
+        PlayEnterTransition();
         // 侧栏选中态与当前页保持一致
         _syncingNav = true;
         NavTodo.IsChecked = tag == "todo";
         NavMemo.IsChecked = tag == "memo";
         NavSettings.IsChecked = tag == "settings";
         _syncingNav = false;
+    }
+
+    /// <summary>页面切换转场（DESIGN_APPLE.md：150ms 淡入 + 8px 上移）。</summary>
+    private void PlayEnterTransition()
+    {
+        var tt = new System.Windows.Media.TranslateTransform(0, 8);
+        ContentHost.RenderTransform = tt;
+        ContentHost.BeginAnimation(OpacityProperty,
+            new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150)));
+        tt.BeginAnimation(System.Windows.Media.TranslateTransform.YProperty,
+            new System.Windows.Media.Animation.DoubleAnimation(8, 0, TimeSpan.FromMilliseconds(150)));
     }
 
     private void Nav_Clicked(object sender, RoutedEventArgs e)

@@ -104,3 +104,19 @@
 - 「便签楷体」是品牌资产，保留在**便签上**；列表页一律系统字体（Apple Clarity 优先）
 - 软木纹理保留但降噪声（6%），避免与 Apple 克制感冲突
 - 不引第三方 UI 库；全部自绘模板/样式，构建零新依赖
+
+---
+
+## 9. 施工记录
+
+### P1–P5 全部完工（2026-08-30）
+
+**P1 令牌**：ThemeService 新增 Background/Surface/SurfaceElevated/Separator/Label/SecondaryLabel/TertiaryLabel/Fill/CheckRing/AccentSoft；iOS 灰阶浅深两态；App.xaml 默认值同步（Accent #D4763B、Danger #FF3B30）。
+**P2 列表**：待办/备忘 → Inset Grouped（单圆角容器 Surface+12、行内发丝线、行高 44/52）；Apple 圆形勾模板（20px 圆环→tint 实心白勾）；完成行文字转 Secondary+划线；填充式输入框（Fill 底、聚焦 tint 环）；两端空状态（MDL2 图形+文案）；设置页分组容器化。
+**P3 外壳**：标题栏 40px/13px；关闭钮 hover 红（macOS 语感）；侧栏选中=tint12% 块+tint 图标；按钮三档 Filled/Plain/Gray（高 32 圆角 8，hover 仅降透明度）；弹窗 SurfaceElevated+Plain 取消；页面切换 150ms 淡入+8px 上移。
+**P4 组件**：便签投影 E2（B12/D3/16%）；列表行发丝线分隔；头部字级 13/SemiBold；软木噪声 8%→6%。
+**P5 Android**：ColorScheme 锁定 Memodo 橙 seed（浅 #D4763B/深 #E89A62）+ iOS 灰阶背景/卡面；Shapes 圆角 8/12/16。
+
+**Tests**：dotnet build 0 错误 ×4 轮；assembleDebug/assembleRelease BUILD SUCCESSFUL（含签名）；publish 更新。
+**Screenshots**：本环境无 GUI 截图能力，验收清单（§7）交由用户按 10+ 截图对照执行。
+**Known issues**：浅深两态切换后需手动检查对比度；便签楷体与 iOS 字体混排的观感待用户裁决。

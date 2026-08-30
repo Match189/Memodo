@@ -8,7 +8,7 @@
         WindowStartupLocation="CenterScreen">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="34" />
+            <RowDefinition Height="40" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
@@ -27,11 +27,11 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="念念 Memodo" Margin="14,0" VerticalAlignment="Center"
-                           FontWeight="SemiBold" Foreground="{DynamicResource SubtleText}" />
+                           FontSize="13" Foreground="{DynamicResource SecondaryLabel}" />
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
                     <Button Content="&#xE921;" Style="{StaticResource CapBtn}" Click="Min_Click"  ToolTip="最小化"/>
                     <Button Content="&#xE922;" Style="{StaticResource CapBtn}" Click="Max_Click"  ToolTip="最大化"/>
-                    <Button Content="&#xE8BB;" Style="{StaticResource CapBtn}" Click="CloseBtn_Click" ToolTip="关闭到托盘"/>
+                    <Button Content="&#xE8BB;" Style="{StaticResource CapCloseBtn}" Click="CloseBtn_Click" ToolTip="关闭到托盘"/>
                 </StackPanel>
             </Grid>
         </Border>
