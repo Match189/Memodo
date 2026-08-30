@@ -1,35 +1,55 @@
 <UserControl x:Class="Memodo.Windows.Views.SettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <StackPanel Margin="20">
-        <TextBlock Text="设置" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,16" />
+    <ScrollViewer>
+        <StackPanel Margin="20" MaxWidth="560">
+            <TextBlock Text="设置" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,16" />
 
-        <Border Padding="16" CornerRadius="8" Background="#11000000" Margin="0,0,0,12">
-            <StackPanel>
-                <TextBlock Text="同步" FontWeight="SemiBold" Margin="0,0,0,8" />
-                <TextBlock Text="V1：暂不接 WebDAV/OSS/服务器（先做两端纯本地）"
-                           Foreground="{DynamicResource SubtleText}"
-                           TextWrapping="Wrap" />
-            </StackPanel>
-        </Border>
+            <!-- 同步 -->
+            <Border Padding="16" CornerRadius="10" Background="White" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="同步服务器" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="地址" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                        <TextBox x:Name="ServerUrlBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,6" Padding="6"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="账号" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                        <TextBox x:Name="EmailBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,6" Padding="6"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="密码" VerticalAlignment="Center" Margin="0,0,0,6"/>
+                        <PasswordBox x:Name="PwdBox" Grid.Row="2" Grid.Column="1" Padding="6"/>
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button x:Name="LoginBtn" Content="登录" Style="{DynamicResource AccentBtn}" Click="Login_Click"/>
+                        <Button x:Name="SyncBtn" Content="立即同步" Margin="8,0,0,0" Style="{DynamicResource AccentBtn}" Click="Sync_Click"/>
+                    </StackPanel>
+                    <TextBlock x:Name="SyncStatus" Margin="0,8,0,0" Foreground="{DynamicResource SubtleText}" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
 
-        <Border Padding="16" CornerRadius="8" Background="#11000000" Margin="0,0,0,12">
-            <StackPanel>
-                <TextBlock Text="主题" FontWeight="SemiBold" Margin="0,0,0,8" />
-                <TextBlock Text="V1：跟随系统（深/浅色随 Windows 设置）"
-                           Foreground="{DynamicResource SubtleText}" />
-            </StackPanel>
-        </Border>
+            <!-- 桌面组件 -->
+            <Border Padding="16" CornerRadius="10" Background="White" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="桌面组件" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <CheckBox x:Name="StartWidgetChk" Content="登录时显示桌面组件" Checked="StartWidget_Changed" Unchecked="StartWidget_Changed"/>
+                    <CheckBox x:Name="TopmostChk" Content="始终置顶" Margin="0,6,0,0" Checked="Topmost_Changed" Unchecked="Topmost_Changed"/>
+                </StackPanel>
+            </Border>
 
-        <Border Padding="16" CornerRadius="8" Background="#11000000" Margin="0,0,0,12">
-            <StackPanel>
-                <TextBlock Text="关于" FontWeight="SemiBold" Margin="0,0,0,8" />
-                <TextBlock Text="Memodo 念念 · P1 Windows C#/WPF 阶段"
-                           Foreground="{DynamicResource SubtleText}" />
-                <TextBlock Text="数据库：%APPDATA%\app.memodo\Memodo\memodo.db"
-                           Foreground="{DynamicResource SubtleText}"
-                           FontSize="11" />
-            </StackPanel>
-        </Border>
-    </StackPanel>
+            <!-- 关于 -->
+            <Border Padding="16" CornerRadius="10" Background="White" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="关于" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <TextBlock Text="Memodo 念念 · Windows 原生客户端 (C#/WPF)"
+                               Foreground="{DynamicResource SubtleText}" />
+                    <TextBlock Text="数据库：%APPDATA%\app.memodo\settings.json / memodo.db"
+                               Foreground="{DynamicResource SubtleText}" FontSize="11" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>

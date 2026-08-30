@@ -4,43 +4,135 @@
              xmlns:conv="clr-namespace:Memodo.Windows.Views">
     <Application.Resources>
         <ResourceDictionary>
-            <SolidColorBrush x:Key="AppBackground" Color="#FFFAFAFA" />
-            <SolidColorBrush x:Key="SidebarBackground" Color="#FFEEEEEE" />
-            <SolidColorBrush x:Key="SubtleText" Color="#FF666666" />
+            <SolidColorBrush x:Key="AppBackground" Color="#FFF5F7F8" />
+            <SolidColorBrush x:Key="SidebarBackground" Color="#FFEAF1F3" />
+            <SolidColorBrush x:Key="SubtleText" Color="#FF66727A" />
+            <SolidColorBrush x:Key="Accent" Color="#FF0080A0" />
+            <SolidColorBrush x:Key="CardBorder" Color="#FFDDE7EA" />
 
-            <!-- 侧栏导航按钮：方框选中态 + 文字标签 -->
+            <DropShadowEffect x:Key="DropShadow" BlurRadius="18" ShadowDepth="0"
+                              Color="#40000000" Opacity="0.22" />
+
+            <!-- 侧栏导航按钮（Segoe MDL2 图标） -->
             <Style x:Key="NavButton" TargetType="RadioButton">
                 <Setter Property="Width" Value="48" />
                 <Setter Property="Height" Value="48" />
                 <Setter Property="Margin" Value="8,2,8,2" />
-                <Setter Property="VerticalContentAlignment" Value="Center" />
-                <Setter Property="HorizontalContentAlignment" Value="Center" />
-                <Setter Property="Foreground" Value="#FF555555" />
+                <Setter Property="Foreground" Value="#FF6B7A82" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="RadioButton">
                             <Grid>
-                                <Border x:Name="Back"
-                                        Background="Transparent"
-                                        CornerRadius="6" />
-                                <Ellipse x:Name="Dot"
-                                         Width="18" Height="18"
-                                         HorizontalAlignment="Center"
-                                         VerticalAlignment="Center"
-                                         Fill="#FF666666" />
+                                <Border x:Name="Back" Background="Transparent" CornerRadius="10" />
+                                <TextBlock Text="{TemplateBinding Content}"
+                                           FontFamily="Segoe MDL2 Assets" FontSize="17"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="Back" Property="Background" Value="#22000000" />
                                 </Trigger>
                                 <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="Dot" Property="Fill" Value="#FF0080A0" />
-                                    <Setter TargetName="Back" Property="Background" Value="#22FFFFFF" />
+                                    <Setter Property="Foreground" Value="#FF0080A0" />
+                                    <Setter TargetName="Back" Property="Background" Value="#33FFFFFF" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
+            </Style>
+
+            <!-- 自绘标题栏按钮 -->
+            <Style x:Key="CapBtn" TargetType="Button">
+                <Setter Property="Width" Value="42" />
+                <Setter Property="Height" Value="30" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Foreground" Value="#FF6B7A82" />
+                <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="B" Background="{TemplateBinding Background}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="B" Property="Background" Value="#22000000" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- 桌面组件标题栏按钮 -->
+            <Style x:Key="WidgetBtn" TargetType="Button">
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="10,4" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#22FFFFFF" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- 桌面组件段落切换按钮 -->
+            <Style x:Key="SegBtn" TargetType="Button">
+                <Setter Property="Foreground" Value="#FF0080A0" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="10,4" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Cursor" Value="Hand" />
+            </Style>
+
+            <!-- 主按钮 -->
+            <Style x:Key="AccentBtn" TargetType="Button">
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="Background" Value="#FF0080A0" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="14,6" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#FF0099BF" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- 卡片删除按钮 -->
+            <Style x:Key="CardDelBtn" TargetType="Button">
+                <Setter Property="Foreground" Value="#FFB00020" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Width" Value="22" />
+                <Setter Property="Height" Value="22" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="Cursor" Value="Hand" />
             </Style>
 
             <conv:StrikeThroughConverter x:Key="StrikeThrough" />

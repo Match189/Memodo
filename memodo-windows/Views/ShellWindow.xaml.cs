@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Memodo.Windows.Services;
 using Memodo.Windows.ViewModels;
@@ -19,6 +20,23 @@ public partial class ShellWindow : Window
         if (sender is not RadioButton rb || rb.Tag is not string tag) return;
         ShowPage(tag);
     }
+
+    private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount == 2)
+        {
+            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+            return;
+        }
+        if (e.ButtonState == MouseButtonState.Pressed) DragMove();
+    }
+
+    private void Min_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+    private void Max_Click(object sender, RoutedEventArgs e) =>
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+
+    private void CloseBtn_Click(object sender, RoutedEventArgs e) => Hide();
 
     private void ShowPage(string tag)
     {

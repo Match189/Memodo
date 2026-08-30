@@ -29,4 +29,14 @@ public partial class MemoListView : UserControl
         var item = Vm.Memos.FirstOrDefault(m => m.Id == id);
         if (item != null) await Vm.RemoveCommand.ExecuteAsync(item);
     }
+
+    private void NewTitle_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter) NewContent.Focus();
+    }
+
+    private void NewContent_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter) Add_Click(sender, e);
+    }
 }

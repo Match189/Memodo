@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Windows;
 using Hardcodet.Wpf.TaskbarNotification;
 using Microsoft.Win32;
+using Memodo.Windows.Views;
 
 namespace Memodo.Windows.Services;
 
@@ -16,6 +17,7 @@ public sealed class TrayService : IDisposable
 {
     private readonly TaskbarIcon _tray;
     private Window? _mainWindow;
+    private DesktopWidgetWindow? _widget;
 
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string AppName = "Memodo";
@@ -42,10 +44,20 @@ public sealed class TrayService : IDisposable
         quit.Click += (_, _) => Quit();
         menu.Items.Add(show);
         menu.Items.Add(autostart);
+        var showWidget = new System.Windows.Controls.MenuItem { Header = "显示桌面组件" };
+        showWidget.Click += (_, _) => ShowWidget();
+        menu.Items.Add(showWidget);
         menu.Items.Add(new System.Windows.Controls.Separator());
         menu.Items.Add(quit);
         _tray.ContextMenu = menu;
         _tray.TrayLeftMouseDown += (_, _) => ShowMainWindow();
+    }
+
+    public void ShowWidget()
+    {
+        if (_widget is null) _widget = new DesktopWidgetWindow();
+        if (!_widget.IsVisible) _widget.Show();
+        _widget.Activate();
     }
 
     public void Attach(Window mainWindow) => _mainWindow = mainWindow;

@@ -43,6 +43,20 @@ public sealed class MemoRepository
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>同步专用：按服务端时间戳原样落库（不推进 updated_at，保证 LWW 语义）。</summary>
+    public void UpsertFromSync(MemoItem m)
+    {
+        using var cmd = _db.CreateCommand();
+        cmd.CommandText = $@"INSERT INTO {ModelAttr.Memos} (id, title, content, created_at, updated_at, deleted_at)
+                             VALUES ($id, $t, $c, $ca, $ua, $d)
+                             ON CONFLICT(id) DO UPDATE SET
+                               title=excluded.title, content=excluded.content,
+                               created_at=excluded.created_at, updated_at=excluded.updated_at,
+                               deleted_at=excluded.deleted_at";
+        Bind(cmd, m);
+        cmd.ExecuteNonQuery();
+    }
+
     public void SoftDelete(string id)
     {
         using var cmd = _db.CreateCommand();

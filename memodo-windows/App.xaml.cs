@@ -30,6 +30,7 @@ public partial class App : Application
             try { WindowChrome.ApplyFrameless(win); WindowChrome.ApplyMica(win); } catch { }
             Tray = new TrayService();
             Tray.Attach(win);
+            if (SettingsStore.Current.ShowWidgetOnStartup) Tray.ShowWidget();
         };
         win.Closing += (_, args) =>
         {

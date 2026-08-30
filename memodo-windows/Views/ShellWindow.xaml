@@ -7,20 +7,39 @@
         Background="{StaticResource AppBackground}"
         WindowStartupLocation="CenterScreen">
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="34" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="64" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <Border Grid.Column="0" Background="{StaticResource SidebarBackground}">
-            <StackPanel VerticalAlignment="Top" Margin="0,16,0,0">
-                <RadioButton x:Name="NavTodo"     Style="{StaticResource NavButton}" Tag="todo"     Margin="0,0,0,8"  Click="Nav_Clicked" IsChecked="True" />
-                <RadioButton x:Name="NavMemo"     Style="{StaticResource NavButton}" Tag="memo"     Margin="0,0,0,8"  Click="Nav_Clicked" />
-                <RadioButton x:Name="NavBoard"    Style="{StaticResource NavButton}" Tag="board"    Margin="0,0,0,8"  Click="Nav_Clicked" />
-                <RadioButton x:Name="NavSettings" Style="{StaticResource NavButton}" Tag="settings" Margin="0,0,0,8"  Click="Nav_Clicked" />
+        <!-- 自绘标题栏（无边框后唯一的拖动/最小化/关闭入口） -->
+        <Border Grid.Row="0" Grid.ColumnSpan="2" Background="Transparent"
+                MouseLeftButtonDown="TitleBar_MouseDown">
+            <Grid>
+                <TextBlock Text="念念 Memodo" Margin="14,0" VerticalAlignment="Center"
+                           FontWeight="SemiBold" Foreground="{StaticResource SubtleText}" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <Button Content="&#xE921;" Style="{StaticResource CapBtn}" Click="Min_Click"  ToolTip="最小化"/>
+                    <Button Content="&#xE922;" Style="{StaticResource CapBtn}" Click="Max_Click"  ToolTip="最大化"/>
+                    <Button Content="&#xE8BB;" Style="{StaticResource CapBtn}" Click="CloseBtn_Click" ToolTip="关闭到托盘"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 侧栏 -->
+        <Border Grid.Row="1" Grid.Column="0" Background="{StaticResource SidebarBackground}">
+            <StackPanel VerticalAlignment="Top" Margin="0,8,0,0">
+                <RadioButton x:Name="NavTodo"     Style="{StaticResource NavButton}" Tag="todo"     Content="&#xE73A;" Margin="0,0,0,8"  Click="Nav_Clicked" IsChecked="True" ToolTip="待办"/>
+                <RadioButton x:Name="NavMemo"     Style="{StaticResource NavButton}" Tag="memo"     Content="&#xE70F;" Margin="0,0,0,8"  Click="Nav_Clicked" ToolTip="备忘"/>
+                <RadioButton x:Name="NavBoard"    Style="{StaticResource NavButton}" Tag="board"    Content="&#xE718;" Margin="0,0,0,8"  Click="Nav_Clicked" ToolTip="图钉板"/>
+                <RadioButton x:Name="NavSettings" Style="{StaticResource NavButton}" Tag="settings" Content="&#xE713;" Margin="0,0,0,8"  Click="Nav_Clicked" ToolTip="设置"/>
             </StackPanel>
         </Border>
 
-        <ContentControl x:Name="ContentHost" Grid.Column="1" />
+        <ContentControl x:Name="ContentHost" Grid.Row="1" Grid.Column="1" />
     </Grid>
 </Window>

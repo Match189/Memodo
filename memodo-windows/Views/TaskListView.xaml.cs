@@ -15,7 +15,23 @@ public partial class TaskListView : UserControl
     public TaskListView()
     {
         InitializeComponent();
-        Loaded += async (_, _) => await Vm.LoadCommand.ExecuteAsync(null);
+        Loaded += async (_, _) =>
+        {
+            Vm.Tasks.CollectionChanged += (_, _) => UpdateCount();
+            await Vm.LoadCommand.ExecuteAsync(null);
+            UpdateCount();
+        };
+    }
+
+    private void UpdateCount()
+    {
+        var open = Vm.Tasks.Count(t => !t.Completed);
+        CountText.Text = $"{open} 项待完成 / 共 {Vm.Tasks.Count}";
+    }
+
+    private void NewTitle_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter) Add_Click(sender, e);
     }
 
     private async void Add_Click(object sender, RoutedEventArgs e)

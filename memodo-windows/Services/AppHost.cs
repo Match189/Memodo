@@ -23,6 +23,11 @@ public static class AppHost
             sp.GetRequiredService<BoardRepository>(),
             sp.GetRequiredService<TaskRepository>(),
             sp.GetRequiredService<MemoRepository>()));
+        sc.AddSingleton<SyncService>(sp => new SyncService
+        {
+            ServerUrl = SettingsStore.Current.ServerUrl,
+        });
+        sc.AddSingleton<SyncEngine>();
         return sc.BuildServiceProvider();
     }
 }
