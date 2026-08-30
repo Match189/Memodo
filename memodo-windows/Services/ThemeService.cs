@@ -83,6 +83,8 @@ public static class ThemeService
         r["Fill"] = new SolidColorBrush(dark ? Col(0x3D, "767680") : Col(0x1F, "767680"));
         r["CheckRing"] = new SolidColorBrush(dark ? Col("55555A") : Col("C7C7CC"));
         r["AccentSoft"] = new SolidColorBrush(dark ? Col(0x2E, "E89A62") : Col(0x1F, "D4763B"));
+        // 组件列表底（半透明实底，保证任何材质状态下文字可读——修复列表模式黑底）
+        r["WidgetSheet"] = new SolidColorBrush(dark ? Col(0xF0, "1C1C1E") : Col(0xF0, "FFFDF8"));
 
         // ---- 品牌与语义（暖橙 tint + iOS 红）----
         r["Accent"] = new SolidColorBrush(dark ? Col("E89A62") : Col("D4763B"));

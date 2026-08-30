@@ -119,6 +119,7 @@ public partial class DesktopWidgetWindow : Window
     {
         Board.Children.Clear();
         var items = LoadItems();
+        BoardEmpty.Text = LocalizationService.T("widget_empty_board");
         BoardEmpty.Visibility = items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
         int i = 0;
@@ -233,7 +234,7 @@ public partial class DesktopWidgetWindow : Window
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Bottom,
                 Margin = new Thickness(0, 0, 18, -2),
-                ToolTip = "完成（从钉板移除）",
+                ToolTip = LocalizationService.T("widget_done_tip"),
                 IsHitTestVisible = !_locked,
             };
             done.Click += (_, _) => CompleteMemo(it.Memo);
@@ -462,22 +463,22 @@ public partial class DesktopWidgetWindow : Window
     {
         var menu = new ContextMenu();
 
-        var addTodo = new MenuItem { Header = "新建待办" };
+        var addTodo = new MenuItem { Header = LocalizationService.T("widget_new_todo") };
         addTodo.Click += (_, _) => OpenQuickAdd();
-        var addMemo = new MenuItem { Header = "新建备忘" };
+        var addMemo = new MenuItem { Header = LocalizationService.T("widget_new_memo") };
         addMemo.Click += (_, _) => OpenQuickAdd();
         menu.Items.Add(addTodo);
         menu.Items.Add(addMemo);
         menu.Items.Add(new Separator());
 
-        var viewBoard = new MenuItem { Header = "钉板显示", IsCheckable = true, IsChecked = SettingsStore.Current.WidgetViewMode != "list" };
-        var viewList = new MenuItem { Header = "列表显示", IsCheckable = true, IsChecked = SettingsStore.Current.WidgetViewMode == "list" };
+        var viewBoard = new MenuItem { Header = LocalizationService.T("widget_board_view"), IsCheckable = true, IsChecked = SettingsStore.Current.WidgetViewMode != "list" };
+        var viewList = new MenuItem { Header = LocalizationService.T("widget_list_view"), IsCheckable = true, IsChecked = SettingsStore.Current.WidgetViewMode == "list" };
         viewBoard.Click += (_, _) => { ApplyViewMode("board"); Reload(); };
         viewList.Click += (_, _) => { ApplyViewMode("list"); Reload(); };
         menu.Items.Add(viewBoard);
         menu.Items.Add(viewList);
 
-        var lockItem = new MenuItem { Header = "锁定布局（含禁拖窗口）", IsCheckable = true, IsChecked = _locked };
+        var lockItem = new MenuItem { Header = LocalizationService.T("widget_lock"), IsCheckable = true, IsChecked = _locked };
         lockItem.Click += (_, _) =>
         {
             _locked = lockItem.IsChecked;
@@ -490,22 +491,22 @@ public partial class DesktopWidgetWindow : Window
 
         var attachItem = new MenuItem
         {
-            Header = "附着桌面（实验）", IsCheckable = true,
+            Header = LocalizationService.T("widget_attach"), IsCheckable = true,
             IsChecked = SettingsStore.Current.WidgetAttachDesktop,
         };
         attachItem.Click += (_, _) => ToggleAttachDesktop();
         menu.Items.Add(attachItem);
         menu.Items.Add(new Separator());
 
-        var showMain = new MenuItem { Header = "显示主窗口" };
+        var showMain = new MenuItem { Header = LocalizationService.T("widget_show_main") };
         showMain.Click += (_, _) => OpenMain();
-        var sync = new MenuItem { Header = "立即同步" };
+        var sync = new MenuItem { Header = LocalizationService.T("sync_now") };
         sync.Click += async (_, _) => await App.Tray?.SyncNowAsync()!;
         menu.Items.Add(showMain);
         menu.Items.Add(sync);
         menu.Items.Add(new Separator());
 
-        var closeItem = new MenuItem { Header = "关闭组件" };
+        var closeItem = new MenuItem { Header = LocalizationService.T("widget_close") };
         closeItem.Click += (_, _) => Hide();
         menu.Items.Add(closeItem);
 

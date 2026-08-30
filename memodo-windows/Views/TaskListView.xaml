@@ -11,7 +11,7 @@
         <!-- LargeTitle + 计数 -->
         <DockPanel Grid.Row="0" Margin="0,0,0,16">
             <StackPanel>
-                <TextBlock Text="待办" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource Label}" />
+                <TextBlock Text="{DynamicResource S_PageTodo}" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource Label}" />
                 <TextBlock x:Name="CountText" FontSize="12" Margin="0,2,0,0"
                            Foreground="{DynamicResource SecondaryLabel}" />
             </StackPanel>
@@ -30,7 +30,7 @@
                          GotFocus="Input_GotFocus" LostFocus="Input_LostFocus"
                          KeyDown="NewTitle_KeyDown" />
             </Border>
-            <Button Grid.Column="1" Content="添加" Margin="8,0,0,0" Padding="18,0"
+            <Button Grid.Column="1" Content="{DynamicResource S_Add}" Margin="8,0,0,0" Padding="18,0"
                     Height="34" Style="{StaticResource AccentBtn}" Click="Add_Click" />
         </Grid>
 
@@ -92,7 +92,7 @@
                         IsHitTestVisible="False">
                 <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" FontSize="36"
                            Foreground="{DynamicResource TertiaryLabel}" HorizontalAlignment="Center" />
-                <TextBlock Text="暂无待办，添加第一项吧" Margin="0,8,0,0"
+                <TextBlock Text="{DynamicResource S_EmptyTasks}" Margin="0,8,0,0"
                            Foreground="{DynamicResource SecondaryLabel}" HorizontalAlignment="Center" />
             </StackPanel>
         </Grid>

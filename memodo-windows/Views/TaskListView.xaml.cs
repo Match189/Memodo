@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -21,6 +22,13 @@ public partial class TaskListView : UserControl
             await Vm.LoadCommand.ExecuteAsync(null);
             UpdateCount();
         };
+    }
+
+    /// <summary>缓存页面下手动刷新（ShowPage 调用）。</summary>
+    public async Task RefreshData()
+    {
+        await Vm.LoadCommand.ExecuteAsync(null);
+        UpdateCount();
     }
 
     private void UpdateCount()

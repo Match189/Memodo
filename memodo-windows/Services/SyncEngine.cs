@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.Json;
 using Memodo.Windows.Models;
 using Memodo.Windows.Repositories;
@@ -106,6 +107,16 @@ public sealed class SyncEngine
         }
         catch (Exception ex)
         {
+            try
+            {
+                var dir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "app.memodo");
+                Directory.CreateDirectory(dir);
+                File.AppendAllText(Path.Combine(dir, "sync.log"),
+                    $"{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss} {ex}{Environment.NewLine}");
+            }
+            catch { /* 日志失败不影响主流程 */ }
             return (0, 0, ex.Message);
         }
     }

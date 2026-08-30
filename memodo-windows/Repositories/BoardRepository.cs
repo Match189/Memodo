@@ -250,11 +250,11 @@ ON CONFLICT(card_id, platform) DO UPDATE SET
         CreatedAt = rd.GetInt64(6),
         UpdatedAt = rd.GetInt64(7),
         DeletedAt = rd.IsDBNull(8) ? null : rd.GetInt64(8),
-        Type = rd.IsDBNull(9) ? "" : rd.GetString(9),
-        Title = rd.IsDBNull(10) ? "" : rd.GetString(10),
-        Content = rd.IsDBNull(11) ? "" : rd.GetString(11),
-        Color = rd.IsDBNull(12) ? "red" : rd.GetString(12),
-        NoteColor = rd.IsDBNull(13) ? "" : rd.GetString(13),
+        Type = rd.FieldCount > 9 ? (rd.IsDBNull(9) ? "" : rd.GetString(9)) : "",
+        Title = rd.FieldCount > 10 ? (rd.IsDBNull(10) ? "" : rd.GetString(10)) : "",
+        Content = rd.FieldCount > 11 ? (rd.IsDBNull(11) ? "" : rd.GetString(11)) : "",
+        Color = rd.FieldCount > 12 ? (rd.IsDBNull(12) ? "red" : rd.GetString(12)) : "red",
+        NoteColor = rd.FieldCount > 13 ? (rd.IsDBNull(13) ? "" : rd.GetString(13)) : "",
     };
 
     private static CardLayoutItem ReadLayout(SqliteDataReader rd) => new()

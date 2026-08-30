@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +24,13 @@ public partial class MemoListView : UserControl
 
     private void UpdateEmpty() =>
         EmptyState.Visibility = Vm.Memos.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+    /// <summary>缓存页面下手动刷新（ShowPage 调用）。</summary>
+    public async Task RefreshData()
+    {
+        await Vm.LoadCommand.ExecuteAsync(null);
+        UpdateEmpty();
+    }
 
     private async void Add_Click(object sender, RoutedEventArgs e)
     {

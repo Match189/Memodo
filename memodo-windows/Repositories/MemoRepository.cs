@@ -105,6 +105,6 @@ public sealed class MemoRepository
         CreatedAt = rd.GetInt64(3),
         UpdatedAt = rd.GetInt64(4),
         DeletedAt = rd.IsDBNull(5) ? null : rd.GetInt64(5),
-        Completed = !rd.IsDBNull(6) && rd.GetInt32(6) != 0,
+        Completed = rd.FieldCount > 6 && !rd.IsDBNull(6) && rd.GetInt32(6) != 0,
     };
 }

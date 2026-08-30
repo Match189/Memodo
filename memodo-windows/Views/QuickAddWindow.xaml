@@ -15,7 +15,7 @@
         </StackPanel>
         <TextBox x:Name="InputBox" Padding="10,8" KeyDown="InputBox_KeyDown"/>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button Content="取消" Padding="14,6" Style="{StaticResource PlainBtn}" Click="Cancel_Click"/>
+            <Button Content="{DynamicResource S_Cancel}" Padding="14,6" Style="{StaticResource PlainBtn}" Click="Cancel_Click"/>
             <Button Content="添加" Padding="14,6" Margin="8,0,0,0"
                     Style="{DynamicResource AccentBtn}" Click="Add_Click"/>
         </StackPanel>

@@ -26,7 +26,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="念念 Memodo" Margin="14,0" VerticalAlignment="Center"
+                <TextBlock Grid.Column="0" Text="{DynamicResource S_AppTitle}" Margin="14,0" VerticalAlignment="Center"
                            FontSize="13" Foreground="{DynamicResource SecondaryLabel}" />
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
                     <Button Content="&#xE921;" Style="{StaticResource CapBtn}" Click="Min_Click"  ToolTip="最小化"/>

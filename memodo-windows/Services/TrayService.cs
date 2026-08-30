@@ -31,30 +31,41 @@ public sealed class TrayService : IDisposable
             Icon = LoadTrayIcon(),
             Visibility = Visibility.Visible,
         };
+        BuildMenu();
+        _tray.TrayLeftMouseDown += (_, _) => ShowMainWindow();
+
+        // 双向实时联动：任何数据变更（主窗口/同步）→ 组件即时回刷
+        App.DataChanged += () => _widget?.Reload();
+        // 语言切换 → 重建托盘菜单
+        Services.LocalizationService.LanguageChanged += BuildMenu;
+    }
+
+    /// <summary>托盘菜单（§21），双语由 LocalizationService 提供。</summary>
+    private void BuildMenu()
+    {
         var menu = new System.Windows.Controls.ContextMenu();
-        var show = new System.Windows.Controls.MenuItem { Header = "显示主窗口" };
+        var show = new System.Windows.Controls.MenuItem { Header = LocalizationService.T("tray_show_main") };
         show.Click += (_, _) => ShowMainWindow();
-        // 蓝图 §21 托盘菜单：Show、Widget、New Todo/Memo、Sync Now、Settings、自启、Exit
-        var newTodo = new System.Windows.Controls.MenuItem { Header = "新建待办" };
+        var showWidget = new System.Windows.Controls.MenuItem { Header = LocalizationService.T("tray_show_widget") };
+        showWidget.Click += (_, _) => ShowWidget();
+        var newTodo = new System.Windows.Controls.MenuItem { Header = LocalizationService.T("tray_new_todo") };
         newTodo.Click += (_, _) => { ShowMainWindow(); (_mainWindow as ShellWindow)?.ShowPage("todo"); };
-        var newMemo = new System.Windows.Controls.MenuItem { Header = "新建备忘" };
+        var newMemo = new System.Windows.Controls.MenuItem { Header = LocalizationService.T("tray_new_memo") };
         newMemo.Click += (_, _) => { ShowMainWindow(); (_mainWindow as ShellWindow)?.ShowPage("memo"); };
-        var syncNow = new System.Windows.Controls.MenuItem { Header = "立即同步" };
+        var syncNow = new System.Windows.Controls.MenuItem { Header = LocalizationService.T("sync_now") };
         syncNow.Click += async (_, _) => await SyncNowAsync();
-        var settings = new System.Windows.Controls.MenuItem { Header = "设置" };
+        var settings = new System.Windows.Controls.MenuItem { Header = LocalizationService.T("nav_settings") };
         settings.Click += (_, _) => { ShowMainWindow(); (_mainWindow as ShellWindow)?.ShowPage("settings"); };
         var autostart = new System.Windows.Controls.MenuItem
         {
-            Header = "开机自启",
+            Header = LocalizationService.T("tray_autostart"),
             IsCheckable = true,
             IsChecked = IsAutostartEnabled(),
         };
         autostart.Click += (_, _) => ToggleAutostart(autostart);
-        var quit = new System.Windows.Controls.MenuItem { Header = "退出" };
+        var quit = new System.Windows.Controls.MenuItem { Header = LocalizationService.T("tray_quit") };
         quit.Click += (_, _) => Quit();
         menu.Items.Add(show);
-        var showWidget = new System.Windows.Controls.MenuItem { Header = "显示桌面组件" };
-        showWidget.Click += (_, _) => ShowWidget();
         menu.Items.Add(showWidget);
         menu.Items.Add(new System.Windows.Controls.Separator());
         menu.Items.Add(newTodo);
@@ -65,10 +76,6 @@ public sealed class TrayService : IDisposable
         menu.Items.Add(new System.Windows.Controls.Separator());
         menu.Items.Add(quit);
         _tray.ContextMenu = menu;
-        _tray.TrayLeftMouseDown += (_, _) => ShowMainWindow();
-
-        // 双向实时联动：任何数据变更（主窗口/同步）→ 组件即时回刷
-        App.DataChanged += () => _widget?.Reload();
     }
 
     public void ShowWidget()

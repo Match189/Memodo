@@ -28,6 +28,25 @@
             <SolidColorBrush x:Key="BoardBackgroundAlt" Color="#FFA88950" />
             <SolidColorBrush x:Key="GlassPanel" Color="#FFFFFDF8" />
             <SolidColorBrush x:Key="GlassBorder" Color="#1F3C3C43" />
+            <SolidColorBrush x:Key="WidgetSheet" Color="#F0FFFDF8" />
+
+            <!-- 双语字符串（LocalizationService.Apply 按 Language 覆盖） -->
+            <sys:String x:Key="S_AppTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">念念 Memodo</sys:String>
+            <sys:String x:Key="S_PageTodo" xmlns:sys="clr-namespace:System;assembly=mscorlib">待办</sys:String>
+            <sys:String x:Key="S_PageMemo" xmlns:sys="clr-namespace:System;assembly=mscorlib">备忘</sys:String>
+            <sys:String x:Key="S_Add" xmlns:sys="clr-namespace:System;assembly=mscorlib">添加</sys:String>
+            <sys:String x:Key="S_Cancel" xmlns:sys="clr-namespace:System;assembly=mscorlib">取消</sys:String>
+            <sys:String x:Key="S_Save" xmlns:sys="clr-namespace:System;assembly=mscorlib">保存</sys:String>
+            <sys:String x:Key="S_SyncNow" xmlns:sys="clr-namespace:System;assembly=mscorlib">立即同步</sys:String>
+            <sys:String x:Key="S_EmptyTasks" xmlns:sys="clr-namespace:System;assembly=mscorlib">暂无待办，添加第一项吧</sys:String>
+            <sys:String x:Key="S_EmptyMemos" xmlns:sys="clr-namespace:System;assembly=mscorlib">暂无备忘，随手记一条吧</sys:String>
+            <sys:String x:Key="S_WidgetTodoCol" xmlns:sys="clr-namespace:System;assembly=mscorlib">待办</sys:String>
+            <sys:String x:Key="S_WidgetMemoCol" xmlns:sys="clr-namespace:System;assembly=mscorlib">备忘</sys:String>
+            <sys:String x:Key="S_SecSync" xmlns:sys="clr-namespace:System;assembly=mscorlib">同步</sys:String>
+            <sys:String x:Key="S_SecAppearance" xmlns:sys="clr-namespace:System;assembly=mscorlib">外观</sys:String>
+            <sys:String x:Key="S_SecWidget" xmlns:sys="clr-namespace:System;assembly=mscorlib">桌面组件</sys:String>
+            <sys:String x:Key="S_SecData" xmlns:sys="clr-namespace:System;assembly=mscorlib">数据</sys:String>
+            <sys:String x:Key="S_SecAbout" xmlns:sys="clr-namespace:System;assembly=mscorlib">关于</sys:String>
 
             <DropShadowEffect x:Key="DropShadow" BlurRadius="18" ShadowDepth="0"
                               Color="#40000000" Opacity="0.22" />

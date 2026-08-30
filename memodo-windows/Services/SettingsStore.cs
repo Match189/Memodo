@@ -37,6 +37,10 @@ public sealed class AppSettings
     public bool WidgetAttachDesktop { get; set; } = false;
     /// <summary>自动同步（启动时 + 每 3 分钟，仅 WebDAV 通道）。</summary>
     public bool AutoSync { get; set; } = true;
+    /// <summary>自动同步间隔（分钟，用户可设）。</summary>
+    public int AutoSyncIntervalMinutes { get; set; } = 3;
+    /// <summary>界面语言：zh / en（用户裁定：双语可切换）。</summary>
+    public string Language { get; set; } = "zh";
     /// <summary>组件显示方式（蓝图：钉板 / 传统列表 可切换）。</summary>
     public string WidgetViewMode { get; set; } = "board"; // board | list
     /// <summary>主窗口显示方式：传统列表 / 钉板画布。</summary>

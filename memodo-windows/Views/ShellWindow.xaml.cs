@@ -29,18 +29,26 @@ public partial class ShellWindow : Window
         if (IsVisible && _currentTag is "todo" or "memo") ShowPage(_currentTag);
     }
 
-    /// <summary>导航到指定页（托盘「新建待办/备忘/设置」复用）。</summary>
+    /// <summary>导航到指定页（页面实例缓存，修复切换卡顿；列表数据经 DataChanged/Refresh 保持新鲜）。</summary>
     public void ShowPage(string tag)
     {
         if (ContentHost is null) return;
         _currentTag = tag;
-        ContentHost.Content = tag switch
+        if (!_pages.TryGetValue(tag, out var page))
         {
-            "todo"     => new TaskListView { DataContext = AppHost.Services.GetRequiredService<TaskListViewModel>() },
-            "memo"     => new MemoListView { DataContext = AppHost.Services.GetRequiredService<MemoListViewModel>() },
-            "settings" => new SettingsView(),
-            _ => ContentHost.Content,
-        };
+            page = tag switch
+            {
+                "todo" => new TaskListView { DataContext = AppHost.Services.GetRequiredService<TaskListViewModel>() },
+                "memo" => new MemoListView { DataContext = AppHost.Services.GetRequiredService<MemoListViewModel>() },
+                "settings" => new SettingsView(),
+                _ => new SettingsView(),
+            };
+            _pages[tag] = page;
+        }
+        ContentHost.Content = page;
+        // 列表页每次进入都刷新（缓存后 Loaded 不再触发）
+        if (tag == "todo") _ = ((TaskListView)page).RefreshData();
+        else if (tag == "memo") _ = ((MemoListView)page).RefreshData();
         PlayEnterTransition();
         // 侧栏选中态与当前页保持一致
         _syncingNav = true;
@@ -49,6 +57,8 @@ public partial class ShellWindow : Window
         NavSettings.IsChecked = tag == "settings";
         _syncingNav = false;
     }
+
+    private readonly Dictionary<string, UserControl> _pages = new();
 
     /// <summary>页面切换转场（DESIGN_APPLE.md：150ms 淡入 + 8px 上移）。</summary>
     private void PlayEnterTransition()

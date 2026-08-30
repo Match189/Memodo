@@ -40,8 +40,32 @@ public partial class SettingsView : UserControl
             OpacitySlider.Value = s.WidgetOpacity;
             OpacityValue.Text = s.WidgetOpacity + "%";
             AutoSyncChk.IsChecked = s.AutoSync;
+            foreach (ComboBoxItem it in IntervalBox.Items)
+                if ((string)it.Tag == s.AutoSyncIntervalMinutes.ToString()) { IntervalBox.SelectedItem = it; break; }
+            foreach (ComboBoxItem it in LangBox.Items)
+                if ((string)it.Tag == s.Language) { LangBox.SelectedItem = it; break; }
             _ready = true;
         };
+    }
+
+    private void Lang_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_ready || LangBox.SelectedItem is not ComboBoxItem it) return;
+        SettingsStore.Current.Language = (string)it.Tag;
+        SettingsStore.Save();
+        LocalizationService.Apply();     // DynamicResource 文本即时切换；代码菜单经事件重建
+        App.NotifyDataChanged();         // 触发列表/组件刷新
+    }
+
+    private void Interval_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_ready || IntervalBox.SelectedItem is not ComboBoxItem it) return;
+        if (int.TryParse((string)it.Tag, out var minutes))
+        {
+            SettingsStore.Current.AutoSyncIntervalMinutes = minutes;
+            SettingsStore.Save();
+            App.RestartAutoSyncTimer();
+        }
     }
 
     // ---------- 同步 ----------

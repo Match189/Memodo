@@ -120,31 +120,14 @@ CREATE UNIQUE INDEX IF NOT EXISTS ix_card_platform ON card_layouts(card_id, plat
 ";
         cmd.ExecuteNonQuery();
 
-        // v2（蓝图 §10/§38）：Card 扩展列——type + 内联内容 + 颜色。
-        // inline 卡（idea/checklist）不引用实体表，title/content 直接存 cards。
-        if (UserVersion < 2)
-        {
-            AddColumnIfMissing("cards", "type", "TEXT NOT NULL DEFAULT ''");
-            AddColumnIfMissing("cards", "title", "TEXT NOT NULL DEFAULT ''");
-            AddColumnIfMissing("cards", "content", "TEXT NOT NULL DEFAULT ''");
-            AddColumnIfMissing("cards", "color", "TEXT NOT NULL DEFAULT 'red'");
-            UserVersion = 2;
-        }
-
-        // v3（设计文档）：便签纸色 note_color（yellow/pink/blue/green/orange），
-        // 与图钉色 color（红蓝绿黄=分类）分离，可组合。
-        if (UserVersion < 3)
-        {
-            AddColumnIfMissing("cards", "note_color", "TEXT NOT NULL DEFAULT ''");
-            UserVersion = 3;
-        }
-
-        // v4（用户裁定）：备忘增加 completed —— 完成的备忘从钉板移除，语义同待办。
-        if (UserVersion < 4)
-        {
-            AddColumnIfMissing("memos", "completed", "INTEGER NOT NULL DEFAULT 0");
-            UserVersion = 4;
-        }
+        // 列schema幂等补齐（每次启动执行，代价为几条 PRAGMA）。
+        // 不再依赖 user_version 门控——曾因版本错位导致 "ordinal 越界" 同步失败。
+        AddColumnIfMissing("cards", "type", "TEXT NOT NULL DEFAULT ''");
+        AddColumnIfMissing("cards", "title", "TEXT NOT NULL DEFAULT ''");
+        AddColumnIfMissing("cards", "content", "TEXT NOT NULL DEFAULT ''");
+        AddColumnIfMissing("cards", "color", "TEXT NOT NULL DEFAULT 'red'");
+        AddColumnIfMissing("cards", "note_color", "TEXT NOT NULL DEFAULT ''");
+        AddColumnIfMissing("memos", "completed", "INTEGER NOT NULL DEFAULT 0");
     }
 
     private long UserVersion

@@ -32,7 +32,8 @@ public partial class App : Application
         };
         base.OnStartup(e);
 
-        ThemeService.Apply(); // 设计系统：Cork/Glass/Hybrid × Dark
+        ThemeService.Apply();        // 设计系统：Cork/Glass/Hybrid × Dark
+        LocalizationService.Apply(); // 双语（DESIGN_APPLE.md / 用户裁定）
 
         var win = new ShellWindow();
         win.Loaded += (_, _) =>
@@ -54,14 +55,27 @@ public partial class App : Application
         StartAutoSync();
     }
 
-    /// <summary>自动同步（Flutter sync_manager 精神移植）：启动一次 + 每 3 分钟，WebDAV 通道，静默。</summary>
+    /// <summary>自动同步：启动一次 + 按用户设置的间隔（WebDAV 通道，静默）。</summary>
     private void StartAutoSync()
     {
-        if (_syncTimer is not null) return;
-        _syncTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(3) };
-        _syncTimer.Tick += async (_, _) => await RunAutoSync();
+        if (_syncTimer is null)
+        {
+            _syncTimer = new DispatcherTimer();
+            _syncTimer.Tick += async (_, _) => await RunAutoSync();
+        }
+        _syncTimer.Interval = TimeSpan.FromMinutes(Math.Clamp(SettingsStore.Current.AutoSyncIntervalMinutes, 1, 120));
         _syncTimer.Start();
         _ = RunAutoSync();
+    }
+
+    /// <summary>设置页修改间隔后调用。</summary>
+    public static void RestartAutoSyncTimer()
+    {
+        if (Current is App app)
+        {
+            app._syncTimer?.Stop();
+            app.StartAutoSync();
+        }
     }
 
     private async System.Threading.Tasks.Task RunAutoSync()

@@ -8,7 +8,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="备忘" FontSize="24" FontWeight="SemiBold"
+        <TextBlock Grid.Row="0" Text="{DynamicResource S_PageMemo}" FontSize="24" FontWeight="SemiBold"
                    Foreground="{DynamicResource Label}" Margin="0,0,0,16" />
 
         <Border Grid.Row="1" Background="{DynamicResource Fill}" CornerRadius="8"
@@ -27,7 +27,7 @@
                          Background="Transparent" VerticalContentAlignment="Center"
                          Foreground="{DynamicResource Label}"
                          KeyDown="NewContent_KeyDown" />
-                <Button Grid.Column="2" Content="添加" Padding="18,0" Height="34"
+                <Button Grid.Column="2" Content="{DynamicResource S_Add}" Padding="18,0" Height="34"
                         Style="{StaticResource AccentBtn}" Click="Add_Click" />
             </Grid>
         </Border>
@@ -99,7 +99,7 @@
                         IsHitTestVisible="False">
                 <TextBlock Text="&#xE70B;" FontFamily="Segoe MDL2 Assets" FontSize="36"
                            Foreground="{DynamicResource TertiaryLabel}" HorizontalAlignment="Center" />
-                <TextBlock Text="暂无备忘，随手记一条吧" Margin="0,8,0,0"
+                <TextBlock Text="{DynamicResource S_EmptyMemos}" Margin="0,8,0,0"
                            Foreground="{DynamicResource SecondaryLabel}" HorizontalAlignment="Center" />
             </StackPanel>
         </Grid>
