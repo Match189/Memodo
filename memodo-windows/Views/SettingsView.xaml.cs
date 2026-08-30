@@ -105,6 +105,7 @@ public partial class SettingsView : UserControl
             UpdateSyncStatus(err is null
                 ? $"同步完成 ✓  云端共 {tasks} 条待办 / {memos} 条备忘"
                 : "同步失败：" + err);
+            if (err is null) App.NotifyDataChanged();
         }
         else
         {
@@ -118,6 +119,7 @@ public partial class SettingsView : UserControl
             UpdateSyncStatus(err is null
                 ? $"同步完成：推送 {pushed} 条，拉取 {pulled} 条"
                 : "同步失败：" + err);
+            if (err is null) App.NotifyDataChanged();
         }
     }
 

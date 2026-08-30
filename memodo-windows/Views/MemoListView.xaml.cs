@@ -84,7 +84,11 @@ public partial class MemoListView : UserControl
         var repo = AppHost.Services.GetRequiredService<Repositories.MemoRepository>();
         var dlg = new EditCardWindow(item, repo) { Owner = Window.GetWindow(this) };
         dlg.ShowDialog();
-        if (dlg.Saved) _ = Vm.LoadCommand.ExecuteAsync(null);
+        if (dlg.Saved)
+        {
+            _ = Vm.LoadCommand.ExecuteAsync(null);
+            App.NotifyDataChanged(); // 组件便签标题联动
+        }
     }
 
     private void NewTitle_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)

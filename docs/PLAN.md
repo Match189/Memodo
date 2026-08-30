@@ -200,3 +200,22 @@ Changed / Added / Tests / Screenshots / Known issues / Next
 - 同步 wire 增加 memos.show_on_board（双端一致）
 **Tests** dotnet build 0 错误；assembleDebug/assembleRelease BUILD SUCCESSFUL（签名）；publish 更新
 **Known issues** memos.completed 列保留但弃用（避免破坏性迁移）；Android 备忘隐藏状态图标跟随主题色
+
+### Round 13 · 全链路走查与修正（用户指令：梳理逻辑链路，彻底检查）
+
+**链路梳理（现行为准）**
+```
+数据链   AppDatabase(启动幂等补列) → 仓储(软删除墓碑/LWW时间戳) → ViewModel/Repo → 视图
+显示链   主窗口(页面缓存+DataChanged重载) ⇄ App.DataChanged ⇄ 桌面组件(板/列表双模式)
+设置链   SettingsStore(JSON) ↔ SettingsView → 主题/语言即时生效 · 同步间隔→App定时器 · 眼睛/勾选→数据
+同步链   SyncEngine(WebDAV快照/Server游标) ↔ 坚果云/memodo-server → NotifyDataChanged → 双端UI
+```
+**走查修正**
+- QuickAddWindow 备忘模式补内容栏（与 Android 对齐；上轮提交信息与实际不符已纠正）
+- 组件板面移除遗留 Pin 调用（卡片模型不再驱动板面）
+- 设置页三处同步入口（设置按钮/托盘/自动定时）成功后统一 NotifyDataChanged
+- TaskListViewModel.ClearDone 补广播；主窗口两处编辑弹窗保存后补广播（组件标题联动）
+- Android BoardScreen 重写为新语义（全部未完成待办+未隐藏备忘网格，勾选/眼睛切换，
+  头部统计），移除 cards/PinPicker/FAB 遗留
+**Tests** dotnet build 0 错误；assembleDebug/assembleRelease BUILD SUCCESSFUL（签名）；publish 更新
+**Known issues** BoardView/BoardViewModel/cards 数据链闲置待清理（Phase 10）；Android ServerSync 每次登录不缓存 token

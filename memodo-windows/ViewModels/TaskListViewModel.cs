@@ -101,5 +101,6 @@ public partial class TaskListViewModel : ObservableObject
             if (t.Completed) await Task.Run(() => _repo.SoftDelete(t.Id));
         }
         await LoadAsync();
+        App.NotifyDataChanged();
     }
 }

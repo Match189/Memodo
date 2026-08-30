@@ -84,7 +84,11 @@ public partial class TaskListView : UserControl
         var repo = AppHost.Services.GetRequiredService<Repositories.TaskRepository>();
         var dlg = new EditCardWindow(item, repo) { Owner = Window.GetWindow(this) };
         dlg.ShowDialog();
-        if (dlg.Saved) _ = Vm.LoadCommand.ExecuteAsync(null);
+        if (dlg.Saved)
+        {
+            _ = Vm.LoadCommand.ExecuteAsync(null);
+            App.NotifyDataChanged(); // 组件便签标题联动
+        }
     }
 
     /// <summary>列表分组（用户裁定）：未完成 / 已完成 分开显示。</summary>

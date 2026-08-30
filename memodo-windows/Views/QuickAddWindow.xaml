@@ -14,9 +14,13 @@
                     Padding="14,6" Click="ModeMemo_Click"/>
         </StackPanel>
         <TextBox x:Name="InputBox" Padding="10,8" KeyDown="InputBox_KeyDown"/>
+        <!-- 备忘内容栏（与 Android 对齐） -->
+        <TextBox x:Name="ContentBox" Padding="10,8" Margin="0,8,0,0" MinHeight="64"
+                 AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                 KeyDown="ContentBox_KeyDown"/>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
             <Button Content="{DynamicResource S_Cancel}" Padding="14,6" Style="{StaticResource PlainBtn}" Click="Cancel_Click"/>
-            <Button Content="添加" Padding="14,6" Margin="8,0,0,0"
+            <Button Content="{DynamicResource S_Add}" Padding="14,6" Margin="8,0,0,0"
                     Style="{DynamicResource AccentBtn}" Click="Add_Click"/>
         </StackPanel>
     </StackPanel>

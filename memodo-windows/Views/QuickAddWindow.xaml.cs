@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using Memodo.Windows.Models;
@@ -9,14 +10,14 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Memodo.Windows.Views;
 
 /// <summary>
-/// 快速添加（蓝图 §28 简版）：选 待办/备忘 → 输入 → 创建实体并自动钉上默认板。
-/// 由桌面组件双击/菜单、后续主窗口热键复用。
+/// 快速添加（蓝图 §28 简版）：选 待办/备忘 → 输入 → 创建实体。
+/// 备忘模式带内容栏（与 Android 对齐，用户反馈）。
+/// 板面内容自动跟随数据（全部未完成待办+备忘），无需手动钉。
 /// </summary>
 public partial class QuickAddWindow : Window
 {
     private readonly TaskRepository _tasks;
     private readonly MemoRepository _memos;
-    private readonly BoardRepository _boardRepo;
     private bool _modeIsTodo = true;
     public bool Saved { get; private set; }
 
@@ -25,7 +26,6 @@ public partial class QuickAddWindow : Window
         InitializeComponent();
         _tasks = AppHost.Services.GetRequiredService<TaskRepository>();
         _memos = AppHost.Services.GetRequiredService<MemoRepository>();
-        _boardRepo = AppHost.Services.GetRequiredService<BoardRepository>();
         UpdateModeButtons();
         Loaded += (_, _) => { InputBox.Focus(); };
     }
@@ -34,18 +34,13 @@ public partial class QuickAddWindow : Window
     {
         var text = InputBox.Text.Trim();
         if (text.Length == 0) return;
-        var board = _boardRepo.EnsureDefaultBoard();
         if (_modeIsTodo)
         {
-            var t = new TaskItem { Title = text };
-            _tasks.Insert(t);
-            _boardRepo.Pin(board.Id, "todo", t.Id);
+            _tasks.Insert(new TaskItem { Title = text });
         }
         else
         {
-            var m = new MemoItem { Title = text, Content = "" };
-            _memos.Insert(m);
-            _boardRepo.Pin(board.Id, "memo", m.Id);
+            _memos.Insert(new MemoItem { Title = text, Content = ContentBox.Text.Trim() });
         }
         Saved = true;
         Close();
@@ -53,7 +48,14 @@ public partial class QuickAddWindow : Window
 
     private void InputBox_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter) Add_Click(sender, e);
+        if (e.Key == Key.Enter && _modeIsTodo) Add_Click(sender, e);
+        else if (e.Key == Key.Enter && !_modeIsTodo) ContentBox.Focus();
+        else if (e.Key == Key.Escape) Close();
+    }
+
+    private void ContentBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control) Add_Click(sender, e);
         else if (e.Key == Key.Escape) Close();
     }
 
@@ -67,6 +69,8 @@ public partial class QuickAddWindow : Window
         ModeMemo.Background = !_modeIsTodo ? (Brush)FindResource("Accent") : Brushes.Transparent;
         ModeMemo.Foreground = !_modeIsTodo ? Brushes.White : (Brush)FindResource("Accent");
         InputBox.Text = "";
+        ContentBox.Text = "";
+        ContentBox.Visibility = _modeIsTodo ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => Close();
