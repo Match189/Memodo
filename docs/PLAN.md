@@ -190,3 +190,13 @@ Changed / Added / Tests / Screenshots / Known issues / Next
   同步方式补全：仅本地 / WebDAV / 自建服务器（ServerSync.kt，JWT+push/pull cursor）
 **Tests** dotnet build 0 错误；assembleDebug/assembleRelease BUILD SUCCESSFUL（签名）；publish 更新
 **Known issues** Android 深层设置文案未双语；ServerSync 每次登录不缓存 token（简化）；OSS/S3 通道仍排 0.4
+
+### Round 12 · 交互语义修正（用户裁定）：备忘=眼睛可见性，钉板无删除
+**Changed** MemoItem（+ShowOnBoard）、AppDatabase（DB v5 memos+show_on_board）、MemoRepository、MemoListViewModel（ToggleBoardVisible）、MemoListView（眼睛按钮+分组改版）、DesktopWidgetWindow（板面去×删除/备忘改眼睛斜线/过滤隐藏）、Entities(Room v5)、WebDavSync（wire + show_on_board）、Repo/MainViewModel/Screens（眼睛切换）
+**Added**
+- 备忘与待办语义分离：**待办=打勾完成**（钉板移除+主窗口划线分组）；**备忘=眼睛可见性**（显示/隐藏钉板，无划线无完成）
+- 钉板移除红色 × 删除按钮；备忘便签改眼睛斜线按钮
+- 主窗口备忘列表分组改为「钉板显示中 / 未在钉板显示」，隐藏行灰显
+- 同步 wire 增加 memos.show_on_board（双端一致）
+**Tests** dotnet build 0 错误；assembleDebug/assembleRelease BUILD SUCCESSFUL（签名）；publish 更新
+**Known issues** memos.completed 列保留但弃用（避免破坏性迁移）；Android 备忘隐藏状态图标跟随主题色

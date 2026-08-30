@@ -176,6 +176,7 @@ object WebDavSync {
     fun memoJson(m: MemoItem) = JSONObject()
         .put("id", m.id).put("title", m.title).put("content", m.content)
         .put("completed", m.completed)
+        .put("show_on_board", m.showOnBoard)
         .put("created_at", m.createdAt).put("updated_at", m.updatedAt)
         .put("deleted_at", m.deletedAt ?: JSONObject.NULL)
 
@@ -196,12 +197,13 @@ object WebDavSync {
         title = o.optString("title", ""),
         content = o.optString("content", ""),
         completed = o.optBoolean("completed", false),
+        showOnBoard = o.optBoolean("show_on_board", true),
         createdAt = o.optLong("created_at"),
         updatedAt = o.optLong("updated_at"),
         deletedAt = if (o.isNull("deleted_at")) null else o.optLong("deleted_at"),
     )
 
-    // ---------- HTTP（OkHttp；支持 MKCOL 等自定义方法） ----------
+    // ---------- HTTP)（OkHttp；支持 MKCOL 等自定义方法） ----------
     private fun http(url: String, user: String, pass: String, method: String, body: ByteArray? = null): Pair<Int, ByteArray?> {
         val builder = Request.Builder().url(url)
             .header("Authorization", Credentials.basic(user, pass))

@@ -73,6 +73,10 @@ public static class LocalizationService
         Set("settings_lang_hint", "切换后立即生效（部分文字重启后完全刷新）", "Applies immediately (restart for a full refresh)");
         Set("group_open", "未完成", "Open");
         Set("group_done", "已完成", "Completed");
+        Set("group_on_board", "钉板显示中", "On board");
+        Set("group_off_board", "未在钉板显示", "Hidden from board");
+        Set("memo_hide", "不在钉板显示", "Hide from board");
+        Set("memo_show", "在钉板显示", "Show on board");
 
         LanguageChanged?.Invoke();
     }

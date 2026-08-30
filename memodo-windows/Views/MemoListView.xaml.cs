@@ -26,18 +26,18 @@ public partial class MemoListView : UserControl
         };
     }
 
-    /// <summary>列表分组（用户裁定）：未完成 / 已完成 分开显示。</summary>
+    /// <summary>列表分组（用户裁定）：钉板显示中 / 未在钉板显示。</summary>
     private void ConfigureGroups()
     {
         var view = (System.ComponentModel.ICollectionView)CollectionViewSource.GetDefaultView(Vm.Memos);
         if (view.GroupDescriptions.Count == 0)
         {
             view.GroupDescriptions.Add(new System.Windows.Data.PropertyGroupDescription(
-                nameof(MemoItem.Completed), new CompletedGroupConverter()));
+                nameof(MemoItem.ShowOnBoard), new BoardVisibleGroupConverter()));
         }
         view.SortDescriptions.Clear();
         view.SortDescriptions.Add(new System.ComponentModel.SortDescription(
-            nameof(MemoItem.Completed), System.ComponentModel.ListSortDirection.Ascending));
+            nameof(MemoItem.ShowOnBoard), System.ComponentModel.ListSortDirection.Descending));
         view.SortDescriptions.Add(new System.ComponentModel.SortDescription(
             nameof(MemoItem.UpdatedAt), System.ComponentModel.ListSortDirection.Descending));
     }
@@ -68,12 +68,12 @@ public partial class MemoListView : UserControl
         if (item != null) await Vm.RemoveCommand.ExecuteAsync(item);
     }
 
-    /// <summary>完成/取消完成（勾选框绑定已写回 Completed；完成后从钉板移除）。</summary>
-    private async void Done_Click(object sender, RoutedEventArgs e)
+    /// <summary>眼睛按钮：切换是否显示在钉板。</summary>
+    private void Eye_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement fe || fe.Tag is not string id) return;
         var item = Vm.Memos.FirstOrDefault(m => m.Id == id);
-        if (item != null) await Vm.ToggleDoneCommand.ExecuteAsync(item);
+        if (item != null) _ = Vm.ToggleBoardVisibleCommand.ExecuteAsync(item);
     }
 
     private void Edit_Click(object sender, RoutedEventArgs e)

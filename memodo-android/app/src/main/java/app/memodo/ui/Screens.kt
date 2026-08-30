@@ -7,6 +7,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -115,12 +117,20 @@ fun MemoListView(vm: MainViewModel) {
             items(memos) { m ->
                 ListItem(
                     leadingContent = {
-                        Checkbox(checked = m.completed, onCheckedChange = { vm.toggleMemoDone(m) })
+                        IconButton(onClick = { vm.toggleMemoShow(m) }) {
+                            Icon(
+                                if (m.showOnBoard) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = if (m.showOnBoard) "不在钉板显示" else "在钉板显示",
+                                tint = if (m.showOnBoard) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     },
                     headlineContent = {
                         Text(
                             m.title.ifBlank { "无标题" },
-                            textDecoration = if (m.completed) TextDecoration.LineThrough else null,
+                            color = if (m.showOnBoard) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     },
                     supportingContent = { Text(m.content, style = MaterialTheme.typography.bodySmall) },

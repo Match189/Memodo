@@ -61,6 +61,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
     fun deleteMemo(id: String) = scope.launch { repo.deleteMemo(id) }
     fun toggleMemoDone(m: MemoItem) = scope.launch { repo.setMemoDone(m, !m.completed) }
+    fun toggleMemoShow(m: MemoItem) = scope.launch { repo.setMemoShow(m, !m.showOnBoard) }
 
     fun pinTodo(uuid: String) = scope.launch { repo.pin("todo", uuid) }
     fun pinMemo(uuid: String) = scope.launch { repo.pin("memo", uuid) }

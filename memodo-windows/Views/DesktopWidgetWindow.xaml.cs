@@ -107,7 +107,7 @@ public partial class DesktopWidgetWindow : Window
         }
         foreach (var m in _memos.ListActive())
         {
-            if (m.Completed) continue; // 完成的备忘不在钉板
+            if (!m.ShowOnBoard) continue; // 眼睛隐藏的备忘不在钉板（用户裁定）
             var body = string.IsNullOrWhiteSpace(m.Content) ? "" : m.Content;
             items.Add(new NoteVM("m:" + m.Id, false,
                 string.IsNullOrWhiteSpace(m.Title) ? "无标题" : m.Title, body, m.Completed, null, m));
@@ -233,38 +233,25 @@ public partial class DesktopWidgetWindow : Window
             grid.Children.Add(body);
         }
 
-        // 备忘：完成（从钉板移除，同待办）
+        // 备忘：眼睛斜线按钮 → 不在钉板显示（用户裁定：钉板不放删除按钮）
         if (!it.IsTodo && it.Memo is not null)
         {
-            var done = new Button
+            var hide = new Button
             {
-                Content = "\uE73E", // CheckMark
+                Content = "\uED1A", // Hide（眼睛斜线）
                 FontFamily = new FontFamily("Segoe MDL2 Assets"),
                 Style = (Style)FindResource("CardDelBtn"),
-                Foreground = (Brush)FindResource("Accent"),
+                Foreground = (Brush)FindResource("SecondaryLabel"),
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Bottom,
-                Margin = new Thickness(0, 0, 18, -2),
-                ToolTip = LocalizationService.T("widget_done_tip"),
+                Margin = new Thickness(0, 0, 0, -2),
+                ToolTip = LocalizationService.T("memo_hide"),
                 IsHitTestVisible = !_locked,
             };
-            done.Click += (_, _) => CompleteMemo(it.Memo);
-            Grid.SetZIndex(done, 3);
-            grid.Children.Add(done);
+            hide.Click += (_, _) => HideMemo(it.Memo);
+            Grid.SetZIndex(hide, 3);
+            grid.Children.Add(hide);
         }
-
-        var del = new Button
-        {
-            Content = "×",
-            Style = (Style)FindResource("CardDelBtn"),
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Top,
-            Margin = new Thickness(0, -2, -4, 0),
-            IsHitTestVisible = !_locked,
-        };
-        del.Click += (_, _) => DeleteItem(it);
-        Grid.SetZIndex(del, 3);
-        grid.Children.Add(del);
 
         if (!_locked)
         {
@@ -341,18 +328,10 @@ public partial class DesktopWidgetWindow : Window
         App.NotifyDataChanged(); // 主窗口/其他视图刷新
     }
 
-    private void CompleteMemo(MemoItem m)
+    private void HideMemo(MemoItem m)
     {
-        m.Completed = true;
+        m.ShowOnBoard = false;
         _memos.Update(m);
-        Reload();
-        App.NotifyDataChanged();
-    }
-
-    private void DeleteItem(NoteVM it)
-    {
-        if (it.IsTodo && it.Task is not null) _tasks.SoftDelete(it.Task.Id);
-        else if (!it.IsTodo && it.Memo is not null) _memos.SoftDelete(it.Memo.Id);
         Reload();
         App.NotifyDataChanged();
     }
@@ -409,20 +388,33 @@ public partial class DesktopWidgetWindow : Window
 
     private UIElement BuildListRow(MemoItem m)
     {
-        var grid = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+        var grid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
-        var cb = new CheckBox { IsChecked = m.Completed, VerticalAlignment = VerticalAlignment.Center };
-        cb.Checked += (_, _) => { m.Completed = true; _memos.Update(m); Reload(); App.NotifyDataChanged(); };
-        cb.Unchecked += (_, _) => { m.Completed = false; _memos.Update(m); Reload(); App.NotifyDataChanged(); };
+        // 眼睛切换（用户裁定）：备忘无完成语义
+        var eye = new Button
+        {
+            Content = m.ShowOnBoard ? "\uE7B3" : "\uED1A",
+            FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 12,
+            Background = Brushes.Transparent, BorderThickness = new Thickness(0),
+            Foreground = m.ShowOnBoard ? (Brush)FindResource("Accent") : (Brush)FindResource("SecondaryLabel"),
+            VerticalAlignment = VerticalAlignment.Center, Cursor = Cursors.Hand,
+            ToolTip = m.ShowOnBoard ? LocalizationService.T("memo_hide") : LocalizationService.T("memo_show"),
+        };
+        eye.Click += (_, _) =>
+        {
+            m.ShowOnBoard = !m.ShowOnBoard;
+            _memos.Update(m);
+            Reload();
+            App.NotifyDataChanged();
+        };
         var stack = new StackPanel();
         stack.Children.Add(new TextBlock
         {
             Text = string.IsNullOrWhiteSpace(m.Title) ? "无标题" : m.Title,
             FontWeight = FontWeights.SemiBold, FontSize = 12.5,
-            Foreground = (Brush)FindResource("TextPrimary"),
-            TextDecorations = m.Completed ? TextDecorations.Strikethrough : null,
+            Foreground = m.ShowOnBoard ? (Brush)FindResource("TextPrimary") : (Brush)FindResource("SecondaryLabel"),
         });
         if (!string.IsNullOrWhiteSpace(m.Content))
             stack.Children.Add(new TextBlock
@@ -437,7 +429,7 @@ public partial class DesktopWidgetWindow : Window
         };
         del.Click += (_, _) => { _memos.SoftDelete(m.Id); App.NotifyDataChanged(); };
         Grid.SetColumn(del, 2);
-        grid.Children.Add(cb); grid.Children.Add(stack); grid.Children.Add(del);
+        grid.Children.Add(eye); grid.Children.Add(stack); grid.Children.Add(del);
         return WrapRow(grid);
     }
 

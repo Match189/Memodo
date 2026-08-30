@@ -67,18 +67,35 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <CheckBox Grid.Column="0" Style="{StaticResource AppleCheck}"
-                                          IsChecked="{Binding Completed}" VerticalAlignment="Center"
-                                          ToolTip="完成（从钉板移除）"
-                                          Click="Done_Click" Tag="{Binding Id}" />
+                                <!-- 眼睛按钮：控制是否显示在钉板（备忘无完成语义，用户裁定） -->
+                                <Button Grid.Column="0" Width="28" Height="28"
+                                        VerticalAlignment="Center" Background="Transparent" BorderThickness="0"
+                                        Click="Eye_Click" Tag="{Binding Id}" Cursor="Hand">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+                                            <Setter Property="FontSize" Value="14" />
+                                            <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+                                            <Setter Property="Content" Value="&#xE7B3;" />
+                                            <Setter Property="ToolTip" Value="点击不在钉板显示" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ShowOnBoard}" Value="False">
+                                                    <Setter Property="Content" Value="&#xED1A;" />
+                                                    <Setter Property="ToolTip" Value="点击在钉板显示" />
+                                                    <Setter Property="Foreground" Value="{DynamicResource SecondaryLabel}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
                                 <StackPanel Grid.Column="1" Margin="12,10,0,10" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding Title}" FontSize="14"
-                                               TextDecorations="{Binding Completed, Converter={StaticResource StrikeThrough}}">
+                                               TextTrimming="CharacterEllipsis">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="Foreground" Value="{DynamicResource Label}" />
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Completed}" Value="True">
+                                                    <DataTrigger Binding="{Binding ShowOnBoard}" Value="False">
                                                         <Setter Property="Foreground" Value="{DynamicResource SecondaryLabel}" />
                                                     </DataTrigger>
                                                 </Style.Triggers>

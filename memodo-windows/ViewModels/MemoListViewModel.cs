@@ -49,10 +49,11 @@ public partial class MemoListViewModel : ObservableObject
         App.NotifyDataChanged(); // 组件实时联动
     }
 
-    /// <summary>完成/取消完成：勾选框绑定已写回 Completed，这里只落库（完成后从钉板移除）。</summary>
+    /// <summary>眼睛切换（用户裁定）：备忘用「是否显示在钉板」语义，非完成语义。</summary>
     [RelayCommand]
-    public async Task ToggleDoneAsync(MemoItem item)
+    public async Task ToggleBoardVisibleAsync(MemoItem item)
     {
+        item.ShowOnBoard = !item.ShowOnBoard;
         await Task.Run(() => _repo.Update(item));
         await LoadAsync();
         App.NotifyDataChanged();

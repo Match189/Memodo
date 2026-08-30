@@ -128,6 +128,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS ix_card_platform ON card_layouts(card_id, plat
         AddColumnIfMissing("cards", "color", "TEXT NOT NULL DEFAULT 'red'");
         AddColumnIfMissing("cards", "note_color", "TEXT NOT NULL DEFAULT ''");
         AddColumnIfMissing("memos", "completed", "INTEGER NOT NULL DEFAULT 0");
+        // v5（用户裁定）：备忘改用「是否显示在钉板」语义（眼睛按钮），completed 保留但不再使用
+        AddColumnIfMissing("memos", "show_on_board", "INTEGER NOT NULL DEFAULT 1");
     }
 
     private long UserVersion

@@ -30,6 +30,8 @@ data class MemoItem(
     val content: String = "",
     // 完成的备忘从钉板移除（用户裁定，语义同待办）
     val completed: Boolean = false,
+    // 用户裁定 v2：备忘改用「是否显示在钉板」语义（眼睛按钮）
+    @ColumnInfo(name = "show_on_board") val showOnBoard: Boolean = true,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
     @ColumnInfo(name = "deleted_at") val deletedAt: Long? = null,

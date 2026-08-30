@@ -41,6 +41,10 @@ class Repo private constructor(ctx: Context) {
     suspend fun getTask(id: String): TaskItem? = tasks.getById(id)
 
     /// 完成的备忘从钉板移除（与待办同语义）
+    suspend fun setMemoShow(m: MemoItem, show: Boolean) {
+        memos.update(m.copy(showOnBoard = show, updatedAt = System.currentTimeMillis()))
+    }
+
     suspend fun setMemoDone(m: MemoItem, done: Boolean) {
         memos.update(m.copy(completed = done, updatedAt = System.currentTimeMillis()))
     }
