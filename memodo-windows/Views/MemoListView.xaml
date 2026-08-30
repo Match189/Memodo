@@ -10,8 +10,8 @@
 
         <TextBlock Grid.Row="0" Text="备忘" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,14" />
 
-        <Border Grid.Row="1" Background="White" CornerRadius="10"
-                BorderBrush="{StaticResource CardBorder}" BorderThickness="1" Margin="0,0,0,14">
+        <Border Grid.Row="1" Background="{DynamicResource CardSurface}" CornerRadius="10"
+                BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" Margin="0,0,0,14">
             <Grid Margin="12,10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -46,7 +46,7 @@
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <Border Padding="12,10" Margin="0,0,0,8" CornerRadius="10"
-                            Background="White" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                            Background="{DynamicResource CardSurface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -60,7 +60,7 @@
                             </StackPanel>
                             <Button Grid.Column="1" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="13"
                                     VerticalAlignment="Top" ToolTip="删除"
-                                    Foreground="#FFB00020" Background="Transparent" BorderThickness="0"
+                                    Foreground="{DynamicResource Danger}" Background="Transparent" BorderThickness="0"
                                     Click="Remove_Click" Tag="{Binding Id}" />
                         </Grid>
                     </Border>

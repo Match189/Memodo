@@ -11,7 +11,7 @@
         <DockPanel Grid.Row="0" Margin="0,0,0,14">
             <TextBlock Text="待办" FontSize="22" FontWeight="SemiBold" />
             <TextBlock x:Name="CountText" DockPanel.Dock="Right" HorizontalAlignment="Right"
-                       VerticalAlignment="Center" Foreground="{StaticResource SubtleText}" />
+                       VerticalAlignment="Center" Foreground="{DynamicResource SubtleText}" />
         </DockPanel>
 
         <Grid Grid.Row="1" Margin="0,0,0,14">
@@ -19,8 +19,8 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <Border Grid.Column="0" Background="White" CornerRadius="10"
-                    BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+            <Border Grid.Column="0" Background="{DynamicResource CardSurface}" CornerRadius="10"
+                    BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
                 <TextBox x:Name="NewTitle" Padding="12,9" BorderThickness="0" Background="Transparent"
                          VerticalContentAlignment="Center" KeyDown="NewTitle_KeyDown" />
             </Border>
@@ -45,7 +45,7 @@
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <Border Margin="0,0,0,8" Padding="12,10" CornerRadius="10"
-                            Background="White" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                            Background="{DynamicResource CardSurface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
@@ -61,7 +61,7 @@
                                        TextDecorations="{Binding Completed, Converter={StaticResource StrikeThrough}}" />
                             <Button Grid.Column="2" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="13"
                                     VerticalAlignment="Center" ToolTip="删除"
-                                    Foreground="#FFB00020" Background="Transparent" BorderThickness="0"
+                                    Foreground="{DynamicResource Danger}" Background="Transparent" BorderThickness="0"
                                     Click="Remove_Click" Tag="{Binding Id}" />
                         </Grid>
                     </Border>

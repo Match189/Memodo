@@ -10,9 +10,15 @@ public sealed class AppSettings
     public string ServerUrl { get; set; } = "";
     public string AccountEmail { get; set; } = "";
     public bool ShowWidgetOnStartup { get; set; } = true;
-    public string Theme { get; set; } = "System"; // System | Light | Dark
+    public string ThemeStyle { get; set; } = "Hybrid"; // Cork | Glass | Hybrid（蓝图 §17）
+    public bool ThemeDark { get; set; } = false;
     public bool WidgetTopmost { get; set; } = true;
     public long LastPullCursor { get; set; } = 0;
+    public double WidgetX { get; set; } = -1;  // -1 = 未记录，走系统默认
+    public double WidgetY { get; set; } = -1;
+    public double WidgetW { get; set; } = 380;
+    public double WidgetH { get; set; } = 520;
+    public bool WidgetLocked { get; set; } = false;
 }
 
 public static class SettingsStore

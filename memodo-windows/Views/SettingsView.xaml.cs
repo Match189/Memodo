@@ -20,7 +20,25 @@ public partial class SettingsView : UserControl
             EmailBox.Text = s.AccountEmail;
             StartWidgetChk.IsChecked = s.ShowWidgetOnStartup;
             TopmostChk.IsChecked = s.WidgetTopmost;
+            DarkChk.IsChecked = s.ThemeDark;
+            foreach (ComboBoxItem it in ThemeBox.Items)
+                if ((string)it.Tag == s.ThemeStyle) { ThemeBox.SelectedItem = it; break; }
         };
+    }
+
+    private void Theme_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ThemeBox.SelectedItem is ComboBoxItem it)
+        {
+            ThemeService.Apply(System.Enum.TryParse<ThemeStyle>((string)it.Tag, out var st) ? st : ThemeStyle.Hybrid,
+                               ThemeService.Dark);
+        }
+    }
+
+    private void Dark_Changed(object sender, RoutedEventArgs e)
+    {
+        ThemeService.Dark = DarkChk.IsChecked == true;
+        ThemeService.Apply();
     }
 
     private void SaveBasic()

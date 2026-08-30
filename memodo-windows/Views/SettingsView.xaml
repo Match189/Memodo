@@ -31,8 +31,24 @@
                 </StackPanel>
             </Border>
 
+            <!-- 外观 -->
+            <Border Padding="16" CornerRadius="10" Background="{DynamicResource CardSurface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="外观（蓝图 §17：Cork / Glass / Hybrid）" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <StackPanel Orientation="Horizontal">
+                        <ComboBox x:Name="ThemeBox" Width="140" SelectionChanged="Theme_SelectionChanged">
+                            <ComboBoxItem Content="Cork 软木" Tag="Cork" />
+                            <ComboBoxItem Content="Glass 玻璃" Tag="Glass" />
+                            <ComboBoxItem Content="Hybrid 混合" Tag="Hybrid" />
+                        </ComboBox>
+                        <CheckBox x:Name="DarkChk" Content="深色模式" Margin="16,0,0,0"
+                                  VerticalAlignment="Center" Checked="Dark_Changed" Unchecked="Dark_Changed"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <!-- 桌面组件 -->
-            <Border Padding="16" CornerRadius="10" Background="White" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" Margin="0,0,0,12">
+            <Border Padding="16" CornerRadius="10" Background="{DynamicResource CardSurface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" Margin="0,0,0,12">
                 <StackPanel>
                     <TextBlock Text="桌面组件" FontWeight="SemiBold" Margin="0,0,0,8" />
                     <CheckBox x:Name="StartWidgetChk" Content="登录时显示桌面组件" Checked="StartWidget_Changed" Unchecked="StartWidget_Changed"/>

@@ -50,15 +50,16 @@ public partial class BoardView : UserControl
     {
         var border = new Border
         {
-            Background = Brushes.White,
+            Background = (Brush)FindResource("CardSurface"),
             CornerRadius = new CornerRadius(8),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0xDD, 0xDD, 0xDD)),
+            BorderBrush = (Brush)FindResource("CardBorder"),
             BorderThickness = new Thickness(1),
             Padding = new Thickness(10),
             Width = c.Layout.Width,
             Height = c.Layout.Height,
             Tag = c,
             Cursor = Cursors.SizeAll,
+            Effect = (System.Windows.Media.Effects.DropShadowEffect)FindResource("CardShadow"),
         };
         Canvas.SetLeft(border, c.Layout.X);
         Canvas.SetTop(border, c.Layout.Y);
@@ -67,11 +68,25 @@ public partial class BoardView : UserControl
         var grid = new Grid();
         border.Child = grid;
 
+        // 图钉（品牌元素，钉帽压在卡顶）
+        var pinHost = new ContentControl
+        {
+            Content = PinFactory.Create(null, 15),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, -16, 0, 0),
+            IsHitTestVisible = false,
+        };
+        Grid.SetZIndex(pinHost, 2);
+        grid.Children.Add(pinHost);
+
         var tb = new TextBlock
         {
             Text = CardText(c),
             TextWrapping = TextWrapping.Wrap,
             FontSize = 13,
+            Foreground = (Brush)FindResource("TextPrimary"),
+            Margin = new Thickness(0, 6, 0, 0),
         };
         grid.Children.Add(tb);
 
@@ -125,7 +140,7 @@ public partial class BoardView : UserControl
             var cx = Canvas.GetLeft(border) + border.Width / 2;
             var cy = Canvas.GetTop(border) + border.Height / 2;
             var ang = Math.Atan2(p.Y - cy, p.X - cx) * 180 / Math.PI;
-            var deg = ang + 90;
+            var deg = Math.Clamp(ang + 90, -2.0, 2.0); // 蓝图 §37：限幅 ±2°
             c.Layout.Rotation = deg;
             if (border.RenderTransform is RotateTransform rt) rt.Angle = deg;
         };

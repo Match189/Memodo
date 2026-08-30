@@ -24,6 +24,8 @@ public partial class App : Application
         };
         base.OnStartup(e);
 
+        ThemeService.Apply(); // 设计系统：Cork/Glass/Hybrid × Dark
+
         var win = new ShellWindow();
         win.Loaded += (_, _) =>
         {

@@ -4,7 +4,7 @@
         Title="念念 Memodo"
         Width="1100" Height="720"
         MinWidth="720" MinHeight="480"
-        Background="{StaticResource AppBackground}"
+        Background="{DynamicResource AppBackground}"
         WindowStartupLocation="CenterScreen">
     <Grid>
         <Grid.RowDefinitions>
@@ -21,7 +21,7 @@
                 MouseLeftButtonDown="TitleBar_MouseDown">
             <Grid>
                 <TextBlock Text="念念 Memodo" Margin="14,0" VerticalAlignment="Center"
-                           FontWeight="SemiBold" Foreground="{StaticResource SubtleText}" />
+                           FontWeight="SemiBold" Foreground="{DynamicResource SubtleText}" />
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
                     <Button Content="&#xE921;" Style="{StaticResource CapBtn}" Click="Min_Click"  ToolTip="最小化"/>
                     <Button Content="&#xE922;" Style="{StaticResource CapBtn}" Click="Max_Click"  ToolTip="最大化"/>
@@ -31,7 +31,7 @@
         </Border>
 
         <!-- 侧栏 -->
-        <Border Grid.Row="1" Grid.Column="0" Background="{StaticResource SidebarBackground}">
+        <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource SidebarBackground}">
             <StackPanel VerticalAlignment="Top" Margin="0,8,0,0">
                 <RadioButton x:Name="NavTodo"     Style="{StaticResource NavButton}" Tag="todo"     Content="&#xE73A;" Margin="0,0,0,8"  Click="Nav_Clicked" IsChecked="True" ToolTip="待办"/>
                 <RadioButton x:Name="NavMemo"     Style="{StaticResource NavButton}" Tag="memo"     Content="&#xE70F;" Margin="0,0,0,8"  Click="Nav_Clicked" ToolTip="备忘"/>
