@@ -29,6 +29,10 @@ public sealed class AppSettings
     public double WidgetW { get; set; } = 380;
     public double WidgetH { get; set; } = 520;
     public bool WidgetLocked { get; set; } = false;
+    /// <summary>组件显示方式（蓝图：钉板 / 传统列表 可切换）。</summary>
+    public string WidgetViewMode { get; set; } = "board"; // board | list
+    /// <summary>主窗口显示方式：传统列表 / 钉板画布。</summary>
+    public string MainViewMode { get; set; } = "list"; // list | board
     /// <summary>组件内卡片布局（本机视觉状态，不进同步协议——蓝图 §11 平台分离）。</summary>
     public Dictionary<string, WidgetCardPos> WidgetLayouts { get; set; } = new();
 

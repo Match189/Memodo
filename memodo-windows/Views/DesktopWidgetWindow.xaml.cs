@@ -13,8 +13,9 @@ using Memodo.Windows.Services;
 namespace Memodo.Windows.Views;
 
 /// <summary>
-/// 桌面组件（蓝图 §19/§20 P0）：复用 Board 卡片渲染的迷你画布。
-/// 位置/尺寸记忆、置顶、锁定布局、卡片拖拽/缩放/编辑/完成/删除、快速添加。
+/// 桌面组件（蓝图 §19/§20）：钉板 / 传统列表 双显示方式可切换。
+/// 右上角：置顶开关 + 选项菜单（新建/显示方式/锁定/主窗口/同步/关闭）；
+/// 双击显示区弹出快速添加；双击卡片编辑。位置尺寸记忆、锁定、置顶均持久化。
 /// 卡片摆位存本机 kv（SettingsStore.WidgetLayouts，不进同步协议）。
 /// </summary>
 public partial class DesktopWidgetWindow : Window
@@ -22,7 +23,6 @@ public partial class DesktopWidgetWindow : Window
     private readonly BoardRepository _boardRepo;
     private readonly TaskRepository _tasks;
     private readonly MemoRepository _memos;
-    private bool _modeIsTodo = true;
     private bool _locked;
     private readonly DispatcherTimer _saveTimer;
 
@@ -36,12 +36,12 @@ public partial class DesktopWidgetWindow : Window
         var s = SettingsStore.Current;
         Topmost = s.WidgetTopmost;
         _locked = s.WidgetLocked;
-        UpdateLockVisual();
         if (s.WidgetX >= 0) Left = s.WidgetX;
         if (s.WidgetY >= 0) Top = s.WidgetY;
         Width = s.WidgetW; Height = s.WidgetH;
+        ApplyViewMode(s.WidgetViewMode);
+        UpdateTopVisual();
 
-        // 位置/尺寸记忆：防抖保存（§20 P0 Position Persistence）
         _saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
         _saveTimer.Tick += (_, _) => { _saveTimer.Stop(); SaveWindowPos(); };
         LocationChanged += (_, _) => { _saveTimer.Stop(); _saveTimer.Start(); };
@@ -51,6 +51,13 @@ public partial class DesktopWidgetWindow : Window
         Loaded += (_, _) => Reload();
     }
 
+    /// <summary>设置页改动后即时生效（修复「开关无效」）。</summary>
+    public void ApplySettings()
+    {
+        Topmost = SettingsStore.Current.WidgetTopmost;
+        UpdateTopVisual();
+    }
+
     private void SaveWindowPos()
     {
         var s = SettingsStore.Current;
@@ -58,30 +65,33 @@ public partial class DesktopWidgetWindow : Window
         SettingsStore.Save();
     }
 
+    // ---------- 显示方式 ----------
+    private void ApplyViewMode(string mode)
+    {
+        var board = mode != "list";
+        BoardMode.Visibility = board ? Visibility.Visible : Visibility.Collapsed;
+        ListMode.Visibility = board ? Visibility.Collapsed : Visibility.Visible;
+        SettingsStore.Current.WidgetViewMode = board ? "board" : "list";
+        SettingsStore.Save();
+    }
+
+    // ---------- 数据 ----------
     public void Reload()
+    {
+        var board = SettingsStore.Current.WidgetViewMode != "list";
+        if (board) ReloadBoard(); else ReloadLists();
+    }
+
+    private void ReloadBoard()
     {
         Board.Children.Clear();
         var cards = _boardRepo.ListAllCards();
-        EmptyHint.Visibility = cards.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        BoardEmpty.Visibility = cards.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
         int i = 0;
         foreach (var card in cards)
         {
-            string title; bool isTodo; bool done = false; TaskItem? task = null; MemoItem? memo = null;
-            if (card.RefType == "todo")
-            {
-                task = _tasks.GetById(card.RefUuid);
-                if (task is null) continue;
-                title = task.Title; isTodo = true; done = task.Completed;
-            }
-            else
-            {
-                memo = _memos.GetById(card.RefUuid);
-                if (memo is null) continue;
-                title = string.IsNullOrWhiteSpace(memo.Title) ? "无标题" : memo.Title;
-                isTodo = false;
-            }
-
+            if (!ResolveCard(card, out var title, out var isTodo, out var done, out var task, out var memo)) continue;
             var pos = SettingsStore.Current.WidgetLayouts.TryGetValue(card.Id, out var p)
                 ? p
                 : new WidgetCardPos { X = 16 + (i % 2) * 170, Y = 14 + (i / 2) * 116 };
@@ -90,6 +100,43 @@ public partial class DesktopWidgetWindow : Window
         }
     }
 
+    private void ReloadLists()
+    {
+        TodoPanel.Children.Clear();
+        MemoPanel.Children.Clear();
+        foreach (var t in _tasks.ListActive()) TodoPanel.Children.Add(BuildListRow(t));
+        foreach (var m in _memos.ListActive()) MemoPanel.Children.Add(BuildListRow(m));
+        if (_tasks.ListActive().Count == 0)
+            TodoPanel.Children.Add(new TextBlock { Text = "双击空白处添加", Opacity = 0.5, FontSize = 11 });
+        if (_memos.ListActive().Count == 0)
+            MemoPanel.Children.Add(new TextBlock { Text = "双击空白处添加", Opacity = 0.5, FontSize = 11 });
+    }
+
+    private bool ResolveCard(CardItem card, out string title, out bool isTodo,
+        out bool done, out TaskItem? task, out MemoItem? memo)
+    {
+        title = ""; isTodo = false; done = false; task = null; memo = null;
+        if (card.RefType == "todo")
+        {
+            task = _tasks.GetById(card.RefUuid);
+            if (task is null) return false;
+            title = task.Title; isTodo = true; done = task.Completed;
+            return true;
+        }
+        if (card.RefType == "memo")
+        {
+            memo = _memos.GetById(card.RefUuid);
+            if (memo is null) return false;
+            title = string.IsNullOrWhiteSpace(memo.Title) ? "无标题" : memo.Title;
+            return true;
+        }
+        // 内联卡（idea/checklist，蓝图 §10）
+        title = string.IsNullOrWhiteSpace(card.Title) ? "新卡片" : card.Title;
+        isTodo = false;
+        return true;
+    }
+
+    // ---------- 钉板卡片 ----------
     private UIElement BuildCard(CardItem card, string title, bool isTodo, bool done,
         TaskItem? task, MemoItem? memo, WidgetCardPos pos)
     {
@@ -113,10 +160,9 @@ public partial class DesktopWidgetWindow : Window
         grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        // 图钉
         var pin = new ContentControl
         {
-            Content = PinFactory.Create(null, 13),
+            Content = PinFactory.Create(card.Color, 13),
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Top,
             Margin = new Thickness(0, -18, 0, 0),
@@ -126,7 +172,6 @@ public partial class DesktopWidgetWindow : Window
         Grid.SetZIndex(pin, 2);
         grid.Children.Add(pin);
 
-        // 内容行：待办带勾选框
         var row = new StackPanel { Orientation = Orientation.Horizontal };
         Grid.SetRow(row, 0);
         if (isTodo && task is not null)
@@ -136,7 +181,6 @@ public partial class DesktopWidgetWindow : Window
                 IsChecked = done,
                 VerticalAlignment = VerticalAlignment.Top,
                 Margin = new Thickness(0, 1, 6, 0),
-                IsHitTestVisible = true, // 锁定也允许勾选完成
             };
             cb.Checked += (_, _) => { task.Completed = true; _tasks.Update(task); };
             cb.Unchecked += (_, _) => { task.Completed = false; _tasks.Update(task); };
@@ -154,12 +198,14 @@ public partial class DesktopWidgetWindow : Window
         row.Children.Add(tb);
         grid.Children.Add(row);
 
-        // 备忘正文预览
-        if (!isTodo && memo is not null && !string.IsNullOrWhiteSpace(memo.Content))
+        var bodyText = !isTodo && memo is not null && !string.IsNullOrWhiteSpace(memo.Content)
+            ? memo.Content
+            : (!isTodo && task is null && !string.IsNullOrWhiteSpace(card.Content) ? card.Content : null);
+        if (bodyText is not null)
         {
             var body = new TextBlock
             {
-                Text = memo.Content,
+                Text = bodyText,
                 TextWrapping = TextWrapping.Wrap,
                 FontSize = 11,
                 Foreground = (Brush)FindResource("TextSecondary"),
@@ -170,7 +216,6 @@ public partial class DesktopWidgetWindow : Window
             grid.Children.Add(body);
         }
 
-        // 删除（取消钉）
         var del = new Button
         {
             Content = "×",
@@ -184,7 +229,6 @@ public partial class DesktopWidgetWindow : Window
         Grid.SetZIndex(del, 3);
         grid.Children.Add(del);
 
-        // 缩放手柄
         if (!_locked)
         {
             var thumb = new Thumb
@@ -205,13 +249,11 @@ public partial class DesktopWidgetWindow : Window
             grid.Children.Add(thumb);
         }
 
-        // 拖动 + 双击编辑
         border.MouseLeftButtonDown += (sender, e) =>
         {
             if (_locked) return;
             if (e.ClickCount == 2) { EditCard(card, isTodo, task, memo); return; }
-            if (e.OriginalSource is Thumb || e.OriginalSource is System.Windows.Controls.Primitives.ButtonBase
-                || e.OriginalSource is System.Windows.Shapes.Rectangle) return;
+            if (e.OriginalSource is Thumb || e.OriginalSource is System.Windows.Controls.Primitives.ButtonBase) return;
             if (sender is not Border b) return;
             _dragCard = card; _dragEl = b;
             _dragLast = e.GetPosition(Board);
@@ -257,80 +299,159 @@ public partial class DesktopWidgetWindow : Window
             dlg = new EditCardWindow(task, _tasks) { Owner = this };
         else if (!isTodo && memo is not null)
             dlg = new EditCardWindow(memo, _memos) { Owner = this };
+        else if (card.RefType is "idea" or "checklist")
+            dlg = new EditCardWindow(card) { Owner = this };
         dlg?.ShowDialog();
+        if (dlg is EditCardWindow ec && ec.Saved && card.RefType is "idea" or "checklist")
+            _boardRepo.UpdateInlineCard(card.Id, ec.NewTitle, ec.NewContent, ec.SelectedColor ?? card.Color);
         Reload();
     }
 
-    // ---- 快速添加 ----
-    private void Add_Click(object sender, RoutedEventArgs e)
+    // ---------- 列表行 ----------
+    private UIElement BuildListRow(TaskItem t)
     {
-        var text = AddBox.Text.Trim();
-        if (string.IsNullOrEmpty(text) || text == "添加…") return;
-        var board = _boardRepo.EnsureDefaultBoard();
-        if (_modeIsTodo)
+        var grid = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
+        var cb = new CheckBox { IsChecked = t.Completed, VerticalAlignment = VerticalAlignment.Center };
+        cb.Checked += (_, _) => { t.Completed = true; _tasks.Update(t); Reload(); };
+        cb.Unchecked += (_, _) => { t.Completed = false; _tasks.Update(t); Reload(); };
+        var tb = new TextBlock
         {
-            var t = new TaskItem { Title = text };
-            _tasks.Insert(t);
-            _boardRepo.Pin(board.Id, "todo", t.Id);
-        }
-        else
+            Text = t.Title,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = 12.5,
+            Foreground = (Brush)FindResource("TextPrimary"),
+            TextDecorations = t.Completed ? TextDecorations.Strikethrough : null,
+        };
+        Grid.SetColumn(tb, 1);
+        var del = new Button
         {
-            var m = new MemoItem { Title = text, Content = "" };
-            _memos.Insert(m);
-            _boardRepo.Pin(board.Id, "memo", m.Id);
-        }
-        AddBox.Text = "";
-        Reload();
+            Content = "×", Style = (Style)FindResource("CardDelBtn"), VerticalAlignment = VerticalAlignment.Center,
+        };
+        del.Click += (_, _) => { _tasks.SoftDelete(t.Id); Reload(); };
+        Grid.SetColumn(del, 2);
+        grid.Children.Add(cb); grid.Children.Add(tb); grid.Children.Add(del);
+        return grid;
     }
 
-    private void AddBox_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Enter) Add_Click(sender, e); }
-    private void ModeTodo_Click(object sender, RoutedEventArgs e) { _modeIsTodo = true; UpdateModeButtons(); }
-    private void ModeMemo_Click(object sender, RoutedEventArgs e) { _modeIsTodo = false; UpdateModeButtons(); }
-
-    private void UpdateModeButtons()
+    private UIElement BuildListRow(MemoItem m)
     {
-        ModeTodo.Background = _modeIsTodo ? (Brush)FindResource("Accent") : Brushes.Transparent;
-        ModeMemo.Background = !_modeIsTodo ? (Brush)FindResource("Accent") : Brushes.Transparent;
+        var grid = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
+        var stack = new StackPanel();
+        stack.Children.Add(new TextBlock
+        {
+            Text = string.IsNullOrWhiteSpace(m.Title) ? "无标题" : m.Title,
+            FontWeight = FontWeights.SemiBold, FontSize = 12.5,
+            Foreground = (Brush)FindResource("TextPrimary"),
+        });
+        if (!string.IsNullOrWhiteSpace(m.Content))
+            stack.Children.Add(new TextBlock
+            {
+                Text = m.Content, FontSize = 11, TextWrapping = TextWrapping.Wrap,
+                Foreground = (Brush)FindResource("TextSecondary"),
+            });
+        Grid.SetColumn(stack, 0);
+        var del = new Button
+        {
+            Content = "×", Style = (Style)FindResource("CardDelBtn"), VerticalAlignment = VerticalAlignment.Top,
+        };
+        del.Click += (_, _) => { _memos.SoftDelete(m.Id); Reload(); };
+        Grid.SetColumn(del, 1);
+        grid.Children.Add(stack); grid.Children.Add(del);
+        return grid;
     }
 
-    // ---- 锁定 ----
-    private void Lock_Click(object sender, RoutedEventArgs e)
+    // ---------- 双击显示区 → 快速添加 ----------
+    private void BoardArea_MouseDown(object sender, MouseButtonEventArgs e)
     {
-        _locked = !_locked;
-        SettingsStore.Current.WidgetLocked = _locked;
+        if (e.ClickCount == 2)
+        {
+            var dlg = new QuickAddWindow { Owner = this };
+            dlg.ShowDialog();
+            if (dlg.Saved) Reload();
+        }
+    }
+
+    // ---------- 右上角：置顶开关 + 选项菜单 ----------
+    private void Top_Click(object sender, RoutedEventArgs e)
+    {
+        Topmost = !Topmost;
+        SettingsStore.Current.WidgetTopmost = Topmost;
         SettingsStore.Save();
-        UpdateLockVisual();
-        Reload();
+        UpdateTopVisual();
     }
 
-    private void UpdateLockVisual()
+    private void UpdateTopVisual()
     {
-        LockBtn.Content = _locked ? "\uE72E" : "\uE785"; // 锁定/解锁 图标
-        LockBtn.Opacity = _locked ? 1 : 0.6;
+        TopBtn.Opacity = Topmost ? 1 : 0.55;
+        TopBtn.ToolTip = Topmost ? "置顶：开（点击取消）" : "置顶：关（点击开启）";
     }
 
-    private void OpenMain_Click(object sender, RoutedEventArgs e)
+    private void Menu_Click(object sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu();
+
+        var addTodo = new MenuItem { Header = "新建待办" };
+        addTodo.Click += (_, _) => OpenQuickAdd();
+        var addMemo = new MenuItem { Header = "新建备忘" };
+        addMemo.Click += (_, _) => OpenQuickAdd();
+        menu.Items.Add(addTodo);
+        menu.Items.Add(addMemo);
+        menu.Items.Add(new Separator());
+
+        var viewBoard = new MenuItem { Header = "钉板显示", IsCheckable = true, IsChecked = SettingsStore.Current.WidgetViewMode != "list" };
+        var viewList = new MenuItem { Header = "列表显示", IsCheckable = true, IsChecked = SettingsStore.Current.WidgetViewMode == "list" };
+        viewBoard.Click += (_, _) => { ApplyViewMode("board"); Reload(); };
+        viewList.Click += (_, _) => { ApplyViewMode("list"); Reload(); };
+        menu.Items.Add(viewBoard);
+        menu.Items.Add(viewList);
+
+        var lockItem = new MenuItem { Header = "锁定布局", IsCheckable = true, IsChecked = _locked };
+        lockItem.Click += (_, _) =>
+        {
+            _locked = lockItem.IsChecked;
+            SettingsStore.Current.WidgetLocked = _locked;
+            SettingsStore.Save();
+            Reload();
+        };
+        menu.Items.Add(lockItem);
+        menu.Items.Add(new Separator());
+
+        var showMain = new MenuItem { Header = "显示主窗口" };
+        showMain.Click += (_, _) => OpenMain();
+        var sync = new MenuItem { Header = "立即同步" };
+        sync.Click += async (_, _) => await App.Tray?.SyncNowAsync()!;
+        menu.Items.Add(showMain);
+        menu.Items.Add(sync);
+        menu.Items.Add(new Separator());
+
+        var closeItem = new MenuItem { Header = "关闭组件" };
+        closeItem.Click += (_, _) => Hide();
+        menu.Items.Add(closeItem);
+
+        menu.PlacementTarget = MenuBtn;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.IsOpen = true;
+    }
+
+    private void OpenQuickAdd()
+    {
+        var dlg = new QuickAddWindow { Owner = this };
+        dlg.ShowDialog();
+        if (dlg.Saved) Reload();
+    }
+
+    private void OpenMain()
     {
         if (Application.Current.MainWindow is Window w)
         {
             if (!w.IsVisible) w.Show();
             w.Activate();
-        }
-    }
-
-    private void Close_Click(object sender, RoutedEventArgs e) => Hide();
-
-    private void AddBox_GotFocus(object sender, RoutedEventArgs e)
-    {
-        if (AddBox.Text == "添加…") { AddBox.Text = ""; AddBox.Foreground = (Brush)FindResource("TextPrimary"); }
-    }
-
-    private void AddBox_LostFocus(object sender, RoutedEventArgs e)
-    {
-        if (string.IsNullOrWhiteSpace(AddBox.Text))
-        {
-            AddBox.Text = "添加…";
-            AddBox.Foreground = (Brush)FindResource("TextSecondary");
         }
     }
 }

@@ -134,12 +134,15 @@ public partial class SettingsView : UserControl
     {
         SettingsStore.Current.ShowWidgetOnStartup = StartWidgetChk.IsChecked == true;
         SettingsStore.Save();
+        // 启动项本身要重启才体现，但立即把置顶等打到已开组件
+        App.Tray?.ApplyWidgetSettings();
     }
 
     private void Topmost_Changed(object sender, RoutedEventArgs e)
     {
         SettingsStore.Current.WidgetTopmost = TopmostChk.IsChecked == true;
         SettingsStore.Save();
+        App.Tray?.ApplyWidgetSettings(); // 立即生效到已打开的组件
     }
 
     // ---------- 数据 ----------

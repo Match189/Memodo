@@ -75,8 +75,18 @@ public sealed class TrayService : IDisposable
         _widget.Activate();
     }
 
+    /// <summary>设置页改动后即时打到已打开的组件（修复「设置里的开关无效」）。</summary>
+    public void ApplyWidgetSettings()
+    {
+        if (_widget is not null && _widget.IsVisible)
+        {
+            _widget.ApplySettings();
+            _widget.Reload();
+        }
+    }
+
     /// <summary>托盘立即同步：当前接 WebDAV（坚果云）；失败弹窗，成功静默+刷新组件。</summary>
-    private async System.Threading.Tasks.Task SyncNowAsync()
+    public async System.Threading.Tasks.Task SyncNowAsync()
     {
         var s = SettingsStore.Current;
         if (s.SyncProvider != "webdav")

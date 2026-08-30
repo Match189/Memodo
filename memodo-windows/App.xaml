@@ -135,6 +135,31 @@
                 </Setter>
             </Style>
 
+            <!-- 显示方式分段切换（列表 / 钉板） -->
+            <Style x:Key="SegRadio" TargetType="RadioButton">
+                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="10,4" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <Border x:Name="B" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="B" Property="Background" Value="{DynamicResource Accent}" />
+                                    <Setter Property="Foreground" Value="White" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- 卡片删除按钮 -->
             <Style x:Key="CardDelBtn" TargetType="Button">
                 <Setter Property="Foreground" Value="{DynamicResource Danger}" />

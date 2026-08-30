@@ -16,13 +16,24 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- 自绘标题栏（无边框后唯一的拖动/最小化/关闭入口） -->
+        <!-- 自绘标题栏：拖动区 + 显示方式切换 + 窗口控制 -->
         <Border Grid.Row="0" Grid.ColumnSpan="2" Background="Transparent"
                 MouseLeftButtonDown="TitleBar_MouseDown">
             <Grid>
-                <TextBlock Text="念念 Memodo" Margin="14,0" VerticalAlignment="Center"
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="念念 Memodo" Margin="14,0" VerticalAlignment="Center"
                            FontWeight="SemiBold" Foreground="{DynamicResource SubtleText}" />
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                <!-- 显示方式：传统列表 / 钉板（主窗口与桌面组件均可切换） -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,14,0">
+                    <RadioButton x:Name="ViewList"  Content="列表" Style="{StaticResource SegRadio}" GroupName="viewmode" Checked="ViewMode_Changed"/>
+                    <RadioButton x:Name="ViewBoard" Content="钉板" Style="{StaticResource SegRadio}" GroupName="viewmode" Margin="4,0,0,0" Checked="ViewMode_Changed"/>
+                </StackPanel>
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
                     <Button Content="&#xE921;" Style="{StaticResource CapBtn}" Click="Min_Click"  ToolTip="最小化"/>
                     <Button Content="&#xE922;" Style="{StaticResource CapBtn}" Click="Max_Click"  ToolTip="最大化"/>
                     <Button Content="&#xE8BB;" Style="{StaticResource CapBtn}" Click="CloseBtn_Click" ToolTip="关闭到托盘"/>
@@ -30,12 +41,11 @@
             </Grid>
         </Border>
 
-        <!-- 侧栏 -->
+        <!-- 侧栏：待办 / 备忘 / 设置（钉板经标题栏切换进入，不再单独占 tab） -->
         <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource SidebarBackground}">
             <StackPanel VerticalAlignment="Top" Margin="0,8,0,0">
                 <RadioButton x:Name="NavTodo"     Style="{StaticResource NavButton}" Tag="todo"     Content="&#xE73A;" Margin="0,0,0,8"  Click="Nav_Clicked" IsChecked="True" ToolTip="待办"/>
                 <RadioButton x:Name="NavMemo"     Style="{StaticResource NavButton}" Tag="memo"     Content="&#xE70F;" Margin="0,0,0,8"  Click="Nav_Clicked" ToolTip="备忘"/>
-                <RadioButton x:Name="NavBoard"    Style="{StaticResource NavButton}" Tag="board"    Content="&#xE718;" Margin="0,0,0,8"  Click="Nav_Clicked" ToolTip="图钉板"/>
                 <RadioButton x:Name="NavSettings" Style="{StaticResource NavButton}" Tag="settings" Content="&#xE713;" Margin="0,0,0,8"  Click="Nav_Clicked" ToolTip="设置"/>
             </StackPanel>
         </Border>
