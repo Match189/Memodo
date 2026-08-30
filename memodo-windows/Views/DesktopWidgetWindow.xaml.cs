@@ -135,6 +135,11 @@ public partial class DesktopWidgetWindow : Window
     {
         Board.Children.Clear();
         var items = LoadItems();
+        // 临时诊断：板面为空时写 crash.log 帮助排查
+        if (items.Count == 0)
+        {
+            try { File.AppendAllText("crash.log", $"[{DateTimeOffset.Now}] widget board empty: tasks={_tasks.ListActive().Count}, memos_active={_memos.ListActive().Count}, memos_visible={_memos.ListActive().Count(m => m.ShowOnBoard)}{Environment.NewLine}"); } catch { }
+        }
         BoardEmpty.Text = LocalizationService.T("widget_empty_board");
         BoardEmpty.Visibility = items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
@@ -589,6 +594,21 @@ public partial class DesktopWidgetWindow : Window
         addMemo.Click += (_, _) => OpenQuickAdd();
         menu.Items.Add(addTodo);
         menu.Items.Add(addMemo);
+        menu.Items.Add(new Separator());
+
+        // 用户裁定 #1：全部备忘恢复上板（批量救援）
+        var showAllMemo = new MenuItem { Header = "全部备忘上板" };
+        showAllMemo.Click += async (_, _) =>
+        {
+            foreach (var m in _memos.ListActive())
+            {
+                if (m.ShowOnBoard) continue;
+                m.ShowOnBoard = true;
+                await System.Threading.Tasks.Task.Run(() => _memos.Update(m));
+            }
+            Reload();
+        };
+        menu.Items.Add(showAllMemo);
         menu.Items.Add(new Separator());
 
         var viewBoard = new MenuItem { Header = LocalizationService.T("widget_board_view"), IsCheckable = true, IsChecked = SettingsStore.Current.WidgetViewMode != "list" };
