@@ -25,6 +25,16 @@ public sealed class MemoRepository
         return list;
     }
 
+    public MemoItem? GetById(string id)
+    {
+        using var cmd = _db.CreateCommand();
+        cmd.CommandText =
+            $"SELECT id, title, content, created_at, updated_at, deleted_at FROM {ModelAttr.Memos} WHERE id = $id";
+        cmd.Parameters.AddWithValue("$id", id);
+        using var rd = cmd.ExecuteReader();
+        return rd.Read() ? Read(rd) : null;
+    }
+
     public void Insert(MemoItem m)
     {
         using var cmd = _db.CreateCommand();

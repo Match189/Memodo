@@ -19,6 +19,8 @@ public sealed class AppSettings
     public double WidgetW { get; set; } = 380;
     public double WidgetH { get; set; } = 520;
     public bool WidgetLocked { get; set; } = false;
+    /// <summary>组件内卡片布局（本机视觉状态，不进同步协议——蓝图 §11 平台分离）。</summary>
+    public Dictionary<string, WidgetCardPos> WidgetLayouts { get; set; } = new();
 }
 
 public static class SettingsStore
@@ -54,4 +56,13 @@ public static class SettingsStore
         }
         catch { /* 忽略写入失败 */ }
     }
+}
+
+/// <summary>桌面组件内单张卡片的摆位（本机 kv）。</summary>
+public sealed class WidgetCardPos
+{
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double W { get; set; } = 150;
+    public double H { get; set; } = 96;
 }
