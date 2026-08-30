@@ -38,6 +38,7 @@ memodo-windows/publish/
 # Android (Gradle)
 memodo-android/.gradle/
 memodo-android/local.properties
+memodo-android/key.properties
 *.apk
 *.aab
 
