@@ -119,6 +119,48 @@ CREATE TABLE IF NOT EXISTS card_layouts (
 CREATE UNIQUE INDEX IF NOT EXISTS ix_card_platform ON card_layouts(card_id, platform);
 ";
         cmd.ExecuteNonQuery();
+
+        // v2（蓝图 §10/§38）：Card 扩展列——type + 内联内容 + 颜色。
+        // inline 卡（idea/checklist）不引用实体表，title/content 直接存 cards。
+        if (UserVersion < 2)
+        {
+            AddColumnIfMissing("cards", "type", "TEXT NOT NULL DEFAULT ''");
+            AddColumnIfMissing("cards", "title", "TEXT NOT NULL DEFAULT ''");
+            AddColumnIfMissing("cards", "content", "TEXT NOT NULL DEFAULT ''");
+            AddColumnIfMissing("cards", "color", "TEXT NOT NULL DEFAULT 'red'");
+            UserVersion = 2;
+        }
+    }
+
+    private long UserVersion
+    {
+        get
+        {
+            using var c = Connection.CreateCommand();
+            c.CommandText = "PRAGMA user_version";
+            return (long)(c.ExecuteScalar() ?? 0L);
+        }
+        set
+        {
+            using var c = Connection.CreateCommand();
+            c.CommandText = $"PRAGMA user_version={value}";
+            c.ExecuteNonQuery();
+        }
+    }
+
+    private void AddColumnIfMissing(string table, string column, string decl)
+    {
+        using var check = Connection.CreateCommand();
+        check.CommandText = $"PRAGMA table_info({table})";
+        using (var rd = check.ExecuteReader())
+        {
+            while (rd.Read())
+                if (rd.GetString(1).Equals(column, StringComparison.OrdinalIgnoreCase))
+                    return; // 已存在
+        }
+        using var cmd = Connection.CreateCommand();
+        cmd.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {decl}";
+        cmd.ExecuteNonQuery();
     }
 
     public void Dispose() => Connection.Dispose();

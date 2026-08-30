@@ -60,7 +60,7 @@ public sealed class BoardRepository
     }
 
     /// 钉 Todo/Memo 上板（任务书 §12）；同板内同 ref 已存在则不重复。
-    public CardItem Pin(string boardId, string refType, string refUuid)
+    public CardItem Pin(string boardId, string refType, string refUuid, string color = "red")
     {
         using var check = _db.CreateCommand();
         check.CommandText =
@@ -77,9 +77,52 @@ public sealed class BoardRepository
             BoardId = boardId,
             RefType = refType,
             RefUuid = refUuid,
+            Color = color,
         };
         InsertCard(card);
         return card;
+    }
+
+    /// 创建内联卡（蓝图 §10：Idea / Checklist 直接是 Card，不引用实体表）。
+    public CardItem CreateInlineCard(string boardId, string type, string title, string content, string color)
+    {
+        var card = new CardItem
+        {
+            BoardId = boardId,
+            RefType = type,          // "idea" | "checklist"
+            RefUuid = "",
+            Type = type,
+            Title = title,
+            Content = content,
+            Color = color,
+        };
+        InsertCard(card);
+        return card;
+    }
+
+    /// 内联卡编辑（标题/内容/颜色）。todo/memo 的内容请改实体表。
+    public void UpdateInlineCard(string id, string title, string content, string color)
+    {
+        using var cmd = _db.CreateCommand();
+        cmd.CommandText = $@"UPDATE {ModelAttr.Cards}
+                             SET title=$ti, content=$c, color=$col, updated_at=$u WHERE id=$id";
+        cmd.Parameters.AddWithValue("$ti", title);
+        cmd.Parameters.AddWithValue("$c", content);
+        cmd.Parameters.AddWithValue("$col", color);
+        cmd.Parameters.AddWithValue("$u", SqlMapper.NowMs());
+        cmd.Parameters.AddWithValue("$id", id);
+        cmd.ExecuteNonQuery();
+    }
+
+    /// 仅改卡片颜色（todo/memo 也允许换纸色）。
+    public void UpdateCardColor(string id, string color)
+    {
+        using var cmd = _db.CreateCommand();
+        cmd.CommandText = $"UPDATE {ModelAttr.Cards} SET color=$col, updated_at=$u WHERE id=$id";
+        cmd.Parameters.AddWithValue("$col", color);
+        cmd.Parameters.AddWithValue("$u", SqlMapper.NowMs());
+        cmd.Parameters.AddWithValue("$id", id);
+        cmd.ExecuteNonQuery();
     }
 
     public void InsertCard(CardItem c)
@@ -87,14 +130,18 @@ public sealed class BoardRepository
         using var cmd = _db.CreateCommand();
         cmd.CommandText = $@"
 INSERT INTO {ModelAttr.Cards}
-  (id, board_id, section_id, ref_type, ref_uuid, sort, created_at, updated_at)
-VALUES ($id, $bid, $sid, $t, $r, $s, $c, $u)";
+  (id, board_id, section_id, ref_type, ref_uuid, sort, type, title, content, color, created_at, updated_at)
+VALUES ($id, $bid, $sid, $t, $r, $s, $ty, $ti, $co, $col, $c, $u)";
         cmd.Parameters.AddWithValue("$id", c.Id);
         cmd.Parameters.AddWithValue("$bid", c.BoardId);
         cmd.Parameters.AddWithValue("$sid", c.SectionId);
         cmd.Parameters.AddWithValue("$t", c.RefType);
         cmd.Parameters.AddWithValue("$r", c.RefUuid);
         cmd.Parameters.AddWithValue("$s", c.Sort);
+        cmd.Parameters.AddWithValue("$ty", c.Type);
+        cmd.Parameters.AddWithValue("$ti", c.Title);
+        cmd.Parameters.AddWithValue("$co", c.Content);
+        cmd.Parameters.AddWithValue("$col", c.Color);
         cmd.Parameters.AddWithValue("$c", c.CreatedAt);
         cmd.Parameters.AddWithValue("$u", c.UpdatedAt == 0 ? c.CreatedAt : c.UpdatedAt);
         cmd.ExecuteNonQuery();
@@ -188,6 +235,10 @@ ON CONFLICT(card_id, platform) DO UPDATE SET
         CreatedAt = rd.GetInt64(6),
         UpdatedAt = rd.GetInt64(7),
         DeletedAt = rd.IsDBNull(8) ? null : rd.GetInt64(8),
+        Type = rd.IsDBNull(9) ? "" : rd.GetString(9),
+        Title = rd.IsDBNull(10) ? "" : rd.GetString(10),
+        Content = rd.IsDBNull(11) ? "" : rd.GetString(11),
+        Color = rd.IsDBNull(12) ? "red" : rd.GetString(12),
     };
 
     private static CardLayoutItem ReadLayout(SqliteDataReader rd) => new()

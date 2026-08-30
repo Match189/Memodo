@@ -1,12 +1,14 @@
 using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
 using Memodo.Windows.Models;
 using Memodo.Windows.Repositories;
 
 namespace Memodo.Windows.Views;
 
 /// <summary>
-/// 卡片编辑弹窗（蓝图 §29）。编辑的是「内容实体」：
-/// Todo → 改 tasks；Memo → 改 memos。颜色/类型等 Card 扩展在 Round 3 接入。
+/// 卡片编辑弹窗（蓝图 §29）。三种模式：
+/// Todo → 改 tasks；Memo → 改 memos；内联卡(idea/checklist) → 回传标题/内容/颜色由调用方落库。
 /// </summary>
 public partial class EditCardWindow : Window
 {
@@ -14,7 +16,12 @@ public partial class EditCardWindow : Window
     private readonly MemoItem? _memo;
     private readonly TaskRepository? _tasks;
     private readonly MemoRepository? _memos;
+    private readonly CardItem? _inline;
+
     public bool Saved { get; private set; }
+    public string? SelectedColor { get; private set; }
+    public string NewTitle => TitleBox.Text.Trim();
+    public string NewContent => ContentBox.Text.Trim();
 
     public EditCardWindow(TaskItem task, TaskRepository repo)
     {
@@ -35,8 +42,47 @@ public partial class EditCardWindow : Window
         ContentBox.Text = memo.Content;
     }
 
+    public EditCardWindow(CardItem inlineCard)
+    {
+        InitializeComponent();
+        _inline = inlineCard;
+        KindText.Text = inlineCard.RefType == "checklist" ? "编辑清单" : "编辑想法";
+        TitleBox.Text = inlineCard.Title;
+        ContentBox.Text = inlineCard.Content;
+        SelectedColor = string.IsNullOrEmpty(inlineCard.Color) ? "red" : inlineCard.Color;
+        ColorPanel.Visibility = Visibility.Visible;
+        MarkSelected();
+    }
+
+    private void MarkSelected()
+    {
+        foreach (var b in new[] { ColRed, ColYellow, ColBlue, ColGreen })
+        {
+            var on = (string)b.Tag == SelectedColor;
+            b.BorderThickness = on ? new Thickness(3) : new Thickness(0);
+            b.BorderBrush = on ? (Brush)FindResource("TextPrimary") : Brushes.Transparent;
+            b.Opacity = on ? 1 : 0.75;
+        }
+    }
+
+    private void Col_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Border b && b.Tag is string c)
+        {
+            SelectedColor = c;
+            MarkSelected();
+        }
+    }
+
     private void Save_Click(object sender, RoutedEventArgs e)
     {
+        if (_inline is not null)
+        {
+            if (NewTitle.Length == 0) { Close(); return; }
+            Saved = true; // 颜色/内容由调用方写库
+            Close();
+            return;
+        }
         if (_task is not null && _tasks is not null)
         {
             var t = _task.Title.Trim();

@@ -12,6 +12,17 @@
         <TextBox x:Name="ContentBox" Padding="8,6" Margin="0,0,0,12" MinHeight="72"
                  AcceptsReturn="True" TextWrapping="Wrap"
                  VerticalScrollBarVisibility="Auto"/>
+
+        <!-- 纸色（蓝图 §38：red/yellow/blue/green） -->
+        <StackPanel x:Name="ColorPanel" Orientation="Horizontal" Margin="0,0,0,12" Visibility="Collapsed">
+            <TextBlock Text="纸色" Foreground="{DynamicResource TextSecondary}"
+                       VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <Border x:Name="ColRed"    Width="24" Height="24" CornerRadius="12" Background="#D64545" Tag="red"    Cursor="Hand" Margin="0,0,6,0" MouseLeftButtonDown="Col_Click"/>
+            <Border x:Name="ColYellow" Width="24" Height="24" CornerRadius="12" Background="#E6B422" Tag="yellow" Cursor="Hand" Margin="0,0,6,0" MouseLeftButtonDown="Col_Click"/>
+            <Border x:Name="ColBlue"   Width="24" Height="24" CornerRadius="12" Background="#2F7FD6" Tag="blue"   Cursor="Hand" Margin="0,0,6,0" MouseLeftButtonDown="Col_Click"/>
+            <Border x:Name="ColGreen"  Width="24" Height="24" CornerRadius="12" Background="#3EA65B" Tag="green"  Cursor="Hand" Margin="0,0,6,0" MouseLeftButtonDown="Col_Click"/>
+        </StackPanel>
+
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="取消" Padding="14,6" Click="Cancel_Click"/>
             <Button Content="保存" Padding="14,6" Margin="8,0,0,0"

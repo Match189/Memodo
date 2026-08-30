@@ -14,6 +14,8 @@
             <TextBlock x:Name="BoardName" FontSize="18" FontWeight="Bold"
                        Foreground="#6B4A2F" VerticalAlignment="Center"/>
             <Button x:Name="PinBtn" Content="钉卡片" Margin="14,0,0,0" Padding="10,4" Click="PinBtn_Click"/>
+            <Button x:Name="NewCardBtn" Content="＋卡片" Margin="8,0,0,0" Padding="10,4" Click="NewCard_Click" ToolTip="新建想法卡（可直接画布摆放）"/>
+            <Button x:Name="ZoomResetBtn" Content="1:1" Margin="8,0,0,0" Padding="10,4" Click="ZoomReset_Click" ToolTip="重置缩放"/>
             <CheckBox x:Name="SnapChk" Content="网格吸附 (8px)" IsChecked="True"
                       Margin="12,0,0,0" VerticalAlignment="Center" Foreground="#6B4A2F"/>
         </StackPanel>

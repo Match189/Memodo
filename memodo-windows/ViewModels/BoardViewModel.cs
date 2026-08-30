@@ -51,6 +51,7 @@ public partial class BoardViewModel : ObservableObject
             await Task.Run(() =>
             {
                 Board = _repo.EnsureDefaultBoard();
+                Cards.Clear(); Tasks.Clear(); Memos.Clear();
                 var allCards = _repo.ListAllCards();
                 var layouts = allCards.ToDictionary(c => c.Id, c => _repo.GetLayout(c.Id, "windows") ?? NewLayout(c.Id));
                 foreach (var c in allCards)
@@ -97,6 +98,14 @@ public partial class BoardViewModel : ObservableObject
     {
         Cards.Clear(); Tasks.Clear(); Memos.Clear();
         await LoadAsync();
+    }
+
+    /// 新建内联卡（蓝图 §10：idea/checklist 直接是 Card）。
+    [RelayCommand]
+    public async Task CreateCardAsync(string? type)
+    {
+        await Task.Run(() => _repo.CreateInlineCard(Board.Id, type ?? "idea", "新卡片", "", "yellow"));
+        await ReloadAsync();
     }
 
     private static CardLayoutItem NewLayout(string cardId) => new()

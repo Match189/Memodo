@@ -1,12 +1,15 @@
 using System;
 using System.Windows;
-using System.Windows.Data;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Data;
 using System.Windows.Shapes;
+using Microsoft.Extensions.DependencyInjection;
 using Memodo.Windows.Models;
+using Memodo.Windows.Repositories;
+using Memodo.Windows.Services;
 using Memodo.Windows.ViewModels;
 
 namespace Memodo.Windows.Views;
@@ -17,11 +20,55 @@ public partial class BoardView : UserControl
     private CardViewModel? _dragCard;
     private UIElement? _dragEl;
     private Point _dragLast;
+    private readonly System.Windows.Media.ScaleTransform _scale = new();
+    private readonly System.Windows.Media.TranslateTransform _pan = new();
+    private Point? _panStart;
 
     public BoardView()
     {
         InitializeComponent();
+        // §34 无限画布：滚轮缩放（0.4x–2.5x，围绕指针）+ 拖空白/中键平移
+        BoardCanvas.RenderTransform = new TransformGroup { Children = { _scale, _pan } };
+        BoardCanvas.PreviewMouseWheel += Board_PreviewMouseWheel;
+        BoardCanvas.MouseDown += Board_MouseDown;
+        BoardCanvas.MouseMove += Board_MouseMove;
+        BoardCanvas.MouseUp += Board_MouseUp;
         Loaded += (_, _) => LoadBoard();
+    }
+
+    private void Board_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        var f = e.Delta > 0 ? 1.15 : 1 / 1.15;
+        var ns = Math.Clamp(_scale.ScaleX * f, 0.4, 2.5);
+        var p = e.GetPosition(this);
+        _pan.X = p.X - (p.X - _pan.X) * (ns / _scale.ScaleX);
+        _pan.Y = p.Y - (p.Y - _pan.Y) * (ns / _scale.ScaleY);
+        _scale.ScaleX = _scale.ScaleY = ns;
+        e.Handled = true;
+    }
+
+    private void Board_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == MouseButton.Middle || e.OriginalSource == BoardCanvas)
+        {
+            _panStart = e.GetPosition(this);
+            BoardCanvas.CaptureMouse();
+            e.Handled = true;
+        }
+    }
+
+    private void Board_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (_panStart is null || !BoardCanvas.IsMouseCaptured) return;
+        var p = e.GetPosition(this);
+        _pan.X += p.X - _panStart.Value.X;
+        _pan.Y += p.Y - _panStart.Value.Y;
+        _panStart = p;
+    }
+
+    private void Board_MouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (BoardCanvas.IsMouseCaptured) { BoardCanvas.ReleaseMouseCapture(); _panStart = null; }
     }
 
     public async void LoadBoard()
@@ -68,10 +115,20 @@ public partial class BoardView : UserControl
         var grid = new Grid();
         border.Child = grid;
 
-        // 图钉（品牌元素，钉帽压在卡顶）
+        // 纸色染色（蓝图 §38：颜色是辅助分类，保持纸感）
+        var tint = new Border
+        {
+            Background = new SolidColorBrush(PinFactory.Resolve(c.Record.Color)),
+            Opacity = 0.12,
+            CornerRadius = new CornerRadius(8),
+            IsHitTestVisible = false,
+        };
+        grid.Children.Add(tint);
+
+        // 图钉（品牌元素，钉帽压在卡顶，颜色随卡片）
         var pinHost = new ContentControl
         {
-            Content = PinFactory.Create(null, 15),
+            Content = PinFactory.Create(c.Record.Color, 15),
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Top,
             Margin = new Thickness(0, -16, 0, 0),
@@ -155,6 +212,12 @@ public partial class BoardView : UserControl
 
     private string CardText(CardViewModel c)
     {
+        // 内联卡（蓝图 §10：idea/checklist 内容直接存 cards）
+        if (c.Record.RefType is "idea" or "checklist")
+        {
+            var inlineHead = string.IsNullOrWhiteSpace(c.Record.Title) ? "新卡片" : c.Record.Title;
+            return string.IsNullOrWhiteSpace(c.Record.Content) ? inlineHead : inlineHead + "\n" + c.Record.Content;
+        }
         if (c.Record.RefType == "todo")
         {
             var t = Vm.Tasks.FirstOrDefault(x => x.Id == c.Record.RefUuid);
@@ -170,10 +233,57 @@ public partial class BoardView : UserControl
     {
         if (e.OriginalSource is Thumb or Button) return;
         if (sender is not Border b || b.Tag is not CardViewModel c) return;
+        if (e.ClickCount == 2) { OpenEditor(c); return; }
         _dragCard = c; _dragEl = b;
         _dragLast = e.GetPosition(BoardCanvas);
         b.CaptureMouse();
         e.Handled = true;
+    }
+
+    /// 双击编辑（蓝图 §29）：Todo/Memo 改实体，Idea/Checklist 改内联 + 纸色。
+    private async void OpenEditor(CardViewModel c)
+    {
+        var rec = c.Record;
+        Window? dlg;
+        switch (rec.RefType)
+        {
+            case "todo":
+                var t = Vm.Tasks.FirstOrDefault(x => x.Id == rec.RefUuid);
+                if (t is null) return;
+                dlg = new EditCardWindow(t, AppHost.Services.GetRequiredService<TaskRepository>());
+                break;
+            case "memo":
+                var m = Vm.Memos.FirstOrDefault(x => x.Id == rec.RefUuid);
+                if (m is null) return;
+                dlg = new EditCardWindow(m, AppHost.Services.GetRequiredService<MemoRepository>());
+                break;
+            case "idea":
+            case "checklist":
+                dlg = new EditCardWindow(rec);
+                break;
+            default:
+                return;
+        }
+        dlg.Owner = Window.GetWindow(this);
+        dlg.ShowDialog();
+        if (dlg is not EditCardWindow ec || !ec.Saved) return;
+
+        if (rec.RefType is "idea" or "checklist")
+        {
+            AppHost.Services.GetRequiredService<BoardRepository>()
+                .UpdateInlineCard(rec.Id, ec.NewTitle, ec.NewContent, ec.SelectedColor ?? rec.Color);
+        }
+        await Vm.LoadCommand.ExecuteAsync(null);
+        BuildCards();
+    }
+
+    private async void NewCard_Click(object sender, RoutedEventArgs e) =>
+        await Vm.CreateCardCommand.ExecuteAsync("idea");
+
+    private void ZoomReset_Click(object sender, RoutedEventArgs e)
+    {
+        _scale.ScaleX = _scale.ScaleY = 1;
+        _pan.X = _pan.Y = 0;
     }
 
     private void Card_MouseMove(object sender, MouseEventArgs e)
