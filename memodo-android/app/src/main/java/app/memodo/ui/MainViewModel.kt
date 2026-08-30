@@ -8,6 +8,7 @@ import app.memodo.data.CardItem
 import app.memodo.data.CardLayoutItem
 import app.memodo.data.MemoItem
 import app.memodo.data.Repo
+import app.memodo.widget.WidgetRefresher
 import app.memodo.data.TaskItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -49,19 +50,22 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         repo.observeCards(board.id)
     } ?: flowOf(emptyList())
 
+    /** 所有变更后调用：刷新三套桌面卡片（解决卡片不同步/勾选不同步问题） */
+    private fun refreshWidgets() = scope.launch { WidgetRefresher.refreshAll(getApplication()) }
+
     fun addTask(title: String) = scope.launch {
         if (title.isBlank()) return@launch
-        repo.addTask(title.trim())
+        repo.addTask(title.trim()); refreshWidgets()
     }
-    fun toggleTask(t: TaskItem) = scope.launch { repo.toggleTask(t) }
-    fun deleteTask(id: String) = scope.launch { repo.deleteTask(id) }
+    fun toggleTask(t: TaskItem) = scope.launch { repo.toggleTask(t); refreshWidgets() }
+    fun deleteTask(id: String) = scope.launch { repo.deleteTask(id); refreshWidgets() }
     fun addMemo(title: String, content: String) = scope.launch {
         if (title.isBlank() && content.isBlank()) return@launch
-        repo.addMemo(title.trim(), content.trim())
+        repo.addMemo(title.trim(), content.trim()); refreshWidgets()
     }
-    fun deleteMemo(id: String) = scope.launch { repo.deleteMemo(id) }
-    fun toggleMemoDone(m: MemoItem) = scope.launch { repo.setMemoDone(m, !m.completed) }
-    fun toggleMemoShow(m: MemoItem) = scope.launch { repo.setMemoShow(m, !m.showOnBoard) }
+    fun deleteMemo(id: String) = scope.launch { repo.deleteMemo(id); refreshWidgets() }
+    fun toggleMemoDone(m: MemoItem) = scope.launch { repo.setMemoDone(m, !m.completed); refreshWidgets() }
+    fun toggleMemoShow(m: MemoItem) = scope.launch { repo.setMemoShow(m, !m.showOnBoard); refreshWidgets() }
 
     fun pinTodo(uuid: String) = scope.launch { repo.pin("todo", uuid) }
     fun pinMemo(uuid: String) = scope.launch { repo.pin("memo", uuid) }

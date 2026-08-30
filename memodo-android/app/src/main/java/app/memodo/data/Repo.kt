@@ -49,6 +49,9 @@ class Repo private constructor(ctx: Context) {
         memos.update(m.copy(completed = done, updatedAt = System.currentTimeMillis()))
     }
 
+    /// 全部备忘（不区分钉板显隐，供备忘卡用）
+    suspend fun memosAll(): List<MemoItem> = memos.listAll()
+
     suspend fun deleteTask(id: String) {
         val now = System.currentTimeMillis()
         val cur = tasks.getById(id) ?: return

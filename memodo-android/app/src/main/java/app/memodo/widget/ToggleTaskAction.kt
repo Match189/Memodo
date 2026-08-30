@@ -24,7 +24,7 @@ class ToggleTaskAction : ActionCallback {
         } catch (e: Exception) {
             // 数据异常不崩溃组件
         }
-        MemodoWidget().updateAll(context)
+        WidgetRefresher.refreshAll(context)
     }
 
     companion object {
