@@ -182,6 +182,17 @@ public partial class DesktopWidgetWindow : Window
 
         var row = new StackPanel { Orientation = Orientation.Horizontal };
         Grid.SetRow(row, 0);
+        // 类型标识（用户裁定：待办/备忘要一眼可辨）：待办=✓ 图标，备忘=✎ 图标
+        var typeIcon = new TextBlock
+        {
+            Text = it.IsTodo ? "\uE73A" : "\uE70F",
+            FontFamily = new FontFamily("Segoe MDL2 Assets"),
+            FontSize = 11,
+            Foreground = (Brush)FindResource("Accent"),
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, 2, 5, 0),
+        };
+        row.Children.Add(typeIcon);
         if (it.IsTodo && it.Task is not null)
         {
             var cb = new CheckBox
@@ -326,13 +337,15 @@ public partial class DesktopWidgetWindow : Window
     {
         t.Completed = true;
         _tasks.Update(t);
-        App.NotifyDataChanged(); // 主窗口刷新；托盘会回刷组件（完成 → 从钉板移除）
+        Reload();                // 本板即时移除
+        App.NotifyDataChanged(); // 主窗口/其他视图刷新
     }
 
     private void CompleteMemo(MemoItem m)
     {
         m.Completed = true;
         _memos.Update(m);
+        Reload();
         App.NotifyDataChanged();
     }
 
@@ -340,6 +353,7 @@ public partial class DesktopWidgetWindow : Window
     {
         if (it.IsTodo && it.Task is not null) _tasks.SoftDelete(it.Task.Id);
         else if (!it.IsTodo && it.Memo is not null) _memos.SoftDelete(it.Memo.Id);
+        Reload();
         App.NotifyDataChanged();
     }
 
@@ -371,8 +385,8 @@ public partial class DesktopWidgetWindow : Window
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
         var cb = new CheckBox { IsChecked = t.Completed, VerticalAlignment = VerticalAlignment.Center };
-        cb.Checked += (_, _) => { t.Completed = true; _tasks.Update(t); Reload(); };
-        cb.Unchecked += (_, _) => { t.Completed = false; _tasks.Update(t); Reload(); };
+        cb.Checked += (_, _) => { t.Completed = true; _tasks.Update(t); Reload(); App.NotifyDataChanged(); };
+        cb.Unchecked += (_, _) => { t.Completed = false; _tasks.Update(t); Reload(); App.NotifyDataChanged(); };
         var tb = new TextBlock
         {
             Text = t.Title,
@@ -400,8 +414,8 @@ public partial class DesktopWidgetWindow : Window
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
         var cb = new CheckBox { IsChecked = m.Completed, VerticalAlignment = VerticalAlignment.Center };
-        cb.Checked += (_, _) => { m.Completed = true; _memos.Update(m); Reload(); };
-        cb.Unchecked += (_, _) => { m.Completed = false; _memos.Update(m); Reload(); };
+        cb.Checked += (_, _) => { m.Completed = true; _memos.Update(m); Reload(); App.NotifyDataChanged(); };
+        cb.Unchecked += (_, _) => { m.Completed = false; _memos.Update(m); Reload(); App.NotifyDataChanged(); };
         var stack = new StackPanel();
         stack.Children.Add(new TextBlock
         {

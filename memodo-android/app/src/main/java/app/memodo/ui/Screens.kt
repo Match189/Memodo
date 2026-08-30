@@ -22,6 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.memodo.data.MemoItem
 import app.memodo.data.TaskItem
+import app.memodo.data.ServerSync
 import app.memodo.data.WebDavSync
 import app.memodo.MainActivity
 import app.memodo.widget.MemodoWidget
@@ -133,25 +134,37 @@ fun MemoListView(vm: MainViewModel) {
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun SettingsView() {
     val ctx = LocalContext.current
     var maxItems by remember { mutableStateOf(WidgetPrefs.maxItems(ctx).toFloat()) }
     var showCompleted by remember { mutableStateOf(WidgetPrefs.showCompleted(ctx)) }
+    var syncMode by remember { mutableStateOf(WebDavSync.mode(ctx)) } // local | webdav | server
     var syncUrl by remember { mutableStateOf(WebDavSync.url(ctx)) }
     var syncUser by remember { mutableStateOf(WebDavSync.user(ctx)) }
     var syncPass by remember { mutableStateOf(WebDavSync.pass(ctx)) }
+    var serverUrl by remember { mutableStateOf(ServerSync.url(ctx)) }
+    var serverUser by remember { mutableStateOf(ServerSync.user(ctx)) }
+    var serverPass by remember { mutableStateOf(ServerSync.pass(ctx)) }
     var syncing by remember { mutableStateOf(false) }
-    var syncMsg by remember {
-        mutableStateOf(
-            if (WebDavSync.lastSyncAt(ctx) > 0)
-                "上次同步：" + SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())
-                    .format(Date(WebDavSync.lastSyncAt(ctx)))
-            else "尚未同步"
-        )
-    }
+    var syncMsg by remember { mutableStateOf("尚未同步") }
     val scope = rememberCoroutineScope()
 
     fun refreshWidget() = scope.launch { MemodoWidget().updateAll(ctx) }
+
+    fun runSync() {
+        syncing = true
+        scope.launch {
+            val r = when (syncMode) {
+                "webdav" -> WebDavSync.run(ctx)
+                "server" -> ServerSync.run(ctx)
+                else -> WebDavSync.Result(false, "仅本地模式，不同步")
+            }
+            syncing = false
+            syncMsg = r.message
+            if (r.ok) refreshWidget()
+        }
+    }
 
     Column(
         Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
@@ -159,39 +172,81 @@ fun SettingsView() {
     ) {
         Text("设置", style = MaterialTheme.typography.titleLarge)
 
-        // 同步（设计稿 Phase 1：手动触发的双向同步；与 Windows 共用坚果云快照）
+        // 同步方式（用户裁定补全：仅本地 / WebDAV / 自建服务器）
         OutlinedCard {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("同步（坚果云 WebDAV）", style = MaterialTheme.typography.titleMedium)
-                OutlinedTextField(
-                    value = syncUrl, onValueChange = { syncUrl = it },
-                    label = { Text("服务器地址") }, singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = syncUser, onValueChange = { syncUser = it },
-                    label = { Text("账号") }, singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = syncPass, onValueChange = { syncPass = it },
-                    label = { Text("应用密码") }, singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Button(
-                    onClick = {
-                        WebDavSync.save(ctx, syncUrl, syncUser, syncPass)
-                        syncing = true
-                        scope.launch {
-                            val r = WebDavSync.run(ctx)
-                            syncing = false
-                            syncMsg = r.message
-                            if (r.ok) refreshWidget()
-                        }
-                    },
-                    enabled = !syncing,
-                ) { Text(if (syncing) "同步中…" else "立即同步") }
+                Text("同步", style = MaterialTheme.typography.titleMedium)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf(
+                        "local" to "仅本地",
+                        "webdav" to "WebDAV",
+                        "server" to "自建服务器",
+                    ).forEach { (tag, label) ->
+                        FilterChip(
+                            selected = syncMode == tag,
+                            onClick = {
+                                syncMode = tag
+                                WebDavSync.setMode(ctx, tag)
+                            },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+
+                when (syncMode) {
+                    "webdav" -> {
+                        OutlinedTextField(
+                            value = syncUrl, onValueChange = { syncUrl = it },
+                            label = { Text("服务器地址") }, singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            value = syncUser, onValueChange = { syncUser = it },
+                            label = { Text("账号") }, singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            value = syncPass, onValueChange = { syncPass = it },
+                            label = { Text("应用密码") }, singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    "server" -> {
+                        OutlinedTextField(
+                            value = serverUrl, onValueChange = { serverUrl = it },
+                            label = { Text("服务器地址（http(s)://…）") }, singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            value = serverUser, onValueChange = { serverUser = it },
+                            label = { Text("邮箱") }, singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            value = serverPass, onValueChange = { serverPass = it },
+                            label = { Text("密码") }, singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    else -> Text(
+                        "仅本地模式：数据只保存在手机上，不同步。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                if (syncMode != "local") {
+                    Button(
+                        onClick = {
+                            if (syncMode == "webdav") WebDavSync.save(ctx, syncUrl, syncUser, syncPass)
+                            else ServerSync.save(ctx, serverUrl, serverUser, serverPass)
+                            runSync()
+                        },
+                        enabled = !syncing,
+                    ) { Text(if (syncing) "同步中…" else "立即同步") }
+                }
                 Text(syncMsg, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

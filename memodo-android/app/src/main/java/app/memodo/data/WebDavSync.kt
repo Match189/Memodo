@@ -1,24 +1,37 @@
 package app.memodo.data
 
 import android.content.Context
-import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.Credentials
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
+import java.util.concurrent.TimeUnit
 
 /**
  * WebDAV 快照同步（设计稿 Phase 1「手动双向同步」+ 蓝图 §47 LWW+墓碑）。
  * 与 Windows 端共用坚果云上的 memodo/memodo-sync.json：
  * 格式 { format, device_id, exported_at, tasks[], memos[] }，字段 snake_case。
  * 平局（updatedAt 相等）按 device_id 字典序决胜。
+ *
+ * HTTP 用 OkHttp：MKCOL 不在 HttpURLConnection/内置栈的方法白名单内，
+ * 会抛 "Expected one of [...] but was MKCOL"（用户实测），OkHttp 允许自定义方法。
  */
 object WebDavSync {
     private const val PREFS = "sync_settings"
     private const val DIR = "memodo"
     private const val FILE = "memodo/memodo-sync.json"
+    private val JSON = "application/json".toMediaType()
+
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .build()
 
     fun url(ctx: Context) =
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -41,6 +54,14 @@ object WebDavSync {
             .apply()
     }
 
+    /** 同步方式（用户裁定补全）：local 仅本地 / webdav / server 自建服务器。 */
+    fun mode(ctx: Context) =
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("mode", "webdav") ?: "webdav"
+
+    fun setMode(ctx: Context, mode: String) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("mode", mode).apply()
+    }
+
     fun deviceId(ctx: Context): String {
         val sp = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         var id = sp.getString("device_id", "") ?: ""
@@ -61,12 +82,16 @@ object WebDavSync {
         val base = url.trimEnd('/') + "/"
 
         try {
-            // MKCOL 建目录（已存在 405 也算成功）
+            // MKCOL 建目录（已存在 405 也算成功）；OkHttp 支持自定义方法
             http(base + DIR, user, pass, "MKCOL")
 
             // 拉远端快照（404 = 首次同步）
             val (getCode, getBody) = http(base + FILE, user, pass, "GET")
-            if (getCode != 404 && getCode !in 200..299) return@withContext Result(false, "下载快照失败 HTTP $getCode")
+            if (getCode == 404) {
+                // 首次同步
+            } else if (getCode !in 200..299) {
+                return@withContext Result(false, "下载快照失败 HTTP $getCode")
+            }
             val remote = getBody?.let {
                 try { JSONObject(String(it)) } catch (e: Exception) { JSONObject() }
             } ?: JSONObject()
@@ -137,24 +162,24 @@ object WebDavSync {
     }
 
     /** 远端时间戳更新，或平局且远端设备号字典序更大（§19）。 */
-    private fun prefer(remoteTs: Long, localTs: Long, remoteDev: String, localDev: String) =
+    fun prefer(remoteTs: Long, localTs: Long, remoteDev: String, localDev: String) =
         remoteTs > localTs || (remoteTs == localTs && remoteDev > localDev)
 
     // ---------- JSON ----------
-    private fun taskJson(t: TaskItem) = JSONObject()
+    fun taskJson(t: TaskItem) = JSONObject()
         .put("id", t.id).put("title", t.title).put("description", t.description)
         .put("completed", t.completed).put("priority", t.priority)
         .put("due_date", t.dueDate ?: JSONObject.NULL)
         .put("created_at", t.createdAt).put("updated_at", t.updatedAt)
         .put("deleted_at", t.deletedAt ?: JSONObject.NULL)
 
-    private fun memoJson(m: MemoItem) = JSONObject()
+    fun memoJson(m: MemoItem) = JSONObject()
         .put("id", m.id).put("title", m.title).put("content", m.content)
         .put("completed", m.completed)
         .put("created_at", m.createdAt).put("updated_at", m.updatedAt)
         .put("deleted_at", m.deletedAt ?: JSONObject.NULL)
 
-    private fun taskFromJson(o: JSONObject) = TaskItem(
+    fun taskFromJson(o: JSONObject) = TaskItem(
         id = o.getString("id"),
         title = o.optString("title", ""),
         description = o.optString("description", ""),
@@ -166,7 +191,7 @@ object WebDavSync {
         deletedAt = if (o.isNull("deleted_at")) null else o.optLong("deleted_at"),
     )
 
-    private fun memoFromJson(o: JSONObject) = MemoItem(
+    fun memoFromJson(o: JSONObject) = MemoItem(
         id = o.getString("id"),
         title = o.optString("title", ""),
         content = o.optString("content", ""),
@@ -176,24 +201,18 @@ object WebDavSync {
         deletedAt = if (o.isNull("deleted_at")) null else o.optLong("deleted_at"),
     )
 
-    // ---------- HTTP ----------
+    // ---------- HTTP（OkHttp；支持 MKCOL 等自定义方法） ----------
     private fun http(url: String, user: String, pass: String, method: String, body: ByteArray? = null): Pair<Int, ByteArray?> {
-        val conn = URL(url).openConnection() as HttpURLConnection
-        conn.requestMethod = method
-        conn.connectTimeout = 15000
-        conn.readTimeout = 15000
-        val auth = Base64.encodeToString("$user:$pass".toByteArray(), Base64.NO_WRAP)
-        conn.setRequestProperty("Authorization", "Basic $auth")
-        if (body != null) {
-            conn.doOutput = true
-            conn.setRequestProperty("Content-Type", "application/json")
-            conn.setFixedLengthStreamingMode(body.size)
-            conn.outputStream.use { it.write(body) }
+        val builder = Request.Builder().url(url)
+            .header("Authorization", Credentials.basic(user, pass))
+        val req = if (body != null) {
+            builder.method(method, body.toRequestBody(JSON))
+        } else {
+            builder.method(method, null)
         }
-        val code = conn.responseCode
-        val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-        val bytes = try { stream?.readBytes() } catch (e: Exception) { null }
-        conn.disconnect()
-        return code to bytes
+        client.newCall(req.build()).execute().use { resp ->
+            val bytes = try { resp.body?.bytes() } catch (e: Exception) { null }
+            return resp.code to bytes
+        }
     }
 }

@@ -71,6 +71,8 @@ public static class LocalizationService
         Set("settings_interval", "自动同步间隔", "Auto-sync interval");
         Set("settings_minutes", "分钟", "min");
         Set("settings_lang_hint", "切换后立即生效（部分文字重启后完全刷新）", "Applies immediately (restart for a full refresh)");
+        Set("group_open", "未完成", "Open");
+        Set("group_done", "已完成", "Completed");
 
         LanguageChanged?.Invoke();
     }

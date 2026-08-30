@@ -176,3 +176,17 @@ Changed / Added / Tests / Screenshots / Known issues / Next
 - Android 备忘列表加完成勾选（划线显示）
 **Tests** dotnet build 0 错误；assembleDebug BUILD SUCCESSFUL；publish 更新
 **Known issues** 组件布局 kv 旧 cardId 键残留（无副作用）；BoardView/BoardViewModel 暂时闲置（钉板已收敛到组件，后续清理）
+
+### Round 11 · 用户反馈批次修复 + Android 同步方式补全
+**Changed** TaskListView/MemoListView（编辑按钮+分组）、DesktopWidgetWindow（完成即刷+类型图标）、TaskListViewModel、AppDatabase、MemoRepository、BoardRepository、MemodoWidget（自绘圆勾）、AndroidManifest、Screens.kt、WebDavSync（OkHttp 重写）、app/build.gradle.kts(+OkHttp)
+**Added**
+- 修复同步失败 ordinal=6 / 备忘与钉板空白（幂等补列 + FieldCount 守卫 + sync.log）
+- 修复组件↔主窗口不同步（完成/删除操作本地 Reload + DataChanged 广播）
+- 待办/备忘列表按 未完成/已完成 分组显示（双语组标题）
+- 待办行加编辑按钮；QuickAddWindow 备忘模式带内容栏（与 Android 对齐）
+- 组件板面便签加类型标识（✓待办 / ✎备忘）
+- Android：删除 2×2 provider；自绘圆勾替代 Glance CheckBox（首帧渲染缺陷）；
+  HTTP 层迁移 OkHttp（修复 MKCOL 白名单异常）；
+  同步方式补全：仅本地 / WebDAV / 自建服务器（ServerSync.kt，JWT+push/pull cursor）
+**Tests** dotnet build 0 错误；assembleDebug/assembleRelease BUILD SUCCESSFUL（签名）；publish 更新
+**Known issues** Android 深层设置文案未双语；ServerSync 每次登录不缓存 token（简化）；OSS/S3 通道仍排 0.4

@@ -10,7 +10,6 @@ import androidx.glance.GlanceTheme
 import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.action.clickable
-import androidx.glance.appwidget.CheckBox
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.actionRunCallback
@@ -98,12 +97,22 @@ class MemodoWidget : GlanceAppWidget() {
             } else {
                 tasks.forEach { t ->
                     Row(modifier = GlanceModifier.padding(vertical = 2.dp)) {
-                        CheckBox(
-                            checked = t.completed,
-                            onCheckedChange = actionRunCallback<ToggleTaskAction>(
-                                actionParametersOf(
-                                    ToggleTaskAction.KEY_TASK_ID to t.id,
-                                    ToggleTaskAction.KEY_DONE to !t.completed,
+                        // 自绘圆勾（规避 Glance CheckBox 首帧只渲染一条的缺陷）：
+                        // 点击文本触发 ToggleTaskAction，语义与 CheckBox 等价
+                        Text(
+                            text = if (t.completed) "✓" else "○",
+                            style = TextStyle(
+                                fontSize = 15.sp,
+                                color = if (t.completed)
+                                    GlanceTheme.colors.primary
+                                else GlanceTheme.colors.onSurface,
+                            ),
+                            modifier = GlanceModifier.clickable(
+                                actionRunCallback<ToggleTaskAction>(
+                                    actionParametersOf(
+                                        ToggleTaskAction.KEY_TASK_ID to t.id,
+                                        ToggleTaskAction.KEY_DONE to !t.completed,
+                                    )
                                 )
                             ),
                         )
@@ -125,10 +134,6 @@ class MemodoWidget : GlanceAppWidget() {
 }
 
 class MemodoWidgetReceiver : GlanceAppWidgetReceiver() {
-    override val glanceAppWidget: GlanceAppWidget = MemodoWidget()
-}
-
-class MemodoWidgetSmallReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = MemodoWidget()
 }
 

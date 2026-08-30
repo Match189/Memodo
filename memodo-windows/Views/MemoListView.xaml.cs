@@ -1,8 +1,11 @@
+using System.ComponentModel;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using Microsoft.Extensions.DependencyInjection;
 using Memodo.Windows.Services;
+using Memodo.Windows.Models;
 using Memodo.Windows.ViewModels;
 
 namespace Memodo.Windows.Views;
@@ -16,10 +19,27 @@ public partial class MemoListView : UserControl
         InitializeComponent();
         Loaded += async (_, _) =>
         {
+            ConfigureGroups();
             await Vm.LoadCommand.ExecuteAsync(null);
             UpdateEmpty();
             Vm.Memos.CollectionChanged += (_, _) => UpdateEmpty();
         };
+    }
+
+    /// <summary>列表分组（用户裁定）：未完成 / 已完成 分开显示。</summary>
+    private void ConfigureGroups()
+    {
+        var view = (System.ComponentModel.ICollectionView)CollectionViewSource.GetDefaultView(Vm.Memos);
+        if (view.GroupDescriptions.Count == 0)
+        {
+            view.GroupDescriptions.Add(new System.Windows.Data.PropertyGroupDescription(
+                nameof(MemoItem.Completed), new CompletedGroupConverter()));
+        }
+        view.SortDescriptions.Clear();
+        view.SortDescriptions.Add(new System.ComponentModel.SortDescription(
+            nameof(MemoItem.Completed), System.ComponentModel.ListSortDirection.Ascending));
+        view.SortDescriptions.Add(new System.ComponentModel.SortDescription(
+            nameof(MemoItem.UpdatedAt), System.ComponentModel.ListSortDirection.Descending));
     }
 
     private void UpdateEmpty() =>

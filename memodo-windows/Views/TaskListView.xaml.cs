@@ -3,7 +3,10 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.ComponentModel;
 using System.Windows.Media;
+using Memodo.Windows.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Memodo.Windows.Models;
 using Memodo.Windows.ViewModels;
 
@@ -18,6 +21,7 @@ public partial class TaskListView : UserControl
         InitializeComponent();
         Loaded += async (_, _) =>
         {
+            ConfigureGroups();
             Vm.Tasks.CollectionChanged += (_, _) => UpdateCount();
             await Vm.LoadCommand.ExecuteAsync(null);
             UpdateCount();
@@ -70,6 +74,35 @@ public partial class TaskListView : UserControl
         var item = Vm.Tasks.FirstOrDefault(t => t.Id == id);
         if (item != null) await Vm.RemoveCommand.ExecuteAsync(item);
     }
+
+    /// <summary>编辑待办（与备忘一致）。</summary>
+    private void Edit_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement fe || fe.Tag is not string id) return;
+        var item = Vm.Tasks.FirstOrDefault(t => t.Id == id);
+        if (item == null) return;
+        var repo = AppHost.Services.GetRequiredService<Repositories.TaskRepository>();
+        var dlg = new EditCardWindow(item, repo) { Owner = Window.GetWindow(this) };
+        dlg.ShowDialog();
+        if (dlg.Saved) _ = Vm.LoadCommand.ExecuteAsync(null);
+    }
+
+    /// <summary>列表分组（用户裁定）：未完成 / 已完成 分开显示。</summary>
+    private void ConfigureGroups()
+    {
+        var view = (System.ComponentModel.ICollectionView)CollectionViewSource.GetDefaultView(Vm.Tasks);
+        if (view.GroupDescriptions.Count == 0)
+        {
+            view.GroupDescriptions.Add(new System.Windows.Data.PropertyGroupDescription(
+                nameof(TaskItem.Completed), new CompletedGroupConverter()));
+        }
+        view.SortDescriptions.Clear();
+        view.SortDescriptions.Add(new System.ComponentModel.SortDescription(
+            nameof(TaskItem.Completed), System.ComponentModel.ListSortDirection.Ascending));
+        view.SortDescriptions.Add(new System.ComponentModel.SortDescription(
+            nameof(TaskItem.UpdatedAt), System.ComponentModel.ListSortDirection.Descending));
+    }
+
 }
 
 public sealed class StrikeThroughConverter : IValueConverter
