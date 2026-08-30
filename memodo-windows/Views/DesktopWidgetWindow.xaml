@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="念念 · 桌面组件"
-        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        WindowStyle="None" Background="Transparent"
         Topmost="True" ShowInTaskbar="False" ResizeMode="CanResize"
         Width="380" Height="520" MinWidth="280" MinHeight="320">
     <WindowChrome.WindowChrome>
@@ -11,9 +11,8 @@
                       GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
 
-    <Border CornerRadius="16" Background="{DynamicResource GlassPanel}"
-            BorderBrush="{DynamicResource GlassBorder}" BorderThickness="1"
-            Margin="10" Effect="{DynamicResource DropShadow}">
+    <!-- 材质由 WindowChrome.SetSurface（毛玻璃/透明+不透明度）提供，背景保持透明让 blur 透出 -->
+    <Border BorderBrush="{DynamicResource GlassBorder}" BorderThickness="1" Background="Transparent">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="42"/>
@@ -21,7 +20,7 @@
             </Grid.RowDefinitions>
 
             <!-- 标题栏：左标题，右侧 置顶开关 + 选项菜单 -->
-            <Border Grid.Row="0" Background="{DynamicResource Accent}" CornerRadius="16,16,0,0">
+            <Border Grid.Row="0" Background="{DynamicResource Accent}">
                 <Grid>
                     <TextBlock Text="📌 念念" Foreground="White" FontWeight="Bold"
                                FontSize="14" Margin="14,0" VerticalAlignment="Center"/>
@@ -34,10 +33,10 @@
                 </Grid>
             </Border>
 
-            <!-- 钉板视图（§19 迷你 Board） -->
+            <!-- 钉板视图（§19 迷你 Board，软木板纹理） -->
             <Grid x:Name="BoardMode" Grid.Row="1">
-                <Canvas x:Name="Board" ClipToBounds="True"
-                        Background="{DynamicResource BoardBackground}" Margin="10,8"
+                <ContentControl x:Name="CorkHost"/>
+                <Canvas x:Name="Board" ClipToBounds="True" Background="Transparent" Margin="10,8"
                         MouseLeftButtonDown="BoardArea_MouseDown"/>
                 <TextBlock x:Name="BoardEmpty" Text="还没有钉住的卡片&#x0a;双击此处快速添加"
                            TextAlignment="Center" Foreground="{DynamicResource TextSecondary}"
@@ -45,7 +44,7 @@
             </Grid>
 
             <!-- 列表视图（传统：待办 | 备忘 双栏） -->
-            <Grid x:Name="ListMode" Grid.Row="1" Visibility="Collapsed">
+            <Grid x:Name="ListMode" Grid.Row="1" Visibility="Collapsed" Background="Transparent">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="1"/>

@@ -87,6 +87,14 @@
                     <TextBlock Text="桌面组件" FontWeight="SemiBold" Margin="0,0,0,8" />
                     <CheckBox x:Name="StartWidgetChk" Content="登录时显示桌面组件（下次启动生效）" Checked="StartWidget_Changed" Unchecked="StartWidget_Changed"/>
                     <CheckBox x:Name="TopmostChk" Content="组件始终置顶（立即生效，组件右上角也可切）" Margin="0,6,0,0" Checked="Topmost_Changed" Unchecked="Topmost_Changed"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="组件不透明度" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <Slider x:Name="OpacitySlider" Width="160" Minimum="30" Maximum="100"
+                                IsSnapToTickEnabled="True" TickFrequency="5" ValueChanged="Opacity_Changed"/>
+                        <TextBlock x:Name="OpacityValue" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <CheckBox x:Name="AutoSyncChk" Content="自动同步（WebDAV：启动时 + 每 3 分钟）" Margin="0,8,0,0"
+                              Checked="AutoSync_Changed" Unchecked="AutoSync_Changed"/>
                 </StackPanel>
             </Border>
 

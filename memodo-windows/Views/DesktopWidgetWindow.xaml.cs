@@ -48,15 +48,79 @@ public partial class DesktopWidgetWindow : Window
         SizeChanged += (_, _) => { _saveTimer.Stop(); _saveTimer.Start(); };
         Closing += (_, _) => SaveWindowPos();
 
-        Loaded += (_, _) => Reload();
+        Loaded += (_, _) =>
+        {
+            // 无边框 + DWM 圆角（AllowsTransparency=False 后由系统圆角兜底）
+            try { WindowChrome.ApplyFrameless(this); } catch { }
+            ApplyMaterial();
+            ApplyLockDrag();
+            RefreshCork();
+            ThemeService.ThemeChanged += RefreshCork;
+            if (SettingsStore.Current.WidgetAttachDesktop) TryAttachDesktop(silent: true);
+            Reload();
+        };
+        Unloaded += (_, _) => ThemeService.ThemeChanged -= RefreshCork;
     }
 
     /// <summary>设置页改动后即时生效（修复「开关无效」）。</summary>
     public void ApplySettings()
     {
-        Topmost = SettingsStore.Current.WidgetTopmost;
+        Topmost = SettingsStore.Current.WidgetTopmost && !SettingsStore.Current.WidgetAttachDesktop;
+        UpdateTopVisual();
+        ApplyMaterial();
+        ApplyLockDrag();
+        Reload();
+    }
+
+    // ---------- 材质（Flutter setSurface 移植） ----------
+    private void ApplyMaterial()
+    {
+        var s = SettingsStore.Current;
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return;
+        var tint = ThemeService.SurfaceTint;
+        var rgb = (uint)(tint.R | (tint.G << 8) | (tint.B << 16));
+        WindowChrome.SetSurface(hwnd, s.WidgetAcrylic, s.WidgetOpacity, rgb);
+    }
+
+    /// <summary>锁定布局时禁用标题栏拖动（Flutter lockPosition 语义）。</summary>
+    private void ApplyLockDrag()
+    {
+        var chrome = System.Windows.Shell.WindowChrome.GetWindowChrome(this);
+        if (chrome is not null) chrome.CaptionHeight = _locked ? 0 : 42;
+    }
+
+    // ---------- 附着桌面（Flutter Phase 3 移植，实验） ----------
+    private void TryAttachDesktop(bool silent)
+    {
+        var s = SettingsStore.Current;
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return;
+        var ok = s.WidgetAttachDesktop
+            ? WindowChrome.AttachToDesktop(hwnd)
+            : WindowChrome.DetachFromDesktop(hwnd);
+        if (!ok && !silent)
+        {
+            s.WidgetAttachDesktop = false;
+            SettingsStore.Save();
+            System.Windows.MessageBox.Show("附着桌面失败（已回退普通窗口）。", "念念 Memodo");
+        }
+        if (ok) Topmost = !s.WidgetAttachDesktop && s.WidgetTopmost;
         UpdateTopVisual();
     }
+
+    private void ToggleAttachDesktop()
+    {
+        var s = SettingsStore.Current;
+        s.WidgetAttachDesktop = !s.WidgetAttachDesktop;
+        SettingsStore.Save();
+        TryAttachDesktop(silent: false);
+        if (s.WidgetAttachDesktop && !s.WidgetAcrylic) { /* 保持材质设置 */ }
+    }
+
+    /// <summary>软木板纹理（Flutter board_background 移植）。</summary>
+    private void RefreshCork() =>
+        CorkHost.Content = CorkTexture.Create(ThemeService.Style, ThemeService.Dark);
 
     private void SaveWindowPos()
     {
@@ -380,6 +444,13 @@ public partial class DesktopWidgetWindow : Window
     // ---------- 右上角：置顶开关 + 选项菜单 ----------
     private void Top_Click(object sender, RoutedEventArgs e)
     {
+        if (SettingsStore.Current.WidgetAttachDesktop)
+        {
+            // 附着桌面层时置顶无意义
+            Topmost = false;
+            UpdateTopVisual();
+            return;
+        }
         Topmost = !Topmost;
         SettingsStore.Current.WidgetTopmost = Topmost;
         SettingsStore.Save();
@@ -411,15 +482,24 @@ public partial class DesktopWidgetWindow : Window
         menu.Items.Add(viewBoard);
         menu.Items.Add(viewList);
 
-        var lockItem = new MenuItem { Header = "锁定布局", IsCheckable = true, IsChecked = _locked };
+        var lockItem = new MenuItem { Header = "锁定布局（含禁拖窗口）", IsCheckable = true, IsChecked = _locked };
         lockItem.Click += (_, _) =>
         {
             _locked = lockItem.IsChecked;
             SettingsStore.Current.WidgetLocked = _locked;
             SettingsStore.Save();
+            ApplyLockDrag();
             Reload();
         };
         menu.Items.Add(lockItem);
+
+        var attachItem = new MenuItem
+        {
+            Header = "附着桌面（实验）", IsCheckable = true,
+            IsChecked = SettingsStore.Current.WidgetAttachDesktop,
+        };
+        attachItem.Click += (_, _) => ToggleAttachDesktop();
+        menu.Items.Add(attachItem);
         menu.Items.Add(new Separator());
 
         var showMain = new MenuItem { Header = "显示主窗口" };

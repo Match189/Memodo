@@ -33,8 +33,18 @@ public partial class BoardView : UserControl
         BoardCanvas.MouseDown += Board_MouseDown;
         BoardCanvas.MouseMove += Board_MouseMove;
         BoardCanvas.MouseUp += Board_MouseUp;
-        Loaded += (_, _) => LoadBoard();
+        Loaded += (_, _) =>
+        {
+            LoadBoard();
+            RefreshCork();
+            ThemeService.ThemeChanged += RefreshCork;
+        };
+        Unloaded += (_, _) => ThemeService.ThemeChanged -= RefreshCork;
     }
+
+    /// <summary>软木板纹理（Flutter board_background 移植：渐变+种子噪点+暗角）。</summary>
+    private void RefreshCork() =>
+        CorkHost.Content = CorkTexture.Create(ThemeService.Style, ThemeService.Dark);
 
     private void Board_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {

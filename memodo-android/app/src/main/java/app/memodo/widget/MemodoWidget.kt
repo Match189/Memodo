@@ -42,27 +42,31 @@ import kotlinx.coroutines.flow.first
 class MemodoWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val showDone = WidgetPrefs.showCompleted(context)
+        val prefCap = WidgetPrefs.maxItems(context)
         val tasks = try {
             Repo.get(context).observeTasks().first()
+                .filter { showDone || !it.completed }
         } catch (e: Exception) {
             emptyList()
         }
         provideContent {
             GlanceTheme {
-                WidgetContent(tasks)
+                WidgetContent(tasks, prefCap)
             }
         }
     }
 
     @Composable
-    private fun WidgetContent(tasks: List<TaskItem>) {
+    private fun WidgetContent(tasksAll: List<TaskItem>, prefCap: Int) {
         val context = LocalContext.current
         val size = LocalSize.current
-        val maxItems = when {
+        val sizeCap = when {
             size.width >= 280.dp && size.height >= 280.dp -> 12   // 4×4
             size.width >= 280.dp -> 7                             // 4×2
             else -> 3                                             // 2×2
         }
+        val tasks = tasksAll.take(minOf(prefCap, sizeCap))
 
         Column(
             modifier = GlanceModifier
@@ -82,7 +86,7 @@ class MemodoWidget : GlanceAppWidget() {
             if (tasks.isEmpty()) {
                 Text("暂无待办", style = TextStyle(fontSize = 13.sp))
             } else {
-                tasks.take(maxItems).forEach { t ->
+                tasks.forEach { t ->
                     Row(modifier = GlanceModifier.padding(vertical = 2.dp)) {
                         CheckBox(
                             checked = t.completed,

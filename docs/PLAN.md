@@ -125,3 +125,15 @@ Changed / Added / Tests / Screenshots / Known issues / Next
 **Added** WebDavClient（GET/PUT/MKCOL，Basic 认证，纯 HttpClient）、快照同步（LWW+墓碑，§47/§49，平局 deviceId 字典序 §19）、SecretProtector（DPAPI，§53 不落明文）、托盘"立即同步"实接
 **Tests** 坚果云实测：MKCOL=201 / PUT=201 / GET 往返 ✅ / 缺文件=404；dotnet build 0 错误
 **Known issues** Android 端 WebDAV 同步未接（快照格式已定，下轮移植）；快照为全量（条目多时体积增长，后续可做差量/GC）
+
+### Round 7 · Flutter 资产移植（用户指令：参考旧工程移植功能）
+**Changed** WindowChrome（+setSurface 材质/AttachToDesktop WorkerW）、ThemeService（+BoardPalette/SurfaceTint/ThemeChanged）、BoardView（软木纹理层）、DesktopWidgetWindow（真毛玻璃材质重构）、SettingsView（不透明度/自动同步）、App（自动同步定时器）、MemodoWidget（显示设置过滤）、Screens.kt（设置页真实控件）
+**Added**
+- `setSurface` 移植：acrylic BLURBEHIND/透明渐变 × 不透明度 30-100，组件改为非分层窗口由 DWM 圆角兜底
+- 桌面附着（Phase 3）：组件菜单"附着桌面(实验)"，失败回退 + 持久化
+- 软木板纹理（board_background 移植）：底色渐变 + Random(20260829) 种子噪点 600 点 Viewbox + 四角暗角；主题切换事件联动重绘
+- 锁定禁拖（lockPosition 语义）：锁定时 WindowChrome.CaptionHeight=0
+- 自动同步（sync_manager 精神）：启动一次 + 每 3 分钟，静默失败下轮重试，成功刷新组件
+- Android Widget maxItems(4-30,默认12)/showCompleted(默认false) + 设置页滑杆/开关（SharedPreferences，改后 updateAll）
+**Tests** dotnet build 0 错误；assembleDebug BUILD SUCCESSFUL；publish 更新
+**Known issues** 附着桌面模式下拖动/缩放行为依赖 Explorer（实验，与 Flutter 期一致）；acrylic 在旧于 1803 的 Windows 上降级为透明渐变

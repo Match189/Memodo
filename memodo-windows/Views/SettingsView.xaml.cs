@@ -7,6 +7,7 @@ namespace Memodo.Windows.Views;
 
 public partial class SettingsView : UserControl
 {
+    private bool _ready;
     private SyncService Sync => AppHost.Services.GetRequiredService<SyncService>();
     private SyncEngine Engine => AppHost.Services.GetRequiredService<SyncEngine>();
 
@@ -36,6 +37,10 @@ public partial class SettingsView : UserControl
             // 桌面组件
             StartWidgetChk.IsChecked = s.ShowWidgetOnStartup;
             TopmostChk.IsChecked = s.WidgetTopmost;
+            OpacitySlider.Value = s.WidgetOpacity;
+            OpacityValue.Text = s.WidgetOpacity + "%";
+            AutoSyncChk.IsChecked = s.AutoSync;
+            _ready = true;
         };
     }
 
@@ -143,6 +148,24 @@ public partial class SettingsView : UserControl
         SettingsStore.Current.WidgetTopmost = TopmostChk.IsChecked == true;
         SettingsStore.Save();
         App.Tray?.ApplyWidgetSettings(); // 立即生效到已打开的组件
+    }
+
+    private void Opacity_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (OpacityValue is not null)
+        {
+            SettingsStore.Current.WidgetOpacity = (int)e.NewValue;
+            OpacityValue.Text = ((int)e.NewValue).ToString() + "%";
+            if (_ready) SettingsStore.Save();
+            App.Tray?.ApplyWidgetSettings();
+        }
+    }
+
+    private void AutoSync_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!_ready) return;
+        SettingsStore.Current.AutoSync = AutoSyncChk.IsChecked == true;
+        SettingsStore.Save();
     }
 
     // ---------- 数据 ----------

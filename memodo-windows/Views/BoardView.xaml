@@ -20,7 +20,10 @@
                       Margin="12,0,0,0" VerticalAlignment="Center" Foreground="#6B4A2F"/>
         </StackPanel>
 
-        <Canvas x:Name="BoardCanvas" Grid.Row="1" Background="{DynamicResource BoardBackground}" ClipToBounds="True"/>
+        <Grid Grid.Row="1">
+            <ContentControl x:Name="CorkHost"/>
+            <Canvas x:Name="BoardCanvas" Background="Transparent" ClipToBounds="True"/>
+        </Grid>
 
         <Popup x:Name="Picker" PlacementTarget="{Binding ElementName=PinBtn}"
                StaysOpen="False" AllowsTransparency="True">

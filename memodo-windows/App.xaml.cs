@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Windows;
+using System.Windows.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using Memodo.Windows.Services;
 using Memodo.Windows.Views;
 
@@ -10,6 +12,8 @@ public partial class App : Application
 {
     public static TrayService? Tray { get; private set; }
     public static bool CloseToTray { get; set; } = true;
+    private DispatcherTimer? _syncTimer;
+    private bool _syncing;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -43,5 +47,33 @@ public partial class App : Application
             }
         };
         win.Show();
+        StartAutoSync();
+    }
+
+    /// <summary>自动同步（Flutter sync_manager 精神移植）：启动一次 + 每 3 分钟，WebDAV 通道，静默。</summary>
+    private void StartAutoSync()
+    {
+        if (_syncTimer is not null) return;
+        _syncTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(3) };
+        _syncTimer.Tick += async (_, _) => await RunAutoSync();
+        _syncTimer.Start();
+        _ = RunAutoSync();
+    }
+
+    private async System.Threading.Tasks.Task RunAutoSync()
+    {
+        if (_syncing) return;
+        var s = SettingsStore.Current;
+        if (!s.AutoSync || s.SyncProvider != "webdav") return;
+        if (string.IsNullOrWhiteSpace(s.WebDavUser) || string.IsNullOrEmpty(s.WebDavPassProtected)) return;
+        _syncing = true;
+        try
+        {
+            var engine = AppHost.Services.GetRequiredService<SyncEngine>();
+            var (_, _, err) = await engine.RunWebDavAsync();
+            if (err is null) Tray?.ApplyWidgetSettings(); // 静默成功，刷新组件数据
+        }
+        catch { /* 离线静默，下轮重试 */ }
+        finally { _syncing = false; }
     }
 }

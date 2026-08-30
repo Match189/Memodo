@@ -12,6 +12,9 @@ public enum ThemeStyle { Cork, Glass, Hybrid }
 
 public static class ThemeService
 {
+    /// <summary>主题切换事件：板面纹理等需重绘的地方订阅。</summary>
+    public static event Action? ThemeChanged;
+
     public static ThemeStyle Style
     {
         get => Enum.TryParse<ThemeStyle>(SettingsStore.Current.ThemeStyle, out var s) ? s : ThemeStyle.Hybrid;
@@ -25,6 +28,25 @@ public static class ThemeService
     }
 
     public static void Apply() => Apply(Style, Dark);
+
+    /// <summary>
+    /// 板面调色（Flutter board_theme.dart 移植）：底/噪点/暗角，Hybrid 沿用 Cork 底。
+    /// </summary>
+    public static (Color Base, Color Alt, Color Noise, Color Vignette) BoardPalette(ThemeStyle style, bool dark)
+    {
+        return style switch
+        {
+            ThemeStyle.Glass => dark
+                ? (Col("14181C"), Col("14181C"), Col(0x22, "FFFFFF"), Col(0x99, "000000"))
+                : (Col("DFE7EC"), Col("DFE7EC"), Col(0x22, "FFFFFF"), Col(0x33, "546E7A")),
+            _ => dark
+                ? (Col("2B211A"), Col("241B15"), Col(0x26, "4A3826"), Col(0x88, "000000"))
+                : (Col("D9B38C"), Col("C9A176"), Col(0x33, "A97C50"), Col(0x55, "6B4A2F")),
+        };
+    }
+
+    /// <summary>组件材质着色（setSurface GradientColor 用，ABGR 组装在调用方）。</summary>
+    public static Color SurfaceTint => Dark ? Col("14181C") : Col("FDFBFA");
 
     public static void Apply(ThemeStyle style, bool dark)
     {
@@ -60,12 +82,19 @@ public static class ThemeService
         r["SidebarBackground"] = new SolidColorBrush(dark ? Col("2A3138") : Col("EAF1F3"));
         r["SubtleText"] = r["TextSecondary"];
         r["Danger"] = new SolidColorBrush(dark ? Col("FF6B6B") : Col("B00020"));
+
+        ThemeChanged?.Invoke();
     }
 
     private static Color Col(string hex)
     {
-        var b = System.Convert.ToByte(hex.Length == 6 ? 0xFF : 0);
         var v = System.Convert.ToUInt32(hex, 16);
         return Color.FromArgb(0xFF, (byte)(v >> 16 & 0xFF), (byte)(v >> 8 & 0xFF), (byte)(v & 0xFF));
+    }
+
+    private static Color Col(byte a, string hex)
+    {
+        var v = System.Convert.ToUInt32(hex, 16);
+        return Color.FromArgb(a, (byte)(v >> 16 & 0xFF), (byte)(v >> 8 & 0xFF), (byte)(v & 0xFF));
     }
 }

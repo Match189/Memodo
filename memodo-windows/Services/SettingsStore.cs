@@ -29,6 +29,14 @@ public sealed class AppSettings
     public double WidgetW { get; set; } = 380;
     public double WidgetH { get; set; } = 520;
     public bool WidgetLocked { get; set; } = false;
+    /// <summary>组件材质不透明度 30-100（Flutter Phase 2 移植）。</summary>
+    public int WidgetOpacity { get; set; } = 90;
+    /// <summary>组件毛玻璃（BLURBEHIND）；false=透明渐变。</summary>
+    public bool WidgetAcrylic { get; set; } = true;
+    /// <summary>附着桌面层（WorkerW，实验特性，Flutter Phase 3 移植）。</summary>
+    public bool WidgetAttachDesktop { get; set; } = false;
+    /// <summary>自动同步（启动时 + 每 3 分钟，仅 WebDAV 通道）。</summary>
+    public bool AutoSync { get; set; } = true;
     /// <summary>组件显示方式（蓝图：钉板 / 传统列表 可切换）。</summary>
     public string WidgetViewMode { get; set; } = "board"; // board | list
     /// <summary>主窗口显示方式：传统列表 / 钉板画布。</summary>
