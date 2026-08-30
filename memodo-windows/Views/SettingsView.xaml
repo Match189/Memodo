@@ -56,6 +56,15 @@
                 </StackPanel>
             </Border>
 
+            <!-- 数据（蓝图 §52：Export JSON 全量备份） -->
+            <Border Padding="16" CornerRadius="10" Background="{DynamicResource CardSurface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="数据" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <Button Content="导出 JSON 备份" Style="{DynamicResource AccentBtn}" Click="Export_Click"/>
+                    <TextBlock x:Name="ExportStatus" Margin="0,8,0,0" Foreground="{DynamicResource SubtleText}"/>
+                </StackPanel>
+            </Border>
+
             <!-- 关于 -->
             <Border Padding="16" CornerRadius="10" Background="White" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
                 <StackPanel>

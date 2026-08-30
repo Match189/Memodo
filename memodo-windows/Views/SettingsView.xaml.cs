@@ -90,4 +90,25 @@ public partial class SettingsView : UserControl
         SettingsStore.Current.WidgetTopmost = TopmostChk.IsChecked == true;
         SettingsStore.Save();
     }
+
+    /// 蓝图 §52：JSON 全量导出（第一版必须有，防数据锁死）
+    private void Export_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            FileName = $"memodo-backup-{DateTime.Now:yyyyMMdd-HHmmss}.json",
+            Filter = "JSON 备份|*.json",
+        };
+        if (dlg.ShowDialog() != true) return;
+        try
+        {
+            var json = ExportService.ExportJson(AppHost.Services.GetRequiredService<Data.AppDatabase>());
+            System.IO.File.WriteAllText(dlg.FileName, json);
+            ExportStatus.Text = "已导出：" + dlg.FileName;
+        }
+        catch (Exception ex)
+        {
+            ExportStatus.Text = "导出失败：" + ex.Message;
+        }
+    }
 }

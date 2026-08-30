@@ -33,6 +33,18 @@ public sealed class TrayService : IDisposable
         var menu = new System.Windows.Controls.ContextMenu();
         var show = new System.Windows.Controls.MenuItem { Header = "显示主窗口" };
         show.Click += (_, _) => ShowMainWindow();
+        // 蓝图 §21 托盘菜单：Show、Widget、New Todo/Memo、Sync Now、Settings、自启、Exit
+        var newTodo = new System.Windows.Controls.MenuItem { Header = "新建待办" };
+        newTodo.Click += (_, _) => { ShowMainWindow(); (_mainWindow as ShellWindow)?.ShowPage("todo"); };
+        var newMemo = new System.Windows.Controls.MenuItem { Header = "新建备忘" };
+        newMemo.Click += (_, _) => { ShowMainWindow(); (_mainWindow as ShellWindow)?.ShowPage("memo"); };
+        var syncNow = new System.Windows.Controls.MenuItem
+        {
+            Header = "立即同步（0.5 版开放）",
+            IsEnabled = false, // 路线图裁定：0.1 置灰，避免未验证依赖
+        };
+        var settings = new System.Windows.Controls.MenuItem { Header = "设置" };
+        settings.Click += (_, _) => { ShowMainWindow(); (_mainWindow as ShellWindow)?.ShowPage("settings"); };
         var autostart = new System.Windows.Controls.MenuItem
         {
             Header = "开机自启",
@@ -43,10 +55,15 @@ public sealed class TrayService : IDisposable
         var quit = new System.Windows.Controls.MenuItem { Header = "退出" };
         quit.Click += (_, _) => Quit();
         menu.Items.Add(show);
-        menu.Items.Add(autostart);
         var showWidget = new System.Windows.Controls.MenuItem { Header = "显示桌面组件" };
         showWidget.Click += (_, _) => ShowWidget();
         menu.Items.Add(showWidget);
+        menu.Items.Add(new System.Windows.Controls.Separator());
+        menu.Items.Add(newTodo);
+        menu.Items.Add(newMemo);
+        menu.Items.Add(syncNow);
+        menu.Items.Add(settings);
+        menu.Items.Add(autostart);
         menu.Items.Add(new System.Windows.Controls.Separator());
         menu.Items.Add(quit);
         _tray.ContextMenu = menu;

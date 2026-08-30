@@ -38,7 +38,8 @@ public partial class ShellWindow : Window
 
     private void CloseBtn_Click(object sender, RoutedEventArgs e) => Hide();
 
-    private void ShowPage(string tag)
+    /// <summary>导航到指定页（托盘「新建待办/备忘/设置」复用）。</summary>
+    public void ShowPage(string tag)
     {
         if (ContentHost is null) return;
         ContentHost.Content = tag switch

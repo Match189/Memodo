@@ -33,6 +33,7 @@ android/app/*.jks
 # Windows (WPF / .NET)
 memodo-windows/bin/
 memodo-windows/obj/
+memodo-windows/publish/
 
 # Android (Gradle)
 memodo-android/.gradle/

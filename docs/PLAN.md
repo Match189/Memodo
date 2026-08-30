@@ -90,4 +90,32 @@ Changed / Added / Tests / Screenshots / Known issues / Next
 
 ## Round 记录（追加区）
 
-（尚无 Round 完工记录；Round 1 = Phase 1 设计系统，进行中）
+### Round 1 · Phase 1 设计系统 完工（2026-08-30，cf9c547）
+**Changed** App.xaml（设计令牌默认值）、ShellWindow/TaskList/MemoList/Board/Settings（全部改 DynamicResource）
+**Added** ThemeService（Cork/Glass/Hybrid × Dark 运行时切题）、PinFactory（2.5D 图钉）、设置页外观区
+**Tests** dotnet build 0 错误；6 主题态切换走 Settings 下拉/深色开关
+**Known issues** Cork 纹理为纯色近似（无噪点/暗角贴图）；Glass 面板为实色近似非真 Blur
+
+### Round 2 · Phase 3 桌面组件 完工（2026-08-30，5b2bb08）
+**Changed** DesktopWidgetWindow 重构（双栏列表→迷你 Board）、SettingsStore(+组件位置/布局 kv)、MemoRepository(+GetById)
+**Added** WindowChrome ResizeBorder、位置/尺寸防抖持久化、Lock、双击编辑(EditCardWindow)、组件内卡片拖拽/缩放/勾选/取消钉
+**Tests** dotnet build 0 错误；构建期验证（真机交互待用户验收）
+**Known issues** 组件内卡片暂不支持旋转（板内布局 rotation 未带出）；Opacity/Click-through 属 P1
+
+### Round 3 · Phase 2 Board+Card 完工（2026-08-30，bd5a93a）
+**Changed** AppDatabase(DB v2: cards+type/title/content/color)、CardItem、BoardRepository、BoardViewModel、BoardView
+**Added** 无限画布缩放平移(§34)、双击编辑弹窗(§29)、idea/checklist 内联卡(§10)、纸色四选(§38)、+卡片/1:1 工具栏
+**Tests** dotnet build 0 错误；DB v2 迁移含 AddColumnIfMissing 幂等保护
+**Known issues** Section 视觉分区 UI 未做（表结构已就位）→ 0.2；卡片微动画(§40)未做 → 0.2
+
+### Round 4 · Phase 5/6 Android 完工（2026-08-30，81f6c9d）
+**Changed** Entities(DB v2 对齐 cards 列)、Daos(+CardDao.update)、Repo(+moveCard/setTaskDone/getTask)、BoardScreen 重写、Manifest
+**Added** AdaptiveGrid 图钉板(§23)、Widget CheckBox 快速完成(§24)、ToggleTaskAction、2x2/4x2/4x4 三 provider
+**Tests** assembleDebug BUILD SUCCESSFUL；真机冒烟待设备接入
+**Known issues** 卡片内联 type/color 已入库但同步协议未含 cards（0.5 接）；网格拖拽排序用按钮微调实现
+
+### Round 5 · 0.1 发布 完工（2026-08-30）
+**Changed** TrayService（§21 托盘全菜单）、SettingsView(+数据区)、.gitignore(+publish/)
+**Added** ExportService（§52 JSON 全量导出）、托盘 New Todo/Memo/Settings 导航、Sync Now 置灰(0.5 开放)
+**Tests** dotnet build 0 错误；`dotnet publish -c Release -r win-x64 --self-contained` ✅（publish/Memodo.Windows.exe，175MB）；`assembleRelease` ✅（app-release-unsigned.apk，12MB）
+**Known issues** Android release 未签名（安装需自建 keystore 签名）；Win 包为自包含未做单文件/MSIX
