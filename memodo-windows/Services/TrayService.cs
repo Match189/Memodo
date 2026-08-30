@@ -102,7 +102,10 @@ public sealed class TrayService : IDisposable
             if (err is not null)
                 System.Windows.MessageBox.Show("同步失败：" + err, "念念 Memodo");
             else
+            {
                 _widget?.Reload();
+                App.NotifyDataChanged();
+            }
         }
         catch (Exception ex)
         {

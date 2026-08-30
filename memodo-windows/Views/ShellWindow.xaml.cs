@@ -10,11 +10,14 @@ namespace Memodo.Windows.Views;
 public partial class ShellWindow : Window
 {
     private bool _ready;
+    private bool _syncingNav;
     private string _listPage = "todo"; // 列表模式下最后停留的页
+    private string _currentTag = "todo";
 
     public ShellWindow()
     {
         InitializeComponent();
+        App.DataChanged += OnDataChanged;
         Loaded += (_, _) =>
         {
             _ready = false;
@@ -26,10 +29,17 @@ public partial class ShellWindow : Window
         };
     }
 
+    /// <summary>小组件/同步改了数据 → 当前页重新加载，列表始终显示全部事项。</summary>
+    private void OnDataChanged()
+    {
+        if (IsVisible && _currentTag is "todo" or "memo" or "board") ShowPage(_currentTag);
+    }
+
     /// <summary>导航到指定页（托盘「新建待办/备忘/设置」复用）。</summary>
     public void ShowPage(string tag)
     {
         if (ContentHost is null) return;
+        _currentTag = tag;
         ContentHost.Content = tag switch
         {
             "todo"     => new TaskListView { DataContext = AppHost.Services.GetRequiredService<TaskListViewModel>() },
@@ -38,10 +48,17 @@ public partial class ShellWindow : Window
             "settings" => new SettingsView(),
             _ => ContentHost.Content,
         };
+        // 侧栏选中态与当前页保持一致
+        _syncingNav = true;
+        NavTodo.IsChecked = tag == "todo";
+        NavMemo.IsChecked = tag == "memo";
+        NavSettings.IsChecked = tag == "settings";
+        _syncingNav = false;
     }
 
     private void Nav_Clicked(object sender, RoutedEventArgs e)
     {
+        if (_syncingNav) return;
         if (sender is not RadioButton rb || rb.Tag is not string tag) return;
         if (tag == "settings") { ShowPage("settings"); return; }
         _listPage = tag;

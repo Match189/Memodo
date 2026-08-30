@@ -15,6 +15,10 @@ public partial class App : Application
     private DispatcherTimer? _syncTimer;
     private bool _syncing;
 
+    /// <summary>数据变更广播：小组件/同步等改动后，主窗口列表据此刷新。</summary>
+    public static event Action? DataChanged;
+    public static void NotifyDataChanged() => DataChanged?.Invoke();
+
     protected override void OnStartup(StartupEventArgs e)
     {
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
@@ -71,7 +75,11 @@ public partial class App : Application
         {
             var engine = AppHost.Services.GetRequiredService<SyncEngine>();
             var (_, _, err) = await engine.RunWebDavAsync();
-            if (err is null) Tray?.ApplyWidgetSettings(); // 静默成功，刷新组件数据
+            if (err is null)
+            {
+                Tray?.ApplyWidgetSettings(); // 静默成功，刷新组件数据
+                NotifyDataChanged();          // 主窗口列表联动
+            }
         }
         catch { /* 离线静默，下轮重试 */ }
         finally { _syncing = false; }

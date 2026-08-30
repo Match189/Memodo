@@ -30,6 +30,7 @@
         </Border>
 
         <ListBox x:Name="List" Grid.Row="2" Background="Transparent" BorderThickness="0"
+                 ItemsSource="{Binding Memos}"
                  HorizontalContentAlignment="Stretch"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListBox.ItemContainerStyle>

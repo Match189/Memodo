@@ -144,6 +144,7 @@ public partial class DesktopWidgetWindow : Window
     {
         var board = SettingsStore.Current.WidgetViewMode != "list";
         if (board) ReloadBoard(); else ReloadLists();
+        App.NotifyDataChanged(); // 主窗口列表联动刷新
     }
 
     private void ReloadBoard()
