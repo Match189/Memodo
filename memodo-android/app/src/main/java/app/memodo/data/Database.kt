@@ -14,7 +14,7 @@ import androidx.room.RoomDatabase
         CardItem::class,
         CardLayoutItem::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -2,6 +2,7 @@ package app.memodo.data
 
 import android.content.Context
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import java.util.UUID
 
 class Repo private constructor(ctx: Context) {
@@ -31,6 +32,13 @@ class Repo private constructor(ctx: Context) {
     suspend fun toggleTask(item: TaskItem) {
         tasks.setDone(item.id, !item.completed, System.currentTimeMillis())
     }
+
+    /// Widget 快速完成（§24）：直写本地库，updated_at 推进使 LWW 自然传播
+    suspend fun setTaskDone(id: String, done: Boolean) {
+        tasks.setDone(id, done, System.currentTimeMillis())
+    }
+
+    suspend fun getTask(id: String): TaskItem? = tasks.getById(id)
 
     suspend fun deleteTask(id: String) {
         val now = System.currentTimeMillis()
@@ -80,6 +88,17 @@ class Repo private constructor(ctx: Context) {
 
     suspend fun unpin(cardId: String) {
         cards.unpin(cardId, System.currentTimeMillis())
+    }
+
+    /// Android 网格排序（§23 Adaptive Grid）：调整 cards.sort（业务顺序，随同步传播）
+    suspend fun moveCard(card: CardItem, delta: Int) {
+        val list = db.cardDao().observeByBoard(card.boardId).first()
+        val idx = list.indexOfFirst { it.id == card.id }
+        val swap = idx + delta
+        if (idx < 0 || swap < 0 || swap >= list.size) return
+        val now = System.currentTimeMillis()
+        cards.update(list[idx].copy(sort = list[swap].sort, updatedAt = now))
+        cards.update(list[swap].copy(sort = list[idx].sort, updatedAt = now))
     }
 
     suspend fun getLayout(cardId: String): CardLayoutItem? =

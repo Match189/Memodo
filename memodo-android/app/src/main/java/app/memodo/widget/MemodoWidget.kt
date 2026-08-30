@@ -1,7 +1,6 @@
 package app.memodo.widget
 
 import android.content.Context
-import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -9,9 +8,12 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.LocalContext
+import androidx.glance.LocalSize
 import androidx.glance.action.clickable
+import androidx.glance.appwidget.CheckBox
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
@@ -19,17 +21,24 @@ import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextDecoration
 import androidx.glance.text.TextStyle
+import androidx.glance.action.actionParametersOf
 import app.memodo.MainActivity
 import app.memodo.data.Repo
 import app.memodo.data.TaskItem
 import kotlinx.coroutines.flow.first
 
+/**
+ * Home Widget（蓝图 §24）：快速查看 + 快速完成。
+ * 尺寸自适应：LocalSize 决定显示条数；同一 GlanceAppWidget 供 2×2 / 4×2 / 4×4 三个 provider 复用。
+ */
 class MemodoWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -48,29 +57,51 @@ class MemodoWidget : GlanceAppWidget() {
     @Composable
     private fun WidgetContent(tasks: List<TaskItem>) {
         val context = LocalContext.current
+        val size = LocalSize.current
+        val maxItems = when {
+            size.width >= 280.dp && size.height >= 280.dp -> 12   // 4×4
+            size.width >= 280.dp -> 7                             // 4×2
+            else -> 3                                             // 2×2
+        }
+
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(GlanceTheme.colors.background)
-                .clickable(actionStartActivity(Intent(context, MainActivity::class.java)))
                 .padding(12.dp)
         ) {
-            Text(
-                "念念 · 待办",
-                style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            )
+            Row(modifier = GlanceModifier.fillMaxWidth()) {
+                Text(
+                    "📌 念念 · 待办",
+                    style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold),
+                    modifier = GlanceModifier.defaultWeight()
+                        .clickable(actionStartActivity(android.content.Intent(context, MainActivity::class.java))),
+                )
+            }
             Spacer(GlanceModifier.height(8.dp))
             if (tasks.isEmpty()) {
                 Text("暂无待办", style = TextStyle(fontSize = 13.sp))
             } else {
-                tasks.take(8).forEach { t ->
+                tasks.take(maxItems).forEach { t ->
                     Row(modifier = GlanceModifier.padding(vertical = 2.dp)) {
+                        CheckBox(
+                            checked = t.completed,
+                            onCheckedChange = actionRunCallback<ToggleTaskAction>(
+                                actionParametersOf(
+                                    ToggleTaskAction.KEY_TASK_ID to t.id,
+                                    ToggleTaskAction.KEY_DONE to !t.completed,
+                                )
+                            ),
+                        )
+                        Spacer(GlanceModifier.width(6.dp))
                         Text(
-                            (if (t.completed) "✓ " else "○ ") + t.title,
+                            t.title,
                             style = TextStyle(
                                 fontSize = 13.sp,
-                                textDecoration = if (t.completed) TextDecoration.LineThrough else null
-                            )
+                                textDecoration = if (t.completed) TextDecoration.LineThrough else null,
+                            ),
+                            modifier = GlanceModifier.defaultWeight()
+                                .clickable(actionStartActivity(android.content.Intent(context, MainActivity::class.java))),
                         )
                     }
                 }
@@ -80,5 +111,13 @@ class MemodoWidget : GlanceAppWidget() {
 }
 
 class MemodoWidgetReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = MemodoWidget()
+}
+
+class MemodoWidgetSmallReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = MemodoWidget()
+}
+
+class MemodoWidgetLargeReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = MemodoWidget()
 }

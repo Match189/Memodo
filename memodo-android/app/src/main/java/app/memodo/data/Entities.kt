@@ -67,6 +67,11 @@ data class CardItem(
     @ColumnInfo(name = "ref_type") val refType: String,
     @ColumnInfo(name = "ref_uuid") val refUuid: String,
     val sort: Int = 0,
+    // 蓝图 §10/§38：内联卡（idea/checklist）与纸色；todo/memo 的 title/content 恒为空
+    val type: String = "",
+    val title: String = "",
+    val content: String = "",
+    val color: String = "red",
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
     @ColumnInfo(name = "deleted_at") val deletedAt: Long? = null,

@@ -64,6 +64,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun pinTodo(uuid: String) = scope.launch { repo.pin("todo", uuid) }
     fun pinMemo(uuid: String) = scope.launch { repo.pin("memo", uuid) }
     fun unpin(cardId: String) = scope.launch { repo.unpin(cardId) }
+    fun moveCard(card: CardItem, delta: Int) = scope.launch { repo.moveCard(card, delta) }
 
     suspend fun getLayout(cardId: String): CardLayoutItem? = repo.getLayout(cardId)
     suspend fun saveLayout(item: CardLayoutItem) = repo.saveLayout(item)

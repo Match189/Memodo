@@ -72,6 +72,9 @@ interface CardDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(item: CardItem)
 
+    @Update
+    suspend fun update(item: CardItem)
+
     @Query("UPDATE cards SET deleted_at = :now, updated_at = :now WHERE id = :id")
     suspend fun unpin(id: String, now: Long)
 }
