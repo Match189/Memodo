@@ -150,6 +150,7 @@ object WebDavSync {
 
     private fun memoJson(m: MemoItem) = JSONObject()
         .put("id", m.id).put("title", m.title).put("content", m.content)
+        .put("completed", m.completed)
         .put("created_at", m.createdAt).put("updated_at", m.updatedAt)
         .put("deleted_at", m.deletedAt ?: JSONObject.NULL)
 
@@ -169,6 +170,7 @@ object WebDavSync {
         id = o.getString("id"),
         title = o.optString("title", ""),
         content = o.optString("content", ""),
+        completed = o.optBoolean("completed", false),
         createdAt = o.optLong("created_at"),
         updatedAt = o.optLong("updated_at"),
         deletedAt = if (o.isNull("deleted_at")) null else o.optLong("deleted_at"),

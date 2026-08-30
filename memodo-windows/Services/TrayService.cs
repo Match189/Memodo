@@ -66,6 +66,9 @@ public sealed class TrayService : IDisposable
         menu.Items.Add(quit);
         _tray.ContextMenu = menu;
         _tray.TrayLeftMouseDown += (_, _) => ShowMainWindow();
+
+        // 双向实时联动：任何数据变更（主窗口/同步）→ 组件即时回刷
+        App.DataChanged += () => _widget?.Reload();
     }
 
     public void ShowWidget()

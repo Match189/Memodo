@@ -55,6 +55,7 @@ public partial class TaskListViewModel : ObservableObject
         var item = new TaskItem { Title = t };
         await Task.Run(() => _repo.Insert(item));
         await LoadAsync();
+        App.NotifyDataChanged(); // 组件实时联动
     }
 
     [RelayCommand]
@@ -64,6 +65,7 @@ public partial class TaskListViewModel : ObservableObject
         // 这里不再取反（此前取反导致状态被二次翻转、勾选弹回）。
         await Task.Run(() => _repo.Update(item));
         await LoadAsync();
+        App.NotifyDataChanged(); // 组件实时联动
     }
 
     [RelayCommand]
@@ -81,6 +83,7 @@ public partial class TaskListViewModel : ObservableObject
     {
         await Task.Run(() => _repo.SoftDelete(item.Id));
         await LoadAsync();
+        App.NotifyDataChanged(); // 组件实时联动
     }
 
     [RelayCommand]

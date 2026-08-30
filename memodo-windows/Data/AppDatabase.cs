@@ -138,6 +138,13 @@ CREATE UNIQUE INDEX IF NOT EXISTS ix_card_platform ON card_layouts(card_id, plat
             AddColumnIfMissing("cards", "note_color", "TEXT NOT NULL DEFAULT ''");
             UserVersion = 3;
         }
+
+        // v4（用户裁定）：备忘增加 completed —— 完成的备忘从钉板移除，语义同待办。
+        if (UserVersion < 4)
+        {
+            AddColumnIfMissing("memos", "completed", "INTEGER NOT NULL DEFAULT 0");
+            UserVersion = 4;
+        }
     }
 
     private long UserVersion

@@ -38,8 +38,8 @@ public sealed class MemoRepository
     public void Insert(MemoItem m)
     {
         using var cmd = _db.CreateCommand();
-        cmd.CommandText = $@"INSERT INTO {ModelAttr.Memos} (id, title, content, created_at, updated_at)
-                            VALUES ($id, $t, $c, $ca, $ua)";
+        cmd.CommandText = $@"INSERT INTO {ModelAttr.Memos} (id, title, content, completed, created_at, updated_at)
+                            VALUES ($id, $t, $c, $comp, $ca, $ua)";
         Bind(cmd, m);
         cmd.ExecuteNonQuery();
     }
@@ -48,7 +48,7 @@ public sealed class MemoRepository
     {
         m.UpdatedAt = SqlMapper.NowMs();
         using var cmd = _db.CreateCommand();
-        cmd.CommandText = $@"UPDATE {ModelAttr.Memos} SET title=$t, content=$c, updated_at=$ua, deleted_at=$d WHERE id=$id";
+        cmd.CommandText = $@"UPDATE {ModelAttr.Memos} SET title=$t, content=$c, completed=$comp, updated_at=$ua, deleted_at=$d WHERE id=$id";
         Bind(cmd, m);
         cmd.ExecuteNonQuery();
     }
@@ -57,10 +57,10 @@ public sealed class MemoRepository
     public void UpsertFromSync(MemoItem m)
     {
         using var cmd = _db.CreateCommand();
-        cmd.CommandText = $@"INSERT INTO {ModelAttr.Memos} (id, title, content, created_at, updated_at, deleted_at)
-                             VALUES ($id, $t, $c, $ca, $ua, $d)
+        cmd.CommandText = $@"INSERT INTO {ModelAttr.Memos} (id, title, content, completed, created_at, updated_at, deleted_at)
+                             VALUES ($id, $t, $c, $comp, $ca, $ua, $d)
                              ON CONFLICT(id) DO UPDATE SET
-                               title=excluded.title, content=excluded.content,
+                               title=excluded.title, content=excluded.content, completed=excluded.completed,
                                created_at=excluded.created_at, updated_at=excluded.updated_at,
                                deleted_at=excluded.deleted_at";
         Bind(cmd, m);
@@ -91,6 +91,7 @@ public sealed class MemoRepository
         cmd.Parameters.AddWithValue("$id", m.Id);
         cmd.Parameters.AddWithValue("$t", m.Title);
         cmd.Parameters.AddWithValue("$c", m.Content);
+        cmd.Parameters.AddWithValue("$comp", m.Completed ? 1 : 0);
         cmd.Parameters.AddWithValue("$ca", m.CreatedAt);
         cmd.Parameters.AddWithValue("$ua", m.UpdatedAt == 0 ? m.CreatedAt : m.UpdatedAt);
         cmd.Parameters.AddWithValue("$d", SqlMapper.IfNotNull(m.DeletedAt?.ToString()));
@@ -104,5 +105,6 @@ public sealed class MemoRepository
         CreatedAt = rd.GetInt64(3),
         UpdatedAt = rd.GetInt64(4),
         DeletedAt = rd.IsDBNull(5) ? null : rd.GetInt64(5),
+        Completed = !rd.IsDBNull(6) && rd.GetInt32(6) != 0,
     };
 }

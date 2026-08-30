@@ -7,32 +7,26 @@ using Memodo.Windows.ViewModels;
 
 namespace Memodo.Windows.Views;
 
+/// <summary>
+/// 主窗口（用户裁定 v2）：纯列表形态（待办 / 备忘 / 设置），不做钉板显示；
+/// 钉板在桌面组件中。数据变更经 App.DataChanged 实时联动。
+/// </summary>
 public partial class ShellWindow : Window
 {
-    private bool _ready;
     private bool _syncingNav;
-    private string _listPage = "todo"; // 列表模式下最后停留的页
     private string _currentTag = "todo";
 
     public ShellWindow()
     {
         InitializeComponent();
         App.DataChanged += OnDataChanged;
-        Loaded += (_, _) =>
-        {
-            _ready = false;
-            ShowPage("todo");
-            var mode = SettingsStore.Current.MainViewMode;
-            (mode == "board" ? ViewBoard : ViewList).IsChecked = true;
-            _ready = true;
-            SetMode(mode); // 恢复上次的显示方式
-        };
+        Loaded += (_, _) => ShowPage("todo");
     }
 
     /// <summary>小组件/同步改了数据 → 当前页重新加载，列表始终显示全部事项。</summary>
     private void OnDataChanged()
     {
-        if (IsVisible && _currentTag is "todo" or "memo" or "board") ShowPage(_currentTag);
+        if (IsVisible && _currentTag is "todo" or "memo") ShowPage(_currentTag);
     }
 
     /// <summary>导航到指定页（托盘「新建待办/备忘/设置」复用）。</summary>
@@ -44,7 +38,6 @@ public partial class ShellWindow : Window
         {
             "todo"     => new TaskListView { DataContext = AppHost.Services.GetRequiredService<TaskListViewModel>() },
             "memo"     => new MemoListView { DataContext = AppHost.Services.GetRequiredService<MemoListViewModel>() },
-            "board"    => new BoardView    { DataContext = AppHost.Services.GetRequiredService<BoardViewModel>() },
             "settings" => new SettingsView(),
             _ => ContentHost.Content,
         };
@@ -60,22 +53,7 @@ public partial class ShellWindow : Window
     {
         if (_syncingNav) return;
         if (sender is not RadioButton rb || rb.Tag is not string tag) return;
-        if (tag == "settings") { ShowPage("settings"); return; }
-        _listPage = tag;
-        SetMode("list"); // 点待办/备忘 → 传统列表
-    }
-
-    private void ViewMode_Changed(object sender, RoutedEventArgs e)
-    {
-        if (!_ready) return;
-        SetMode(ViewBoard.IsChecked == true ? "board" : "list");
-    }
-
-    private void SetMode(string mode)
-    {
-        SettingsStore.Current.MainViewMode = mode;
-        SettingsStore.Save();
-        ShowPage(mode == "board" ? "board" : _listPage);
+        ShowPage(tag);
     }
 
     private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)

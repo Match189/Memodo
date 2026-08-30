@@ -46,6 +46,16 @@ public partial class MemoListViewModel : ObservableObject
         };
         await Task.Run(() => _repo.Insert(item));
         await LoadAsync();
+        App.NotifyDataChanged(); // 组件实时联动
+    }
+
+    /// <summary>完成/取消完成：勾选框绑定已写回 Completed，这里只落库（完成后从钉板移除）。</summary>
+    [RelayCommand]
+    public async Task ToggleDoneAsync(MemoItem item)
+    {
+        await Task.Run(() => _repo.Update(item));
+        await LoadAsync();
+        App.NotifyDataChanged();
     }
 
     [RelayCommand]
@@ -55,6 +65,7 @@ public partial class MemoListViewModel : ObservableObject
         args.item.Content = args.content ?? string.Empty;
         await Task.Run(() => _repo.Update(args.item));
         await LoadAsync();
+        App.NotifyDataChanged();
     }
 
     [RelayCommand]
@@ -62,5 +73,6 @@ public partial class MemoListViewModel : ObservableObject
     {
         await Task.Run(() => _repo.SoftDelete(item.Id));
         await LoadAsync();
+        App.NotifyDataChanged();
     }
 }

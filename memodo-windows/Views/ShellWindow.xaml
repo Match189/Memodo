@@ -28,11 +28,6 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="念念 Memodo" Margin="14,0" VerticalAlignment="Center"
                            FontWeight="SemiBold" Foreground="{DynamicResource SubtleText}" />
-                <!-- 显示方式：传统列表 / 钉板（主窗口与桌面组件均可切换） -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,14,0">
-                    <RadioButton x:Name="ViewList"  Content="列表" Style="{StaticResource SegRadio}" GroupName="viewmode" Checked="ViewMode_Changed"/>
-                    <RadioButton x:Name="ViewBoard" Content="钉板" Style="{StaticResource SegRadio}" GroupName="viewmode" Margin="4,0,0,0" Checked="ViewMode_Changed"/>
-                </StackPanel>
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
                     <Button Content="&#xE921;" Style="{StaticResource CapBtn}" Click="Min_Click"  ToolTip="最小化"/>
                     <Button Content="&#xE922;" Style="{StaticResource CapBtn}" Click="Max_Click"  ToolTip="最大化"/>

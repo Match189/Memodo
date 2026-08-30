@@ -32,6 +32,14 @@ public partial class MemoListView : UserControl
         if (item != null) await Vm.RemoveCommand.ExecuteAsync(item);
     }
 
+    /// <summary>完成/取消完成（勾选框绑定已写回 Completed；完成后从钉板移除）。</summary>
+    private async void Done_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement fe || fe.Tag is not string id) return;
+        var item = Vm.Memos.FirstOrDefault(m => m.Id == id);
+        if (item != null) await Vm.ToggleDoneCommand.ExecuteAsync(item);
+    }
+
     private void Edit_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement fe || fe.Tag is not string id) return;

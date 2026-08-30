@@ -50,11 +50,16 @@
                             Background="{DynamicResource CardSurface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
                         <Grid>
                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" />
+                            <CheckBox Grid.Column="0" IsChecked="{Binding Completed}"
+                                      VerticalAlignment="Top" ToolTip="完成（从钉板移除）"
+                                      Click="Done_Click" Tag="{Binding Id}" />
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14"
+                                           TextDecorations="{Binding Completed, Converter={StaticResource StrikeThrough}}" />
                                 <TextBlock Text="{Binding Content}" TextWrapping="Wrap"
                                            Foreground="{DynamicResource SubtleText}"
                                            FontSize="12" Margin="0,2,0,0" />

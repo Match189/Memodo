@@ -164,3 +164,15 @@ Changed / Added / Tests / Screenshots / Known issues / Next
 **Tests** DB 诊断（用户真实库 5 待办/3 备忘全活跃 → 确认根因在 UI 绑定层）；双端构建 0 错误；publish 更新
 **Known issues** Android 侧凭据存 SharedPreferences（明文）——后续换 EncryptedSharedPreferences；
 双端 WebDAV 均为手动+Windows 自动；实时推送（设计稿 Phase 2 WebSocket）未做
+
+### Round 10 · 产品形态定型（用户裁定）：主窗口=纯列表，组件=唯一钉板
+**Changed** DesktopWidgetWindow（数据源重写）、ShellWindow（移除列表/钉板切换）、TrayService（订阅 DataChanged）、MemoListViewModel/TaskListViewModel（变更广播）、MemoListView（完成勾选）、AppDatabase（DB v4 memos+completed）、MemoItem、MemoRepository、Entities(Room v4)、WebDavSync、Screens.kt、Repo.kt
+**Added**
+- 组件板面 = **全部未完成待办 + 全部备忘**（不再依赖 cards 钉选）；
+  待办勾选完成 / 备忘点✓完成 → 即时从板面移除；主窗口列表同步划线
+- 备忘获得 completed 字段（Win DB v4 / Room v4 / 同步 JSON completed），语义同待办
+- 双向实时：主窗口增删改 ↔ 组件即时互刷（App.DataChanged，Reload 不再广播防回环）
+- 主窗口移除右上角 列表/钉板 切换，回归纯列表（待办/备忘/设置）
+- Android 备忘列表加完成勾选（划线显示）
+**Tests** dotnet build 0 错误；assembleDebug BUILD SUCCESSFUL；publish 更新
+**Known issues** 组件布局 kv 旧 cardId 键残留（无副作用）；BoardView/BoardViewModel 暂时闲置（钉板已收敛到组件，后续清理）

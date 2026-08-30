@@ -111,18 +111,25 @@ fun MemoListView(vm: MainViewModel) {
         Button(onClick = { vm.addMemo(title, content); title = ""; content = "" }) { Text("添加") }
         Spacer(Modifier.height(12.dp))
         LazyColumn {
-            items(memos) { m -> MemoCardItem(m) { vm.deleteMemo(m.id) } }
+            items(memos) { m ->
+                ListItem(
+                    leadingContent = {
+                        Checkbox(checked = m.completed, onCheckedChange = { vm.toggleMemoDone(m) })
+                    },
+                    headlineContent = {
+                        Text(
+                            m.title.ifBlank { "无标题" },
+                            textDecoration = if (m.completed) TextDecoration.LineThrough else null,
+                        )
+                    },
+                    supportingContent = { Text(m.content, style = MaterialTheme.typography.bodySmall) },
+                    trailingContent = {
+                        IconButton(onClick = { vm.deleteMemo(m.id) }) { Icon(Icons.Default.Delete, null) }
+                    },
+                )
+            }
         }
     }
-}
-
-@Composable
-fun MemoCardItem(m: MemoItem, onDelete: () -> Unit) {
-    ListItem(
-        headlineContent = { Text(m.title.ifBlank { "无标题" }) },
-        supportingContent = { Text(m.content, style = MaterialTheme.typography.bodySmall) },
-        trailingContent = { IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, null) } },
-    )
 }
 
 @Composable
