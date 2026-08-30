@@ -128,8 +128,8 @@ public partial class DesktopWidgetWindow : Window
 
     /// <summary>逐条默认纸色：待办=暖黄系轮换，备忘=蓝绿系轮换（用户裁定 #2）。</summary>
     private static string DefaultNoteColor(bool isTodo, int index) => isTodo
-        ? new[] { "yellow", "orange", "pink" }[index % 3]
-        : new[] { "blue", "green", "blue" }[index % 3];
+        ? new[] { "yellow", "orange", "pink" }[(index % 3 + 3) % 3]
+        : new[] { "blue", "green", "blue" }[(index % 3 + 3) % 3];
 
     private void ReloadBoard()
     {
