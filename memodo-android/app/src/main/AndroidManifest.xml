@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <application
+    <!-- 同步（WebDAV / 自建服务器）必需；缺失时 Socket 抛 EPERM -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application android:usesCleartextTraffic="true"
         android:label="念念"
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/Theme.Memodo"
