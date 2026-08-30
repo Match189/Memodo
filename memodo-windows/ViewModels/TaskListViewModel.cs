@@ -60,7 +60,8 @@ public partial class TaskListViewModel : ObservableObject
     [RelayCommand]
     public async Task ToggleAsync(TaskItem item)
     {
-        item.Completed = !item.Completed;
+        // 勾选框的双向绑定已把新的 Completed 写回 item；
+        // 这里不再取反（此前取反导致状态被二次翻转、勾选弹回）。
         await Task.Run(() => _repo.Update(item));
         await LoadAsync();
     }

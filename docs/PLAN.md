@@ -149,3 +149,18 @@ Changed / Added / Tests / Screenshots / Known issues / Next
 - Android Widget 头部进度「N/M 完成」；Room v3 noteColor
 **Tests** dotnet build 0 错误；assembleDebug BUILD SUCCESSFUL；publish 更新
 **Known issues** 标签(tags)字段设计稿有但未入库；3×3 进度环 Widget、点击穿透、WebSocket 实时同步属后续阶段
+
+### Round 9 · 缺陷三连修 + Android WebDAV 闭环（设计稿 Phase 1「手动双向同步」双端达成）
+**Changed** TaskListViewModel、MemoListView、DesktopWidgetWindow(xaml)、Daos、Screens.kt、.gitignore
+**Added**
+- 修复：待办勾选被二次翻转——勾选框双向绑定已写回 Completed，Toggle 不再取反（状态弹回 bug）
+- 修复：桌面组件右上角置顶/菜单按钮不可点——WindowChrome 标题栏区域控件需
+  `IsHitTestVisibleInChrome=True` 豁免，否则点击被当成拖窗
+- 新增：备忘录列表行内「编辑」按钮（复用 EditCardWindow，保存后刷新）
+- **Android WebDAV 同步引擎（WebDavSync.kt）**：HttpURLConnection 实现 GET/PUT/MKCOL+Basic 认证，
+  与 Windows 共用坚果云 memodo/memodo-sync.json；LWW+墓碑+deviceId 平局决胜（§19/§47/§49）；
+  应用本地用 REPLACE upsert 原样保留服务端时间戳
+- Android 设置页同步表单（地址/账号/应用密码/立即同步/上次同步时间）
+**Tests** DB 诊断（用户真实库 5 待办/3 备忘全活跃 → 确认根因在 UI 绑定层）；双端构建 0 错误；publish 更新
+**Known issues** Android 侧凭据存 SharedPreferences（明文）——后续换 EncryptedSharedPreferences；
+双端 WebDAV 均为手动+Windows 自动；实时推送（设计稿 Phase 2 WebSocket）未做

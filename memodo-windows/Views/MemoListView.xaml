@@ -59,10 +59,17 @@
                                            Foreground="{DynamicResource SubtleText}"
                                            FontSize="12" Margin="0,2,0,0" />
                             </StackPanel>
-                            <Button Grid.Column="1" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                    VerticalAlignment="Top" ToolTip="删除"
-                                    Foreground="{DynamicResource Danger}" Background="Transparent" BorderThickness="0"
-                                    Click="Remove_Click" Tag="{Binding Id}" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                                <Button Content="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                        VerticalAlignment="Top" ToolTip="编辑"
+                                        Foreground="{DynamicResource Accent}" Background="Transparent" BorderThickness="0"
+                                        Margin="0,0,6,0"
+                                        Click="Edit_Click" Tag="{Binding Id}" />
+                                <Button Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                        VerticalAlignment="Top" ToolTip="删除"
+                                        Foreground="{DynamicResource Danger}" Background="Transparent" BorderThickness="0"
+                                        Click="Remove_Click" Tag="{Binding Id}" />
+                            </StackPanel>
                         </Grid>
                     </Border>
                 </DataTemplate>

@@ -12,6 +12,9 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE deleted_at IS NULL ORDER BY completed ASC, updated_at DESC")
     fun observeActive(): Flow<List<TaskItem>>
 
+    @Query("SELECT * FROM tasks")
+    suspend fun listAll(): List<TaskItem>
+
     @Query("SELECT * FROM tasks WHERE id = :id")
     suspend fun getById(id: String): TaskItem?
 
@@ -32,6 +35,9 @@ interface MemoDao {
 
     @Query("SELECT * FROM memos WHERE id = :id")
     suspend fun getById(id: String): MemoItem?
+
+    @Query("SELECT * FROM memos")
+    suspend fun listAll(): List<MemoItem>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(item: MemoItem)

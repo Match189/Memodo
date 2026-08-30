@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Extensions.DependencyInjection;
+using Memodo.Windows.Services;
 using Memodo.Windows.ViewModels;
 
 namespace Memodo.Windows.Views;
@@ -28,6 +30,17 @@ public partial class MemoListView : UserControl
         if (sender is not FrameworkElement fe || fe.Tag is not string id) return;
         var item = Vm.Memos.FirstOrDefault(m => m.Id == id);
         if (item != null) await Vm.RemoveCommand.ExecuteAsync(item);
+    }
+
+    private void Edit_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement fe || fe.Tag is not string id) return;
+        var item = Vm.Memos.FirstOrDefault(m => m.Id == id);
+        if (item == null) return;
+        var repo = AppHost.Services.GetRequiredService<Repositories.MemoRepository>();
+        var dlg = new EditCardWindow(item, repo) { Owner = Window.GetWindow(this) };
+        dlg.ShowDialog();
+        if (dlg.Saved) _ = Vm.LoadCommand.ExecuteAsync(null);
     }
 
     private void NewTitle_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)

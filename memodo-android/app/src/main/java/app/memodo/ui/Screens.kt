@@ -3,6 +3,8 @@ package app.memodo.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
@@ -12,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.updateAll
@@ -19,10 +22,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.memodo.data.MemoItem
 import app.memodo.data.TaskItem
+import app.memodo.data.WebDavSync
 import app.memodo.MainActivity
 import app.memodo.widget.MemodoWidget
 import app.memodo.widget.WidgetPrefs
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,13 +130,65 @@ fun SettingsView() {
     val ctx = LocalContext.current
     var maxItems by remember { mutableStateOf(WidgetPrefs.maxItems(ctx).toFloat()) }
     var showCompleted by remember { mutableStateOf(WidgetPrefs.showCompleted(ctx)) }
+    var syncUrl by remember { mutableStateOf(WebDavSync.url(ctx)) }
+    var syncUser by remember { mutableStateOf(WebDavSync.user(ctx)) }
+    var syncPass by remember { mutableStateOf(WebDavSync.pass(ctx)) }
+    var syncing by remember { mutableStateOf(false) }
+    var syncMsg by remember {
+        mutableStateOf(
+            if (WebDavSync.lastSyncAt(ctx) > 0)
+                "上次同步：" + SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())
+                    .format(Date(WebDavSync.lastSyncAt(ctx)))
+            else "尚未同步"
+        )
+    }
     val scope = rememberCoroutineScope()
 
     fun refreshWidget() = scope.launch { MemodoWidget().updateAll(ctx) }
 
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
+    Column(
+        Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
         Text("设置", style = MaterialTheme.typography.titleLarge)
-        Spacer(Modifier.height(12.dp))
+
+        // 同步（设计稿 Phase 1：手动触发的双向同步；与 Windows 共用坚果云快照）
+        OutlinedCard {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("同步（坚果云 WebDAV）", style = MaterialTheme.typography.titleMedium)
+                OutlinedTextField(
+                    value = syncUrl, onValueChange = { syncUrl = it },
+                    label = { Text("服务器地址") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = syncUser, onValueChange = { syncUser = it },
+                    label = { Text("账号") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = syncPass, onValueChange = { syncPass = it },
+                    label = { Text("应用密码") }, singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Button(
+                    onClick = {
+                        WebDavSync.save(ctx, syncUrl, syncUser, syncPass)
+                        syncing = true
+                        scope.launch {
+                            val r = WebDavSync.run(ctx)
+                            syncing = false
+                            syncMsg = r.message
+                            if (r.ok) refreshWidget()
+                        }
+                    },
+                    enabled = !syncing,
+                ) { Text(if (syncing) "同步中…" else "立即同步") }
+                Text(syncMsg, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
 
         // 小组件显示设置（Flutter android_widget_settings 移植：最大条数/显示已完成）
         OutlinedCard {
@@ -159,10 +218,5 @@ fun SettingsView() {
                 }
             }
         }
-        Spacer(Modifier.height(12.dp))
-        Text(
-            "同步：桌面端已接入 WebDAV 快照；手机端 WebDAV 通道在下一轮接入。",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
