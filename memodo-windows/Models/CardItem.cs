@@ -25,6 +25,8 @@ public class CardItem
     public string Title { get; set; } = "";
     public string Content { get; set; } = "";
     public string Color { get; set; } = "red";
+    /// <summary>便签纸色（设计文档 5 色，空=主题纸面）。</summary>
+    public string NoteColor { get; set; } = "";
 
     public long CreatedAt { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     public long UpdatedAt { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();

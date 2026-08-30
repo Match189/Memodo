@@ -33,6 +33,7 @@ public partial class BoardView : UserControl
         BoardCanvas.MouseDown += Board_MouseDown;
         BoardCanvas.MouseMove += Board_MouseMove;
         BoardCanvas.MouseUp += Board_MouseUp;
+        BoardCanvas.MouseRightButtonUp += Board_RightClick;
         Loaded += (_, _) =>
         {
             LoadBoard();
@@ -40,6 +41,27 @@ public partial class BoardView : UserControl
             ThemeService.ThemeChanged += RefreshCork;
         };
         Unloaded += (_, _) => ThemeService.ThemeChanged -= RefreshCork;
+    }
+
+    // 设计文档创建流程：右键空白 → 选模板 → 点击位置生成（随机微旋转）→ 就地编辑
+    private Point _createPos;
+    private void Board_RightClick(object sender, MouseButtonEventArgs e)
+    {
+        _createPos = e.GetPosition(BoardCanvas);
+        var menu = new ContextMenu();
+        foreach (var (type, label) in new[] { ("checklist", "待办清单"), ("idea", "文字便签") })
+        {
+            var t = type;
+            var item = new MenuItem { Header = label };
+            item.Click += async (_, _) =>
+            {
+                var cv = await Vm.CreateInlineAtAsync(t, _createPos.X, _createPos.Y);
+                if (cv is not null) OpenEditor(cv);
+            };
+            menu.Items.Add(item);
+        }
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+        menu.IsOpen = true;
     }
 
     /// <summary>软木板纹理（Flutter board_background 移植：渐变+种子噪点+暗角）。</summary>
@@ -105,35 +127,56 @@ public partial class BoardView : UserControl
 
     private UIElement MakeCard(CardViewModel c)
     {
+        // 设计文档：便签化——5 色纸面、小圆角(2/4)、轻投影、楷体、hover 摆正放大
+        var noteBg = PinFactory.ResolveNote(c.Record.NoteColor);
         var border = new Border
         {
-            Background = (Brush)FindResource("CardSurface"),
-            CornerRadius = new CornerRadius(8),
+            Background = noteBg == default
+                ? (Brush)FindResource("CardSurface")
+                : new SolidColorBrush(noteBg),
+            CornerRadius = new CornerRadius(2, 2, 4, 4),
             BorderBrush = (Brush)FindResource("CardBorder"),
             BorderThickness = new Thickness(1),
-            Padding = new Thickness(10),
+            Padding = new Thickness(12, 16, 12, 12),
             Width = c.Layout.Width,
             Height = c.Layout.Height,
             Tag = c,
             Cursor = Cursors.SizeAll,
-            Effect = (System.Windows.Media.Effects.DropShadowEffect)FindResource("CardShadow"),
+            Effect = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                BlurRadius = 10, ShadowDepth = 2, Opacity = 0.30, Direction = 315,
+            },
         };
         Canvas.SetLeft(border, c.Layout.X);
         Canvas.SetTop(border, c.Layout.Y);
-        border.RenderTransform = new RotateTransform(c.Layout.Rotation, c.Layout.Width / 2, c.Layout.Height / 2);
+        var scaleT = new System.Windows.Media.ScaleTransform(1, 1);
+        var rotT = new RotateTransform(c.Layout.Rotation, c.Layout.Width / 2, c.Layout.Height / 2);
+        border.RenderTransform = new TransformGroup { Children = { scaleT, rotT } };
+
+        // hover：摆正 + 放大 1.03 + 抬升（设计文档 sticky-note:hover）
+        border.MouseEnter += (_, _) =>
+        {
+            rotT.BeginAnimation(RotateTransform.AngleProperty,
+                new System.Windows.Media.Animation.DoubleAnimation(0, TimeSpan.FromMilliseconds(160)));
+            scaleT.BeginAnimation(ScaleTransform.ScaleXProperty,
+                new System.Windows.Media.Animation.DoubleAnimation(1.03, TimeSpan.FromMilliseconds(160)));
+            scaleT.BeginAnimation(ScaleTransform.ScaleYProperty,
+                new System.Windows.Media.Animation.DoubleAnimation(1.03, TimeSpan.FromMilliseconds(160)));
+            Panel.SetZIndex(border, 99);
+        };
+        border.MouseLeave += (_, _) =>
+        {
+            rotT.BeginAnimation(RotateTransform.AngleProperty,
+                new System.Windows.Media.Animation.DoubleAnimation(c.Layout.Rotation, TimeSpan.FromMilliseconds(160)));
+            scaleT.BeginAnimation(ScaleTransform.ScaleXProperty,
+                new System.Windows.Media.Animation.DoubleAnimation(1, TimeSpan.FromMilliseconds(160)));
+            scaleT.BeginAnimation(ScaleTransform.ScaleYProperty,
+                new System.Windows.Media.Animation.DoubleAnimation(1, TimeSpan.FromMilliseconds(160)));
+            Panel.SetZIndex(border, 0);
+        };
 
         var grid = new Grid();
         border.Child = grid;
-
-        // 纸色染色（蓝图 §38：颜色是辅助分类，保持纸感）
-        var tint = new Border
-        {
-            Background = new SolidColorBrush(PinFactory.Resolve(c.Record.Color)),
-            Opacity = 0.12,
-            CornerRadius = new CornerRadius(8),
-            IsHitTestVisible = false,
-        };
-        grid.Children.Add(tint);
 
         // 图钉（品牌元素，钉帽压在卡顶，颜色随卡片）
         var pinHost = new ContentControl
@@ -151,11 +194,15 @@ public partial class BoardView : UserControl
         {
             Text = CardText(c),
             TextWrapping = TextWrapping.Wrap,
-            FontSize = 13,
+            FontSize = 13.5,
             Foreground = (Brush)FindResource("TextPrimary"),
             Margin = new Thickness(0, 6, 0, 0),
+            FontFamily = new FontFamily("KaiTi, Microsoft YaHei UI"), // 手写感（设计文档手写体）
         };
         grid.Children.Add(tb);
+
+        // 右键菜单（设计文档：编辑/删除/复制/改色）
+        border.ContextMenu = BuildCardMenu(c);
 
         // 关闭（取消钉）
         var close = new Button
@@ -187,7 +234,7 @@ public partial class BoardView : UserControl
             var h = Math.Max(100, border.Height + e.VerticalChange);
             border.Width = w; border.Height = h;
             c.Layout.Width = w; c.Layout.Height = h;
-            if (border.RenderTransform is RotateTransform rt) { rt.CenterX = w / 2; rt.CenterY = h / 2; }
+            rotT.CenterX = w / 2; rotT.CenterY = h / 2;
         };
         resize.DragCompleted += (_, _) => _ = Vm.PersistLayoutAsync(c);
         grid.Children.Add(resize);
@@ -209,7 +256,7 @@ public partial class BoardView : UserControl
             var ang = Math.Atan2(p.Y - cy, p.X - cx) * 180 / Math.PI;
             var deg = Math.Clamp(ang + 90, -2.0, 2.0); // 蓝图 §37：限幅 ±2°
             c.Layout.Rotation = deg;
-            if (border.RenderTransform is RotateTransform rt) rt.Angle = deg;
+            rotT.Angle = deg;
         };
         rot.DragCompleted += (_, _) => _ = Vm.PersistLayoutAsync(c);
         grid.Children.Add(rot);
@@ -219,6 +266,60 @@ public partial class BoardView : UserControl
         border.MouseLeftButtonUp += Card_MouseUp;
         return border;
     }
+
+    /// <summary>卡片右键菜单（设计文档：编辑 / 删除 / 复制 / 改色）。</summary>
+    private ContextMenu BuildCardMenu(CardViewModel c)
+    {
+        var menu = new ContextMenu();
+        var edit = new MenuItem { Header = "编辑" };
+        edit.Click += (_, _) => OpenEditor(c);
+        menu.Items.Add(edit);
+
+        var pinMenu = new MenuItem { Header = "图钉色（分类）" };
+        foreach (var p in PinFactory.Colors)
+        {
+            var pc = p;
+            var item = new MenuItem { Header = PinLabel(pc), Icon = ColorDot(PinFactory.Resolve(pc)) };
+            item.Click += (_, _) => { AppHost.Services.GetRequiredService<BoardRepository>().UpdateCardColors(c.Record.Id, pc, c.Record.NoteColor); _ = Vm.LoadCommand.ExecuteAsync(null); BuildCards(); };
+            pinMenu.Items.Add(item);
+        }
+        menu.Items.Add(pinMenu);
+
+        var noteMenu = new MenuItem { Header = "便签纸色" };
+        foreach (var n in PinFactory.NoteColors)
+        {
+            var nc = n;
+            var item = new MenuItem { Header = NoteLabel(nc), Icon = ColorDot(PinFactory.ResolveNote(nc)) };
+            item.Click += (_, _) => { AppHost.Services.GetRequiredService<BoardRepository>().UpdateCardColors(c.Record.Id, c.Record.Color, nc); _ = Vm.LoadCommand.ExecuteAsync(null); BuildCards(); };
+            noteMenu.Items.Add(item);
+        }
+        menu.Items.Add(noteMenu);
+
+        var dup = new MenuItem { Header = "复制" };
+        dup.Click += async (_, _) => { await Vm.DuplicateAsync(c); };
+        menu.Items.Add(dup);
+
+        var unpin = new MenuItem { Header = "取消钉 / 删除" };
+        unpin.Click += (_, _) => Vm.UnpinCommand.Execute(c);
+        menu.Items.Add(unpin);
+        return menu;
+    }
+
+    private static string PinLabel(string c) => c switch
+    {
+        "blue" => "蓝 · 资料", "green" => "绿 · 完成", "yellow" => "黄 · 待办", _ => "红 · 紧急",
+    };
+
+    private static string NoteLabel(string c) => c switch
+    {
+        "pink" => "粉", "blue" => "蓝", "green" => "绿", "orange" => "橙", _ => "黄",
+    };
+
+    private System.Windows.Controls.Border ColorDot(Color c) => new()
+    {
+        Width = 12, Height = 12, CornerRadius = new CornerRadius(6),
+        Background = new SolidColorBrush(c),
+    };
 
     private string CardText(CardViewModel c)
     {
@@ -281,7 +382,8 @@ public partial class BoardView : UserControl
         if (rec.RefType is "idea" or "checklist")
         {
             AppHost.Services.GetRequiredService<BoardRepository>()
-                .UpdateInlineCard(rec.Id, ec.NewTitle, ec.NewContent, ec.SelectedColor ?? rec.Color);
+                .UpdateInlineCard(rec.Id, ec.NewTitle, ec.NewContent,
+                    ec.SelectedColor ?? rec.Color, ec.SelectedNoteColor ?? rec.NoteColor);
         }
         await Vm.LoadCommand.ExecuteAsync(null);
         BuildCards();

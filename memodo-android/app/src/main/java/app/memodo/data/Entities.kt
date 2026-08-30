@@ -72,6 +72,8 @@ data class CardItem(
     val title: String = "",
     val content: String = "",
     val color: String = "red",
+    // 设计文档：便签纸色（yellow/pink/blue/green/orange），与图钉色分离
+    @ColumnInfo(name = "note_color") val noteColor: String = "",
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
     @ColumnInfo(name = "deleted_at") val deletedAt: Long? = null,

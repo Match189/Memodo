@@ -20,6 +20,7 @@ public partial class EditCardWindow : Window
 
     public bool Saved { get; private set; }
     public string? SelectedColor { get; private set; }
+    public string? SelectedNoteColor { get; private set; }
     public string NewTitle => TitleBox.Text.Trim();
     public string NewContent => ContentBox.Text.Trim();
 
@@ -46,30 +47,47 @@ public partial class EditCardWindow : Window
     {
         InitializeComponent();
         _inline = inlineCard;
-        KindText.Text = inlineCard.RefType == "checklist" ? "编辑清单" : "编辑想法";
+        KindText.Text = inlineCard.RefType == "checklist" ? "编辑清单" : "编辑便签";
         TitleBox.Text = inlineCard.Title;
         ContentBox.Text = inlineCard.Content;
         SelectedColor = string.IsNullOrEmpty(inlineCard.Color) ? "red" : inlineCard.Color;
+        SelectedNoteColor = string.IsNullOrEmpty(inlineCard.NoteColor) ? "yellow" : inlineCard.NoteColor;
         ColorPanel.Visibility = Visibility.Visible;
         MarkSelected();
     }
 
     private void MarkSelected()
     {
-        foreach (var b in new[] { ColRed, ColYellow, ColBlue, ColGreen })
+        foreach (var b in new[] { PinRed, PinBlue, PinGreen, PinYellow })
         {
             var on = (string)b.Tag == SelectedColor;
             b.BorderThickness = on ? new Thickness(3) : new Thickness(0);
             b.BorderBrush = on ? (Brush)FindResource("TextPrimary") : Brushes.Transparent;
             b.Opacity = on ? 1 : 0.75;
         }
+        foreach (var b in new[] { NoteYellow, NotePink, NoteBlue, NoteGreen, NoteOrange })
+        {
+            var on = (string)b.Tag == SelectedNoteColor;
+            b.BorderThickness = on ? new Thickness(3) : new Thickness(0);
+            b.BorderBrush = on ? (Brush)FindResource("TextPrimary") : Brushes.Transparent;
+            b.Opacity = on ? 1 : 0.85;
+        }
     }
 
-    private void Col_Click(object sender, MouseButtonEventArgs e)
+    private void Pin_Click(object sender, MouseButtonEventArgs e)
     {
         if (sender is System.Windows.Controls.Border b && b.Tag is string c)
         {
             SelectedColor = c;
+            MarkSelected();
+        }
+    }
+
+    private void Note_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Border b && b.Tag is string c)
+        {
+            SelectedNoteColor = c;
             MarkSelected();
         }
     }

@@ -102,8 +102,8 @@ private fun GridCard(
     onMoveDown: () -> Unit,
 ) {
     Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = tint(card.color),
+        shape = RoundedCornerShape(4.dp), // 设计文档：便签小圆角
+        color = noteTint(card.noteColor) ?: tint(card.color),
         tonalElevation = 2.dp,
         shadowElevation = 3.dp,
     ) {
@@ -163,6 +163,16 @@ private fun GridCard(
             }
         }
     }
+}
+
+/** 便签纸色（设计文档 5 色）；空 = null 回退图钉色染纸。 */
+private fun noteTint(color: String): Color? = when (color) {
+    "yellow" -> Color(0xFFFFF9C4)
+    "pink" -> Color(0xFFFCE4EC)
+    "blue" -> Color(0xFFE3F2FD)
+    "green" -> Color(0xFFE8F5E9)
+    "orange" -> Color(0xFFFFF3E0)
+    else -> null
 }
 
 @Composable

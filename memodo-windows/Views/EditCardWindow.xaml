@@ -13,14 +13,25 @@
                  AcceptsReturn="True" TextWrapping="Wrap"
                  VerticalScrollBarVisibility="Auto"/>
 
-        <!-- 纸色（蓝图 §38：red/yellow/blue/green） -->
-        <StackPanel x:Name="ColorPanel" Orientation="Horizontal" Margin="0,0,0,12" Visibility="Collapsed">
-            <TextBlock Text="纸色" Foreground="{DynamicResource TextSecondary}"
-                       VerticalAlignment="Center" Margin="0,0,8,0"/>
-            <Border x:Name="ColRed"    Width="24" Height="24" CornerRadius="12" Background="#D64545" Tag="red"    Cursor="Hand" Margin="0,0,6,0" MouseLeftButtonDown="Col_Click"/>
-            <Border x:Name="ColYellow" Width="24" Height="24" CornerRadius="12" Background="#E6B422" Tag="yellow" Cursor="Hand" Margin="0,0,6,0" MouseLeftButtonDown="Col_Click"/>
-            <Border x:Name="ColBlue"   Width="24" Height="24" CornerRadius="12" Background="#2F7FD6" Tag="blue"   Cursor="Hand" Margin="0,0,6,0" MouseLeftButtonDown="Col_Click"/>
-            <Border x:Name="ColGreen"  Width="24" Height="24" CornerRadius="12" Background="#3EA65B" Tag="green"  Cursor="Hand" Margin="0,0,6,0" MouseLeftButtonDown="Col_Click"/>
+        <!-- 图钉色（4 色分类）+ 便签纸色（设计文档 5 色） -->
+        <StackPanel x:Name="ColorPanel" Margin="0,0,0,12" Visibility="Collapsed">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                <TextBlock Text="图钉" Foreground="{DynamicResource TextSecondary}"
+                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <Border x:Name="PinRed"    Width="22" Height="22" CornerRadius="11" Background="#E85A4F" Tag="red"    Cursor="Hand" Margin="0,0,6,0" MouseLeftButtonDown="Pin_Click"/>
+                <Border x:Name="PinBlue"   Width="22" Height="22" CornerRadius="11" Background="#4A90E2" Tag="blue"   Cursor="Hand" Margin="0,0,6,0" MouseLeftButtonDown="Pin_Click"/>
+                <Border x:Name="PinGreen"  Width="22" Height="22" CornerRadius="11" Background="#5CB85C" Tag="green"  Cursor="Hand" Margin="0,0,6,0" MouseLeftButtonDown="Pin_Click"/>
+                <Border x:Name="PinYellow" Width="22" Height="22" CornerRadius="11" Background="#F0AD4E" Tag="yellow" Cursor="Hand" Margin="0,0,6,0" MouseLeftButtonDown="Pin_Click"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="纸色" Foreground="{DynamicResource TextSecondary}"
+                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <Border x:Name="NoteYellow" Width="22" Height="22" Background="#FFF9C4" Tag="yellow" Cursor="Hand" Margin="0,0,6,0" MouseLeftButtonDown="Note_Click"/>
+                <Border x:Name="NotePink"   Width="22" Height="22" Background="#FCE4EC" Tag="pink"   Cursor="Hand" Margin="0,0,6,0" MouseLeftButtonDown="Note_Click"/>
+                <Border x:Name="NoteBlue"   Width="22" Height="22" Background="#E3F2FD" Tag="blue"   Cursor="Hand" Margin="0,0,6,0" MouseLeftButtonDown="Note_Click"/>
+                <Border x:Name="NoteGreen"  Width="22" Height="22" Background="#E8F5E9" Tag="green"  Cursor="Hand" Margin="0,0,6,0" MouseLeftButtonDown="Note_Click"/>
+                <Border x:Name="NoteOrange" Width="22" Height="22" Background="#FFF3E0" Tag="orange" Cursor="Hand" Margin="0,0,6,0" MouseLeftButtonDown="Note_Click"/>
+            </StackPanel>
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">

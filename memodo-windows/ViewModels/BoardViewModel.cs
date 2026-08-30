@@ -108,6 +108,47 @@ public partial class BoardViewModel : ObservableObject
         await ReloadAsync();
     }
 
+    /// <summary>
+    /// 在指定位置创建（设计文档创建流程第 3 步：点击位置生成 + 随机微旋转 ±2°）。
+    /// </summary>
+    public async Task<CardViewModel?> CreateInlineAtAsync(string type, double x, double y)
+    {
+        var card = await Task.Run(() => _repo.CreateInlineCard(Board.Id, type, "", "", "yellow"));
+        var layout = NewLayout(card.Id);
+        layout.X = Math.Max(0, x - 80);
+        layout.Y = Math.Max(0, y - 24);
+        layout.Rotation = (Random.Shared.NextDouble() * 4 - 2);
+        await Task.Run(() => _repo.UpsertLayout(layout));
+        await ReloadAsync();
+        return Cards.FirstOrDefault(k => k.Record.Id == card.Id);
+    }
+
+    /// <summary>复制卡片（设计文档右键菜单）：内联卡复制内容，Todo/Memo 复制为新实体并钉板。</summary>
+    public async Task DuplicateAsync(CardViewModel cvm)
+    {
+        var r = cvm.Record;
+        await Task.Run(() =>
+        {
+            if (r.RefType is "idea" or "checklist")
+            {
+                _repo.CreateInlineCard(Board.Id, r.RefType, r.Title, r.Content, r.Color, r.NoteColor);
+            }
+            else if (r.RefType == "todo" && _taskRepo.GetById(r.RefUuid) is { } t)
+            {
+                var nt = new TaskItem { Title = t.Title, Description = t.Description };
+                _taskRepo.Insert(nt);
+                _repo.Pin(Board.Id, "todo", nt.Id, r.Color);
+            }
+            else if (r.RefType == "memo" && _memoRepo.GetById(r.RefUuid) is { } m)
+            {
+                var nm = new MemoItem { Title = m.Title, Content = m.Content };
+                _memoRepo.Insert(nm);
+                _repo.Pin(Board.Id, "memo", nm.Id, r.Color);
+            }
+        });
+        await ReloadAsync();
+    }
+
     private static CardLayoutItem NewLayout(string cardId) => new()
     {
         CardId = cardId,

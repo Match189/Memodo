@@ -137,3 +137,15 @@ Changed / Added / Tests / Screenshots / Known issues / Next
 - Android Widget maxItems(4-30,默认12)/showCompleted(默认false) + 设置页滑杆/开关（SharedPreferences，改后 updateAll）
 **Tests** dotnet build 0 错误；assembleDebug BUILD SUCCESSFUL；publish 更新
 **Known issues** 附着桌面模式下拖动/缩放行为依赖 Explorer（实验，与 Flutter 期一致）；acrylic 在旧于 1803 的 Windows 上降级为透明渐变
+
+### Round 8 · 设计对齐（用户指令：参考 PinBoard 设计稿完善产品）
+**Changed** ThemeService（暖橙主色 #D4763B/暖纸底 #F7F4EF/软木 135° 渐变）、PinFactory（设计稿四色图钉+高光钉帽+NoteColors 五色）、AppDatabase（DB v3 cards+note_color）、CardItem、BoardRepository、EditCardWindow（图钉色×纸色双行）、BoardView（便签化+右键菜单）、DesktopWidgetWindow（便签纸面）、MemodoWidget（头部进度）、Entities/Database(Room v3)
+**Added**
+- 视觉对齐：暖橙品牌色、暖纸背景、软木 135° 渐变+8% 噪点、便签小圆角(2/4)、楷体正文
+- 图钉色（4=分类：紧急/资料/完成/待办）× 便签纸色（5）组合；双端着色
+- 卡片 hover：摆正（角度→0）+ 放大 1.03 + 置顶（设计 sticky-note:hover）
+- 右键空白：选模板（待办清单/文字便签）→ 点击位置生成 + 随机微旋转 ±2° → 就地编辑
+- 卡片右键：编辑 / 图钉色 / 便签纸色 / 复制（Todo/Memo 复制为新实体并钉板）/ 取消钉
+- Android Widget 头部进度「N/M 完成」；Room v3 noteColor
+**Tests** dotnet build 0 错误；assembleDebug BUILD SUCCESSFUL；publish 更新
+**Known issues** 标签(tags)字段设计稿有但未入库；3×3 进度环 Widget、点击穿透、WebSocket 实时同步属后续阶段

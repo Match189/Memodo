@@ -130,6 +130,14 @@ CREATE UNIQUE INDEX IF NOT EXISTS ix_card_platform ON card_layouts(card_id, plat
             AddColumnIfMissing("cards", "color", "TEXT NOT NULL DEFAULT 'red'");
             UserVersion = 2;
         }
+
+        // v3（设计文档）：便签纸色 note_color（yellow/pink/blue/green/orange），
+        // 与图钉色 color（红蓝绿黄=分类）分离，可组合。
+        if (UserVersion < 3)
+        {
+            AddColumnIfMissing("cards", "note_color", "TEXT NOT NULL DEFAULT ''");
+            UserVersion = 3;
+        }
     }
 
     private long UserVersion

@@ -50,15 +50,18 @@ class MemodoWidget : GlanceAppWidget() {
         } catch (e: Exception) {
             emptyList()
         }
+        // 设计文档：头部进度「3/5 完成」
+        val done = tasks.count { it.completed }
+        val progress = if (tasks.isEmpty()) "" else "${done}/${tasks.size} 完成"
         provideContent {
             GlanceTheme {
-                WidgetContent(tasks, prefCap)
+                WidgetContent(tasks, prefCap, progress)
             }
         }
     }
 
     @Composable
-    private fun WidgetContent(tasksAll: List<TaskItem>, prefCap: Int) {
+    private fun WidgetContent(tasksAll: List<TaskItem>, prefCap: Int, progress: String) {
         val context = LocalContext.current
         val size = LocalSize.current
         val sizeCap = when {
@@ -81,6 +84,13 @@ class MemodoWidget : GlanceAppWidget() {
                     modifier = GlanceModifier.defaultWeight()
                         .clickable(actionStartActivity(android.content.Intent(context, MainActivity::class.java))),
                 )
+                if (progress.isNotEmpty()) {
+                    Text(
+                        progress,
+                        style = TextStyle(fontSize = 11.sp),
+                        modifier = GlanceModifier.padding(start = 6.dp),
+                    )
+                }
             }
             Spacer(GlanceModifier.height(8.dp))
             if (tasks.isEmpty()) {

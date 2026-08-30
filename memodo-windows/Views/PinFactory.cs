@@ -5,19 +5,32 @@ using System.Windows.Media;
 namespace Memodo.Windows.Views;
 
 /// <summary>
-/// 图钉（蓝图 §16 品牌元素）：2.5D 钉帽（径向渐变+高光）+ 针杆。
-/// 代码构建，供 Board 卡与桌面组件复用；不依赖图片资源。
+/// 图钉（蓝图 §16 品牌元素 × 设计文档配色）：
+/// 四色图钉 = 分类（红/蓝/绿/黄），钉帽=圆形带高光+内阴影+投影，压在便签顶部。
 /// </summary>
 public static class PinFactory
 {
-    public static readonly string[] Colors = { "red", "yellow", "blue", "green" };
+    public static readonly string[] Colors = { "red", "blue", "green", "yellow" };
 
     public static Color Resolve(string? name) => name switch
     {
-        "yellow" => Color.FromRgb(0xE6, 0xB4, 0x22),
-        "blue"   => Color.FromRgb(0x2F, 0x7F, 0xD6),
-        "green"  => Color.FromRgb(0x3E, 0xA6, 0x5B),
-        _        => Color.FromRgb(0xD6, 0x45, 0x45), // red 默认
+        "blue"   => Color.FromRgb(0x4A, 0x90, 0xE2),
+        "green"  => Color.FromRgb(0x5C, 0xB8, 0x5C),
+        "yellow" => Color.FromRgb(0xF0, 0xAD, 0x4E),
+        _        => Color.FromRgb(0xE8, 0x5A, 0x4F), // red 默认
+    };
+
+    /// <summary>便签纸色（设计文档 5 色）：yellow/pink/blue/green/orange。</summary>
+    public static readonly string[] NoteColors = { "yellow", "pink", "blue", "green", "orange" };
+
+    public static Color ResolveNote(string? name) => name switch
+    {
+        "pink"   => Color.FromRgb(0xFC, 0xE4, 0xEC),
+        "blue"   => Color.FromRgb(0xE3, 0xF2, 0xFD),
+        "green"  => Color.FromRgb(0xE8, 0xF5, 0xE9),
+        "orange" => Color.FromRgb(0xFF, 0xF3, 0xE0),
+        "yellow" => Color.FromRgb(0xFF, 0xF9, 0xC4),
+        _        => default, // 空 = 跟随主题纸面
     };
 
     /// <param name="size">钉帽直径(px)</param>
@@ -47,7 +60,7 @@ public static class PinFactory
         };
         root.Children.Add(needle);
 
-        // 钉帽
+        // 钉帽：径向渐变 + 顶部高光小圆（设计文档 flat pin + inset highlight）
         var head = new System.Windows.Shapes.Ellipse
         {
             Width = size,
@@ -70,6 +83,16 @@ public static class PinFactory
             },
         };
         root.Children.Add(head);
+
+        var hl = new System.Windows.Shapes.Ellipse
+        {
+            Width = size * 0.32, Height = size * 0.32,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(size * 0.16, size * 0.12, 0, 0),
+            Fill = new SolidColorBrush(Color.FromArgb(0xAA, 0xFF, 0xFF, 0xFF)),
+        };
+        root.Children.Add(hl);
 
         return root;
     }

@@ -205,15 +205,21 @@ public partial class DesktopWidgetWindow : Window
     private UIElement BuildCard(CardItem card, string title, bool isTodo, bool done,
         TaskItem? task, MemoItem? memo, WidgetCardPos pos)
     {
+        var noteBg = PinFactory.ResolveNote(card.NoteColor);
         var border = new Border
         {
-            Background = (Brush)FindResource("CardSurface"),
-            CornerRadius = new CornerRadius(8),
+            Background = noteBg == default
+                ? (Brush)FindResource("CardSurface")
+                : new SolidColorBrush(noteBg),
+            CornerRadius = new CornerRadius(2, 2, 4, 4),
             BorderBrush = (Brush)FindResource("CardBorder"),
             BorderThickness = new Thickness(1),
             Padding = new Thickness(10, 14, 10, 10),
             Width = pos.W, Height = pos.H,
-            Effect = (System.Windows.Media.Effects.DropShadowEffect)FindResource("CardShadow"),
+            Effect = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                BlurRadius = 8, ShadowDepth = 2, Opacity = 0.28, Direction = 315,
+            },
             Cursor = _locked ? Cursors.Arrow : Cursors.SizeAll,
             Tag = card,
         };
@@ -368,7 +374,8 @@ public partial class DesktopWidgetWindow : Window
             dlg = new EditCardWindow(card) { Owner = this };
         dlg?.ShowDialog();
         if (dlg is EditCardWindow ec && ec.Saved && card.RefType is "idea" or "checklist")
-            _boardRepo.UpdateInlineCard(card.Id, ec.NewTitle, ec.NewContent, ec.SelectedColor ?? card.Color);
+            _boardRepo.UpdateInlineCard(card.Id, ec.NewTitle, ec.NewContent,
+                ec.SelectedColor ?? card.Color, ec.SelectedNoteColor ?? card.NoteColor);
         Reload();
     }
 
