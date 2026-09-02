@@ -1,5 +1,5 @@
 """设备注册与心跳（任务书 §5 设备标识）。"""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

@@ -52,4 +52,47 @@ app/
 
 ## 说明
 
-本服务仅定义并托管协议；Windows / Android 客户端的「接入服务端」为后续里程碑。
+本服务仅定义并托管协议；Windows / Android 客户端已在「设置 → 同步方式 → 自建服务器」接入
+（注册 → 登录 → push/pull，详见客户端 README）。
+
+## 数据隔离与墓碑回收（2026-08 更新）
+
+- `sync_items` 行按 **user_id 隔离**，唯一键为 `(user_id, entity, entity_id)`——
+  用户之间数据完全不可见。
+- 拉取游标索引为 `(user_id, server_seq)`，pull 只返回本用户的增量。
+- **软删除墓碑保留 90 天**后物理清理（全量 pull 时顺带执行），防止快照无限增长。
+
+## 升级注意（旧库迁移）
+
+v0.1 旧库的 `sync_items` 没有 user_id 列。升级时**最简单可靠的方式是清库重建**
+（客户端数据在本地完整，重新注册账号后 push 即恢复云端）：
+
+```bash
+docker compose down
+docker volume rm memodo-server_pgdata   # 卷名以 docker volume ls 实际为准
+docker compose up --build
+```
+
+或手工迁移（保留数据）：
+
+```sql
+ALTER TABLE sync_items ADD COLUMN user_id UUID REFERENCES users(id);
+UPDATE sync_items s SET user_id = u.id FROM users u LIMIT 1;  -- 单用户场景直接归属
+-- 迁移后重建唯一约束/索引（见 app/models.py SyncItem.__table_args__）
+```
+
+## 测试（2026-09 起）
+
+全链路回归脚本：`../.qa/test-server.mjs`（Node ≥18，无第三方依赖），共 24 个用例，
+覆盖认证（注册/登录/refresh 轮换与重放）、push LWW 三分支（旧拒/新收/平局 device_id 决胜）、
+pull cursor 增量与分页、**E2EE 行级密文字符串**（推/存/回读/口令解出/无明文泄露）、
+墓碑、双用户数据隔离、未授权访问：
+
+```bash
+node ../.qa/test-server.mjs http://localhost:8000
+# 输出 "24 passed, 0 failed" 即全部通过
+```
+
+配套资产：`../.qa/CryptoHarness/`（C# SyncCrypto 自测与 C#↔Node 跨语言互操作）、
+`../.qa/webdav-mock.mjs`（WebDAV 快照全链路模拟器）。E2EE 行级依赖 `data: dict | str`
+（schemas.py，2026-09-01 修复）；90 天前墓碑在 cursor=0 全量拉取时清理属设计行为。

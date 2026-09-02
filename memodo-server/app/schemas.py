@@ -41,7 +41,8 @@ class DeviceOut(BaseModel):
 class SyncItemIn(BaseModel):
     entity: str
     entity_id: str
-    data: dict
+    # E2EE 开启时客户端上送的是密文字符串（MEMODO1+base64），未加密时是业务 JSON 对象
+    data: dict | str
     updated_at: int
     deleted_at: int | None = None
     device_id: str = ""
@@ -54,7 +55,8 @@ class PushIn(BaseModel):
 class SyncItemOut(BaseModel):
     entity: str
     entity_id: str
-    data: dict
+    # 与 SyncItemIn 同理：可能是业务 JSON 对象，也可能是 E2EE 密文字符串
+    data: dict | str
     updated_at: int
     deleted_at: int | None
     device_id: str

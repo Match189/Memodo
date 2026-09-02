@@ -13,6 +13,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Sequence,
     String,
@@ -68,10 +69,13 @@ class RefreshToken(Base):
 
 
 class SyncItem(Base):
-    """统一同步行。server_seq 每次“被接受的写入”都会前进，用于 cursor 增量。"""
+    """统一同步行（按用户隔离）。server_seq 每次“被接受的写入”都会前进，用于 cursor 增量。"""
     __tablename__ = "sync_items"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(PG_UUID(as_uuid=True),
+                     ForeignKey("users.id", ondelete="CASCADE"),
+                     nullable=False, index=True)
     server_seq = Column(BigInteger, Sequence("sync_seq"), nullable=False,
                         unique=True, index=True)
     entity = Column(String(32), nullable=False)       # tasks/memos/boards/...
@@ -82,4 +86,7 @@ class SyncItem(Base):
     device_id = Column(String(64), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    __table_args__ = (UniqueConstraint("entity", "entity_id", name="uq_entity_row"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "entity", "entity_id", name="uq_user_entity_row"),
+        Index("ix_user_seq", "user_id", "server_seq"),
+    )

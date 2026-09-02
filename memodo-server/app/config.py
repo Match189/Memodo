@@ -16,8 +16,12 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
 
-    # 允许的前端来源；生产改为具体域名
-    cors_origins: list[str] = ["*"]
+    # 允许的前端来源；逗号分隔（如 "https://a.com,https://b.com"），"*" 放行全部
+    cors_origins: str = "*"
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
 
 settings = Settings()
