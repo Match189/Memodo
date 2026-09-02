@@ -18,6 +18,7 @@ data class TaskItem(
     val completed: Boolean = false,
     val priority: Int = 0,
     @ColumnInfo(name = "due_date") val dueDate: Long? = null,
+    @ColumnInfo(name = "archived_at") val archivedAt: Long? = null,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
     @ColumnInfo(name = "deleted_at") val deletedAt: Long? = null,
@@ -32,6 +33,7 @@ data class MemoItem(
     val completed: Boolean = false,
     // 用户裁定 v2：备忘改用「是否显示在钉板」语义（眼睛按钮）
     @ColumnInfo(name = "show_on_board") val showOnBoard: Boolean = true,
+    @ColumnInfo(name = "archived_at") val archivedAt: Long? = null,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
     @ColumnInfo(name = "deleted_at") val deletedAt: Long? = null,

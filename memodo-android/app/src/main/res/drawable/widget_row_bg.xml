@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 任务行：淡黄底 + 左侧黄色竖条（参照截图条目风格） -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FFF6DC" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+    <item android:width="3dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#F5B940" />
+            <corners android:radius="2dp" />
+        </shape>
+    </item>
+</layer-list>

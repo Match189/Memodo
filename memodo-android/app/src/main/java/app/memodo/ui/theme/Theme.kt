@@ -57,11 +57,19 @@ private val MemodoShapes = Shapes(
     large = RoundedCornerShape(16.dp),
 )
 
+/**
+ * darkPreference: "system" 跟随系统（默认）/ "on" 强制深色 / "off" 强制浅色。
+ */
 @Composable
 fun MemodoTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkPreference: String = "system",
     content: @Composable () -> Unit
 ) {
+    val darkTheme = when (darkPreference) {
+        "on" -> true
+        "off" -> false
+        else -> isSystemInDarkTheme()
+    }
     MaterialTheme(
         colorScheme = if (darkTheme) DarkColors else LightColors,
         shapes = MemodoShapes,

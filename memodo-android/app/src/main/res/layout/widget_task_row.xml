@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 任务行：标题在左，勾选框在右，整行可点（勾选切换） -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/task_row_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/widget_row_bg"
+    android:layout_marginBottom="4dp"
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+
+    <TextView
+        android:id="@+id/task_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textSize="13sp"
+        android:textColor="#D9000000" />
+
+    <ImageView
+        android:id="@+id/task_check"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="4dp"
+        android:contentDescription="@string/task_done_label" />
+</LinearLayout>

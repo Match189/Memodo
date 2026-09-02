@@ -12,6 +12,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
+import app.memodo.R
 
 /**
  * WebDAV 快照同步（设计稿 Phase 1「手动双向同步」+ 蓝图 §47 LWW+墓碑）。
@@ -40,8 +41,8 @@ object WebDavSync {
     fun user(ctx: Context) =
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("user", "") ?: ""
 
-    fun pass(ctx: Context) =
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("pass", "") ?: ""
+    // 密码经 SecretStore（AndroidKeyStore AES-GCM）加密落盘；首次读取旧明文自动迁移
+    fun pass(ctx: Context) = SecretStore.get(ctx, "webdav_pass")
 
     fun lastSyncAt(ctx: Context): Long =
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong("lastSyncAt", 0)
@@ -50,8 +51,8 @@ object WebDavSync {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString("url", url.trim())
             .putString("user", user.trim())
-            .putString("pass", pass)
             .apply()
+        SecretStore.put(ctx, "webdav_pass", pass)
     }
 
     /** 同步方式（用户裁定补全）：local 仅本地 / webdav / server 自建服务器。 */
@@ -75,10 +76,14 @@ object WebDavSync {
     data class Result(val ok: Boolean, val message: String)
 
     suspend fun run(context: Context): Result = withContext(Dispatchers.IO) {
+        SyncStatus.markSyncing()
         val url = url(context).trim()
         val user = user(context).trim()
         val pass = pass(context)
-        if (url.isEmpty() || user.isEmpty()) return@withContext Result(false, "请先填写 WebDAV 地址与账号")
+        if (url.isEmpty() || user.isEmpty()) {
+            SyncStatus.markIdle()
+            return@withContext Result(false, context.getString(R.string.sync_fill_webdav))
+        }
         val base = url.trimEnd('/') + "/"
 
         try {
@@ -90,10 +95,20 @@ object WebDavSync {
             if (getCode == 404) {
                 // 首次同步
             } else if (getCode !in 200..299) {
-                return@withContext Result(false, "下载快照失败 HTTP $getCode")
+                return@withContext Result(false, context.getString(R.string.sync_download_fail, getCode))
+            }
+            // E2EE：云端是密文（或旧明文），先解密再解析；口令不一致 → 终止保护本地
+            val e2eePass = SyncCrypto.passphrase(context)
+            // A1 混合口令护栏：云端是本格式密文而本机未设口令 → 中止（绝不以明文覆盖云端密文）
+            if (getBody != null && SyncCrypto.isEncrypted(String(getBody)) && e2eePass.isEmpty()) {
+                return@withContext Result(false, context.getString(R.string.sync_e2ee_no_pass))
+                    .also { SyncStatus.markFail(it.message) }
             }
             val remote = getBody?.let {
-                try { JSONObject(String(it)) } catch (e: Exception) { JSONObject() }
+                val plain = SyncCrypto.tryDecrypt(String(it), e2eePass)
+                    ?: return@withContext Result(false, context.getString(R.string.sync_e2ee_fail))
+                        .also { SyncStatus.markFail(it.message) }
+                try { JSONObject(plain) } catch (e: Exception) { JSONObject() }
             } ?: JSONObject()
             val remoteDevice = remote.optString("device_id", "")
             val myDevice = deviceId(context)
@@ -141,23 +156,88 @@ object WebDavSync {
             mergedTasks.values.forEach { db.taskDao().upsert(it) }
             mergedMemos.values.forEach { db.memoDao().upsert(it) }
 
-            // ---- 上传合并结果（含墓碑）----
+            // ---- 跨端设置合并（自动同步间隔 LWW）----
+            val settingsPrefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val localSettingsUpdatedAt = settingsPrefs.getLong("interval_updated_at", 0)
+            remote.optJSONObject("settings")?.let { rs ->
+                val remoteUpdatedAt = rs.optLong("updated_at", 0)
+                val remoteMinutes = rs.optInt("auto_sync_minutes", 3)
+                if (remoteUpdatedAt > localSettingsUpdatedAt && remoteMinutes in 1..120) {
+                    settingsPrefs.edit()
+                        .putInt("interval_minutes", remoteMinutes)
+                        .putLong("interval_updated_at", remoteUpdatedAt)
+                        .apply()
+                    SyncScheduler.schedule(context)
+                }
+            }
+
+            // ---- 上传前冲突重检：重新拉取远端，若已变更则重新合并 ----
+            val (_, reGetBody) = http(base + FILE, user, pass, "GET")
+            // A1 护栏同样适用于重检响应（期间云端被别的设备换成密文）
+            if (reGetBody != null && SyncCrypto.isEncrypted(String(reGetBody)) && e2eePass.isEmpty()) {
+                return@withContext Result(false, context.getString(R.string.sync_e2ee_no_pass))
+                    .also { SyncStatus.markFail(it.message) }
+            }
+            val reRemote = reGetBody?.let {
+                val plain = SyncCrypto.tryDecrypt(String(it), e2eePass)
+                    ?: return@withContext Result(false, context.getString(R.string.sync_e2ee_fail))
+                        .also { SyncStatus.markFail(it.message) }
+                try { JSONObject(plain) } catch (_: Exception) { null }
+            }
+            if (reRemote != null && reRemote.optString("device_id", "") != myDevice) {
+                // 远端已被其他设备更新：重新拉取本地最新，重新合并
+                val freshLocal = db.taskDao().listAll()
+                val freshLocalMemos = db.memoDao().listAll()
+                val freshMap = LinkedHashMap<String, TaskItem>().apply { freshLocal.forEach { put(it.id, it) } }
+                val freshMemoMap = LinkedHashMap<String, MemoItem>().apply { freshLocalMemos.forEach { put(it.id, it) } }
+                reRemote.optJSONArray("tasks")?.let { arr ->
+                    for (i in 0 until arr.length()) {
+                        val o = arr.getJSONObject(i); val id = o.getString("id")
+                        val rt = taskFromJson(o)
+                        if (freshMap[id] == null || prefer(rt.updatedAt, (freshMap[id]?.updatedAt ?: 0), reRemote.optString("device_id"), myDevice))
+                            freshMap[id] = rt
+                    }
+                }
+                reRemote.optJSONArray("memos")?.let { arr ->
+                    for (i in 0 until arr.length()) {
+                        val o = arr.getJSONObject(i); val id = o.getString("id")
+                        val rm = memoFromJson(o)
+                        if (freshMemoMap[id] == null || prefer(rm.updatedAt, (freshMemoMap[id]?.updatedAt ?: 0), reRemote.optString("device_id"), myDevice))
+                            freshMemoMap[id] = rm
+                    }
+                }
+                freshMap.values.forEach { db.taskDao().upsert(it) }
+                freshMemoMap.values.forEach { db.memoDao().upsert(it) }
+                // 使用重新合并后的结果上传
+                mergedTasks.clear(); mergedTasks.putAll(freshMap)
+                mergedMemos.clear(); mergedMemos.putAll(freshMemoMap)
+            }
+
+            // ---- 上传合并结果（含墓碑 + 跨端设置）----
             val out = JSONObject()
                 .put("format", 3)
                 .put("device_id", myDevice)
                 .put("exported_at", System.currentTimeMillis())
             out.put("tasks", JSONArray().apply { mergedTasks.values.forEach { put(taskJson(it)) } })
             out.put("memos", JSONArray().apply { mergedMemos.values.forEach { put(memoJson(it)) } })
+            val finalMinutes = settingsPrefs.getInt("interval_minutes", 3).coerceIn(1, 120)
+            out.put("settings", JSONObject()
+                .put("auto_sync_minutes", finalMinutes)
+                .put("updated_at", settingsPrefs.getLong("interval_updated_at", 0)))
 
-            val (putCode, _) = http(base + FILE, user, pass, "PUT", out.toString().toByteArray())
-            if (putCode !in 200..299) return@withContext Result(false, "上传快照失败 HTTP $putCode")
+            // E2EE：启用口令时整包 AES-256-GCM 加密上传，云端只存密文
+            val (putCode, _) = http(base + FILE, user, pass, "PUT",
+                SyncCrypto.encrypt(out.toString(), e2eePass).toByteArray())
+            if (putCode !in 200..299) return@withContext Result(false, context.getString(R.string.sync_upload_fail, putCode))
 
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .putLong("lastSyncAt", System.currentTimeMillis()).apply()
 
-            Result(true, "同步完成：待办 ${mergedTasks.size} 条 / 备忘 ${mergedMemos.size} 条")
+            Result(true, context.getString(R.string.sync_ok_webdav, mergedTasks.size, mergedMemos.size))
+                .also { SyncStatus.markOk(it.message) }
         } catch (e: Exception) {
-            Result(false, e.message ?: "同步失败")
+            Result(false, e.message ?: context.getString(R.string.sync_fail))
+                .also { SyncStatus.markFail(it.message) }
         }
     }
 
@@ -170,6 +250,7 @@ object WebDavSync {
         .put("id", t.id).put("title", t.title).put("description", t.description)
         .put("completed", t.completed).put("priority", t.priority)
         .put("due_date", t.dueDate ?: JSONObject.NULL)
+        .put("archived_at", t.archivedAt ?: JSONObject.NULL)
         .put("created_at", t.createdAt).put("updated_at", t.updatedAt)
         .put("deleted_at", t.deletedAt ?: JSONObject.NULL)
 
@@ -177,6 +258,7 @@ object WebDavSync {
         .put("id", m.id).put("title", m.title).put("content", m.content)
         .put("completed", m.completed)
         .put("show_on_board", m.showOnBoard)
+        .put("archived_at", m.archivedAt ?: JSONObject.NULL)
         .put("created_at", m.createdAt).put("updated_at", m.updatedAt)
         .put("deleted_at", m.deletedAt ?: JSONObject.NULL)
 
@@ -187,6 +269,7 @@ object WebDavSync {
         completed = o.optBoolean("completed", false),
         priority = o.optInt("priority", 0),
         dueDate = if (o.isNull("due_date")) null else o.optLong("due_date"),
+        archivedAt = if (o.isNull("archived_at")) null else o.optLong("archived_at"),
         createdAt = o.optLong("created_at"),
         updatedAt = o.optLong("updated_at"),
         deletedAt = if (o.isNull("deleted_at")) null else o.optLong("deleted_at"),
@@ -198,6 +281,7 @@ object WebDavSync {
         content = o.optString("content", ""),
         completed = o.optBoolean("completed", false),
         showOnBoard = o.optBoolean("show_on_board", true),
+        archivedAt = if (o.isNull("archived_at")) null else o.optLong("archived_at"),
         createdAt = o.optLong("created_at"),
         updatedAt = o.optLong("updated_at"),
         deletedAt = if (o.isNull("deleted_at")) null else o.optLong("deleted_at"),

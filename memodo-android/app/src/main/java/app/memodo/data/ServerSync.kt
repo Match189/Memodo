@@ -11,6 +11,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
+import app.memodo.R
 
 /**
  * 自建服务器同步（设计稿 Phase 1 + 蓝图 §45/§47）：
@@ -32,8 +33,8 @@ object ServerSync {
     fun user(ctx: Context) =
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("user", "") ?: ""
 
-    fun pass(ctx: Context) =
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("pass", "") ?: ""
+    // 密码经 SecretStore（AndroidKeyStore AES-GCM）加密落盘；首次读取旧明文自动迁移
+    fun pass(ctx: Context) = SecretStore.get(ctx, "server_pass")
 
     fun cursor(ctx: Context): Long =
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong("cursor", 0)
@@ -42,20 +43,38 @@ object ServerSync {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString("url", url.trim().trimEnd('/'))
             .putString("user", user.trim())
-            .putString("pass", pass)
             .apply()
+        SecretStore.put(ctx, "server_pass", pass)
     }
 
     fun lastSyncAt(ctx: Context): Long =
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong("lastSyncAt", 0)
 
+    /** 注册新账号（服务端 /auth/register）。返回 null=成功，否则为错误提示。 */
+    suspend fun register(context: Context, url: String, email: String, password: String): String? =
+        withContext(Dispatchers.IO) {
+            try {
+                val req = JSONObject().put("email", email).put("password", password)
+                val (code, _) = httpJson("$url/auth/register", "POST", req, token = null)
+                when {
+                    code == 409 -> context.getString(R.string.err_register_conflict)
+                    code !in 200..299 -> context.getString(R.string.sync_login_fail, code)
+                    else -> null
+                }
+            } catch (e: Exception) { e.message }
+        }
+
 
 
     suspend fun run(context: Context): WebDavSync.Result = withContext(Dispatchers.IO) {
+        SyncStatus.markSyncing()
         val url = url(context)
         val user = user(context)
         val pass = pass(context)
-        if (url.isEmpty() || user.isEmpty()) return@withContext WebDavSync.Result(false, "请先填写服务器地址与账号")
+        if (url.isEmpty() || user.isEmpty()) {
+            SyncStatus.markIdle()
+            return@withContext WebDavSync.Result(false, context.getString(R.string.sync_fill_server))
+        }
 
         try {
             val db = AppDatabase.get(context)
@@ -63,65 +82,103 @@ object ServerSync {
             // ---- 登录（JWT）----
             val loginReq = JSONObject().put("email", user).put("password", pass)
             val (loginCode, loginResp) = httpJson("$url/auth/login", "POST", loginReq, token = null)
-            if (loginCode !in 200..299) return@withContext WebDavSync.Result(false, "登录失败 HTTP $loginCode")
+            if (loginCode !in 200..299) return@withContext WebDavSync.Result(false, context.getString(R.string.sync_login_fail, loginCode))
             val token = JSONObject(loginResp ?: "{}").optString("access_token")
-            if (token.isEmpty()) return@withContext WebDavSync.Result(false, "登录响应缺少 token")
+            if (token.isEmpty()) return@withContext WebDavSync.Result(false, context.getString(R.string.sync_login_no_token))
 
-            // ---- push 全量变更（含墓碑）----
+            // ---- pull 游标增量（先拉后推：若先 push，其他设备刚写入的较小 seq 行会被本设备随后推高的游标跳过）----
+            val e2eePass = SyncCrypto.passphrase(context)
+            val sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            // A4 口令指纹：口令变化（含清除）→ 游标归零全量重拉，
+            // 否则曾因口令错误跳过的行（游标已越过）永远不会被重新拉到
+            val fp = SyncCrypto.fingerprint(e2eePass)
+            if (sp.getString("e2ee_pass_fp", null) != fp)
+                sp.edit().putString("e2ee_pass_fp", fp).putLong("cursor", 0).apply()
+            var pulled = 0
+            var undecryptable = 0
+            var cursor = cursor(context)
+            while (true) {
+                val (pullCode, pullBody) = httpJson("$url/sync/pull?cursor=$cursor&limit=500", "GET", null, token)
+                if (pullCode !in 200..299) return@withContext WebDavSync.Result(false, context.getString(R.string.sync_pull_fail, pullCode))
+                val resp = JSONObject(pullBody ?: "{}")
+                val arr = resp.optJSONArray("items") ?: JSONArray()
+                for (i in 0 until arr.length()) {
+                    val item = arr.getJSONObject(i)
+                    // E2EE：data 为密文字符串（口令不对 → 跳过该行）；未启用加密时期的明文行原样
+                    val data = SyncCrypto.openRow(item.opt("data"), e2eePass)
+                    if (data == null) { undecryptable++; continue }
+                    when (item.optString("entity")) {
+                        "tasks" -> {
+                            val remote = WebDavSync.taskFromJson(data)
+                            val local = db.taskDao().getById(remote.id)
+                            // LWW 与 Windows 端同构：新者胜，平局按 device_id 字典序决胜（§19）
+                            if (local == null || WebDavSync.prefer(remote.updatedAt, local.updatedAt,
+                                    item.optString("device_id"), WebDavSync.deviceId(context))) {
+                                db.taskDao().upsert(remote)
+                                pulled++
+                            }
+                        }
+                        "memos" -> {
+                            val remote = WebDavSync.memoFromJson(data)
+                            val local = db.memoDao().getById(remote.id)
+                            if (local == null || WebDavSync.prefer(remote.updatedAt, local.updatedAt,
+                                    item.optString("device_id"), WebDavSync.deviceId(context))) {
+                                db.memoDao().upsert(remote)
+                                pulled++
+                            }
+                        }
+                    }
+                }
+                val next = resp.optLong("cursor", cursor)
+                sp.edit().putLong("cursor", next).apply()
+                if (arr.length() == 0 || next == cursor) break
+                cursor = next
+            }
+            // A3：全部行都解不开（口令不对/本机未设口令）→ 明确报错并中止，不继续 push
+            if (undecryptable > 0 && pulled == 0)
+                return@withContext WebDavSync.Result(false, context.getString(R.string.sync_e2ee_fail))
+                    .also { SyncStatus.markFail(it.message) }
+
+            // ---- push 增量变更（含墓碑）：只推上次同步后有变更的行（首推 lastPushAt=0 自然全量）----
             val now = System.currentTimeMillis()
+            val since = sp.getLong("lastPushAt", 0)
             val items = JSONArray()
             db.taskDao().listAll().forEach {
-                items.put(JSONObject()
+                if (it.updatedAt > since) items.put(JSONObject()
                     .put("entity", "tasks")
                     .put("entity_id", it.id)
-                    .put("data", WebDavSync.taskJson(it))
+                    .put("data", SyncCrypto.sealRow(WebDavSync.taskJson(it), e2eePass))
                     .put("updated_at", it.updatedAt)
                     .put("deleted_at", it.deletedAt ?: JSONObject.NULL)
                     .put("device_id", WebDavSync.deviceId(context)))
             }
             db.memoDao().listAll().forEach {
-                items.put(JSONObject()
+                if (it.updatedAt > since) items.put(JSONObject()
                     .put("entity", "memos")
                     .put("entity_id", it.id)
-                    .put("data", WebDavSync.memoJson(it))
+                    .put("data", SyncCrypto.sealRow(WebDavSync.memoJson(it), e2eePass))
                     .put("updated_at", it.updatedAt)
                     .put("deleted_at", it.deletedAt ?: JSONObject.NULL)
                     .put("device_id", WebDavSync.deviceId(context)))
             }
-            val (pushCode, _) = httpJson("$url/sync/push", "POST",
-                JSONObject().put("items", items), token)
-            if (pushCode !in 200..299) return@withContext WebDavSync.Result(false, "push 失败 HTTP $pushCode")
-
-            // ---- pull 游标增量 ----
-            var cursor = cursor(context)
-            var pulled = 0
-            while (true) {
-                val (pullCode, pullBody) = httpJson("$url/sync/pull?cursor=$cursor&limit=500", "GET", null, token)
-                if (pullCode !in 200..299) return@withContext WebDavSync.Result(false, "pull 失败 HTTP $pullCode")
-                val resp = JSONObject(pullBody ?: "{}")
-                val arr = resp.optJSONArray("items") ?: JSONArray()
-                for (i in 0 until arr.length()) {
-                    val item = arr.getJSONObject(i)
-                    val data = item.optJSONObject("data") ?: continue
-                    when (item.optString("entity")) {
-                        "tasks" -> db.taskDao().upsert(WebDavSync.taskFromJson(data))
-                        "memos" -> db.memoDao().upsert(WebDavSync.memoFromJson(data))
-                    }
-                    pulled++
-                }
-                val next = resp.optLong("cursor", cursor)
-                context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-                    .putLong("cursor", next).apply()
-                if (arr.length() == 0 || next == cursor) break
-                cursor = next
+            var pushedCount = 0
+            if (items.length() > 0) {
+                val (pushCode, _) = httpJson("$url/sync/push", "POST",
+                    JSONObject().put("items", items), token)
+                if (pushCode !in 200..299) return@withContext WebDavSync.Result(false, context.getString(R.string.sync_push_fail, pushCode))
+                pushedCount = items.length()
             }
 
-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-                .putLong("lastSyncAt", System.currentTimeMillis()).apply()
+            sp.edit()
+                .putLong("lastSyncAt", System.currentTimeMillis())
+                .putLong("lastPushAt", now)
+                .apply()
 
-            WebDavSync.Result(true, "同步完成：推送 ${items.length()} 条，拉取 $pulled 条")
+            WebDavSync.Result(true, context.getString(R.string.sync_ok_server, pushedCount, pulled))
+                .also { SyncStatus.markOk(it.message) }
         } catch (e: Exception) {
-            WebDavSync.Result(false, e.message ?: "同步失败")
+            WebDavSync.Result(false, e.message ?: context.getString(R.string.sync_fail))
+                .also { SyncStatus.markFail(it.message) }
         }
     }
 

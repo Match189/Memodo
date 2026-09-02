@@ -3,19 +3,28 @@
 
     <!-- 同步（WebDAV / 自建服务器）必需；缺失时 Socket 抛 EPERM -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application android:usesCleartextTraffic="true"
-        android:label="念念"
+        android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/Theme.Memodo"
         android:allowBackup="true">
 
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- 系统分享接入：分享文本 → 新建备忘草稿 -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
 
@@ -28,23 +37,24 @@
                 android:resource="@xml/widget_info" />
         </receiver>
 
+        <!-- 桌面卡片滚动列表数据源 -->
+        <service
+            android:name=".widget.MemodoWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
 
-        <receiver android:name=".widget.MemosWidgetReceiver"
+        <receiver android:name=".data.SyncReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="app.memodo.action.SYNC" />
             </intent-filter>
-            <meta-data android:name="android.appwidget.provider"
-                android:resource="@xml/widget_info_memos" />
         </receiver>
 
-        <receiver android:name=".widget.BoardWidgetReceiver"
-            android:exported="false">
+        <receiver android:name=".data.BootReceiver"
+            android:exported="true">
             <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
-            <meta-data android:name="android.appwidget.provider"
-                android:resource="@xml/widget_info_board" />
         </receiver>
 
     </application>

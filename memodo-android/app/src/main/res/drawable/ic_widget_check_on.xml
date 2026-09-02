@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 已完成：橙色实心圆 + 白色对勾（与应用内 checkbox 同风格） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="20dp" android:height="20dp"
+    android:viewportWidth="20" android:viewportHeight="20">
+    <path
+        android:pathData="M10,2 C5.58,2 2,5.58 2,10 C2,14.42 5.58,18 10,18 C14.42,18 18,14.42 18,10 C18,5.58 14.42,2 10,2Z"
+        android:fillColor="#E8863A"/>
+    <path
+        android:pathData="M6.2,10.4 L8.8,13 L13.8,7.4"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"/>
+</vector>

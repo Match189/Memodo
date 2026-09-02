@@ -7,7 +7,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:text="念念"
+        android:text="@string/app_name"
         android:textColor="#FF666666"
         android:textSize="18sp" />
 </FrameLayout>

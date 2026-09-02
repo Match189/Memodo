@@ -1,11 +1,12 @@
 package app.memodo.data
 
 import android.content.Context
+import app.memodo.R
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import java.util.UUID
 
-class Repo private constructor(ctx: Context) {
+class Repo private constructor(private val ctx: Context) {
 
     private val db = AppDatabase.get(ctx)
     private val tasks get() = db.taskDao()
@@ -39,6 +40,21 @@ class Repo private constructor(ctx: Context) {
     }
 
     suspend fun getTask(id: String): TaskItem? = tasks.getById(id)
+    suspend fun getMemo(id: String): MemoItem? = memos.getById(id)
+
+    /** 撤销软删：清 deleted_at（其余字段以快照覆盖）。 */
+    suspend fun restoreTask(snapshot: TaskItem) {
+        tasks.upsert(snapshot.copy(deletedAt = null, updatedAt = System.currentTimeMillis()))
+    }
+
+    suspend fun restoreMemo(snapshot: MemoItem) {
+        memos.upsert(snapshot.copy(deletedAt = null, updatedAt = System.currentTimeMillis()))
+    }
+
+    /** 编辑对话框保存：标题 + 到期时间等全字段。 */
+    suspend fun updateTaskFull(item: TaskItem) {
+        tasks.update(item.copy(updatedAt = System.currentTimeMillis()))
+    }
 
     /// 完成的备忘从钉板移除（与待办同语义）
     suspend fun setMemoShow(m: MemoItem, show: Boolean) {
@@ -58,6 +74,11 @@ class Repo private constructor(ctx: Context) {
         tasks.upsert(cur.copy(deletedAt = now, updatedAt = now))
     }
 
+    suspend fun updateTask(id: String, newTitle: String) {
+        val cur = tasks.getById(id) ?: return
+        tasks.update(cur.copy(title = newTitle, updatedAt = System.currentTimeMillis()))
+    }
+
     suspend fun addMemo(title: String, content: String): MemoItem {
         val now = System.currentTimeMillis()
         val item = MemoItem(
@@ -75,10 +96,42 @@ class Repo private constructor(ctx: Context) {
         memos.upsert(cur.copy(deletedAt = now, updatedAt = now))
     }
 
+    suspend fun updateMemo(id: String, newTitle: String, newContent: String) {
+        val cur = memos.getById(id) ?: return
+        memos.update(cur.copy(title = newTitle, content = newContent, updatedAt = System.currentTimeMillis()))
+    }
+
+    // ─── 归档 ───
+
+    fun observeArchivedTasks(): Flow<List<TaskItem>> = tasks.observeArchived()
+    fun observeArchivedMemos(): Flow<List<MemoItem>> = memos.observeArchived()
+
+    suspend fun archiveCompletedTasks() {
+        val now = System.currentTimeMillis()
+        tasks.listAll().filter { it.completed && it.archivedAt == null && it.deletedAt == null }
+            .forEach { tasks.archive(it.id, now) }
+    }
+
+    suspend fun archiveAllMemos() {
+        val now = System.currentTimeMillis()
+        memos.listAll().filter { it.archivedAt == null && it.deletedAt == null }
+            .forEach { memos.archive(it.id, now) }
+    }
+
+    suspend fun unarchiveTask(id: String) = tasks.unarchive(id, System.currentTimeMillis())
+    suspend fun unarchiveMemo(id: String) = memos.unarchive(id, System.currentTimeMillis())
+
+    /** 恢复所有已归档条目（删除归档功能时调用）。 */
+    suspend fun unarchiveAll() {
+        val now = System.currentTimeMillis()
+        tasks.unarchiveAll(now)
+        memos.unarchiveAll(now)
+    }
+
     suspend fun ensureDefaultBoard(): BoardItem {
         boards.firstActive()?.let { return it }
         val now = System.currentTimeMillis()
-        val b = BoardItem(id = UUID.randomUUID().toString(), createdAt = now, updatedAt = now)
+        val b = BoardItem(id = UUID.randomUUID().toString(), name = ctx.getString(R.string.default_board_name), createdAt = now, updatedAt = now)
         boards.insert(b)
         return b
     }

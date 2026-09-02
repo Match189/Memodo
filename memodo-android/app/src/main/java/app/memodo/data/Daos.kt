@@ -9,8 +9,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TaskDao {
-    @Query("SELECT * FROM tasks WHERE deleted_at IS NULL ORDER BY completed ASC, updated_at DESC")
+    @Query("SELECT * FROM tasks WHERE deleted_at IS NULL AND archived_at IS NULL ORDER BY completed ASC, updated_at DESC")
     fun observeActive(): Flow<List<TaskItem>>
+
+    @Query("SELECT * FROM tasks WHERE deleted_at IS NULL AND archived_at IS NOT NULL ORDER BY archived_at DESC")
+    fun observeArchived(): Flow<List<TaskItem>>
 
     @Query("SELECT * FROM tasks")
     suspend fun listAll(): List<TaskItem>
@@ -26,12 +29,24 @@ interface TaskDao {
 
     @Query("UPDATE tasks SET completed = :done, updated_at = :now, deleted_at = NULL WHERE id = :id")
     suspend fun setDone(id: String, done: Boolean, now: Long)
+
+    @Query("UPDATE tasks SET archived_at = :now, updated_at = :now WHERE id = :id")
+    suspend fun archive(id: String, now: Long)
+
+    @Query("UPDATE tasks SET archived_at = NULL, updated_at = :now WHERE id = :id")
+    suspend fun unarchive(id: String, now: Long)
+
+    @Query("UPDATE tasks SET archived_at = NULL, updated_at = :now WHERE archived_at IS NOT NULL")
+    suspend fun unarchiveAll(now: Long)
 }
 
 @Dao
 interface MemoDao {
-    @Query("SELECT * FROM memos WHERE deleted_at IS NULL ORDER BY updated_at DESC")
+    @Query("SELECT * FROM memos WHERE deleted_at IS NULL AND archived_at IS NULL ORDER BY updated_at DESC")
     fun observeActive(): Flow<List<MemoItem>>
+
+    @Query("SELECT * FROM memos WHERE deleted_at IS NULL AND archived_at IS NOT NULL ORDER BY archived_at DESC")
+    fun observeArchived(): Flow<List<MemoItem>>
 
     @Query("SELECT * FROM memos WHERE id = :id")
     suspend fun getById(id: String): MemoItem?
@@ -44,6 +59,15 @@ interface MemoDao {
 
     @Update
     suspend fun update(item: MemoItem)
+
+    @Query("UPDATE memos SET archived_at = :now, updated_at = :now WHERE id = :id")
+    suspend fun archive(id: String, now: Long)
+
+    @Query("UPDATE memos SET archived_at = NULL, updated_at = :now WHERE id = :id")
+    suspend fun unarchive(id: String, now: Long)
+
+    @Query("UPDATE memos SET archived_at = NULL, updated_at = :now WHERE archived_at IS NOT NULL")
+    suspend fun unarchiveAll(now: Long)
 }
 
 @Dao
