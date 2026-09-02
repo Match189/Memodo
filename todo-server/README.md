@@ -1,5 +1,8 @@
 # todo-server — TodoList 自建同步服务器
 
+> ⚠️ **已归档（2026-09-02）**：本目录是 SPD Phase 5 时期的旧版实现，协议（`/api/v1/*` + `changes` + camelCase + entity=`todo/memo`）与双端客户端（`/sync/*` + `items` + snake_case + entity=`tasks/memos`）**不兼容**，没有任何客户端对接它。
+> 实际部署版是 [`../memodo-server/`](../memodo-server/)；本目录仅作历史存档保留，请勿部署或继续开发。
+
 SPD Phase 5 交付物：FastAPI + SQLAlchemy + JWT + cursor 增量同步 + Docker 一键部署。
 数据库默认 PostgreSQL（compose），开发/测试可用 SQLite（自动建表）。
 
