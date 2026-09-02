@@ -11,7 +11,7 @@
         <!-- LargeTitle + 计数 -->
         <DockPanel Grid.Row="0" Margin="0,0,0,16">
             <StackPanel>
-                <TextBlock Text="{DynamicResource S_PageTodo}" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource Label}" />
+                <TextBlock Text="{DynamicResource S_page_todo}" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource Label}" />
                 <TextBlock x:Name="CountText" FontSize="12" Margin="0,2,0,0"
                            Foreground="{DynamicResource SecondaryLabel}" />
             </StackPanel>
@@ -30,7 +30,7 @@
                          GotFocus="Input_GotFocus" LostFocus="Input_LostFocus"
                          KeyDown="NewTitle_KeyDown" />
             </Border>
-            <Button Grid.Column="1" Content="{DynamicResource S_Add}" Margin="8,0,0,0" Padding="18,0"
+            <Button Grid.Column="1" Content="{DynamicResource S_add}" Margin="8,0,0,0" Padding="18,0"
                     Height="34" Style="{StaticResource AccentBtn}" Click="Add_Click" />
         </Grid>
 
@@ -69,12 +69,14 @@
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <CheckBox Grid.Column="0" Style="{StaticResource AppleCheck}"
                                           IsChecked="{Binding Completed}" VerticalAlignment="Center"
                                           Click="Toggle_Click" Tag="{Binding Id}" />
                                 <TextBlock Grid.Column="1" Text="{Binding Title}" FontSize="14"
                                            VerticalAlignment="Center" Margin="12,0,0,0"
+                                           TextTrimming="CharacterEllipsis"
                                            TextDecorations="{Binding Completed, Converter={StaticResource StrikeThrough}}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
@@ -87,7 +89,10 @@
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
-                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="8,0,0,0"
+                                           FontSize="11" Foreground="{DynamicResource TertiaryLabel}"
+                                           Text="{Binding CreatedAt, Converter={StaticResource TimeAgoConverter}}" />
+                                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
                                     <Button Content="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="13"
                                             ToolTip="{DynamicResource S_tip_edit}" Margin="0,0,6,0"
                                             Foreground="{DynamicResource Accent}" Background="Transparent" BorderThickness="0"
@@ -107,7 +112,7 @@
                         IsHitTestVisible="False">
                 <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" FontSize="36"
                            Foreground="{DynamicResource TertiaryLabel}" HorizontalAlignment="Center" />
-                <TextBlock Text="{DynamicResource S_EmptyTasks}" Margin="0,8,0,0"
+                <TextBlock Text="{DynamicResource S_empty_tasks}" Margin="0,8,0,0"
                            Foreground="{DynamicResource SecondaryLabel}" HorizontalAlignment="Center" />
             </StackPanel>
         </Grid>

@@ -14,7 +14,8 @@ public sealed class TaskRepository
     private readonly SqliteConnection _db;
     public TaskRepository(SqliteConnection db) => _db = db;
 
-    public List<TaskItem> ListActive() => Scan("deleted_at IS NULL");
+    public List<TaskItem> ListActive() => Scan("deleted_at IS NULL AND archived_at IS NULL");
+    public List<TaskItem> ListArchived() => Scan("archived_at IS NOT NULL AND deleted_at IS NULL");
     public List<TaskItem> ListAllForSync() => Scan("1=1");
 
     private List<TaskItem> Scan(string where)
@@ -22,7 +23,7 @@ public sealed class TaskRepository
         var list = new List<TaskItem>();
         using var cmd = _db.CreateCommand();
         cmd.CommandText = $@"SELECT id, title, description, completed, priority, due_date,
-                                   created_at, updated_at, deleted_at
+                                   created_at, updated_at, deleted_at, archived_at
                             FROM {ModelAttr.Tasks}
                             WHERE {where}
                             ORDER BY completed ASC, updated_at DESC";
@@ -35,7 +36,7 @@ public sealed class TaskRepository
     {
         using var cmd = _db.CreateCommand();
         cmd.CommandText =
-            $"SELECT id, title, description, completed, priority, due_date, created_at, updated_at, deleted_at FROM {ModelAttr.Tasks} WHERE id = $id";
+            $"SELECT id, title, description, completed, priority, due_date, created_at, updated_at, deleted_at, archived_at FROM {ModelAttr.Tasks} WHERE id = $id";
         cmd.Parameters.AddWithValue("$id", id);
         using var rd = cmd.ExecuteReader();
         return rd.Read() ? Read(rd) : null;
@@ -46,8 +47,8 @@ public sealed class TaskRepository
         using var cmd = _db.CreateCommand();
         cmd.CommandText = $@"
 INSERT INTO {ModelAttr.Tasks}
-  (id, title, description, completed, priority, due_date, created_at, updated_at)
-VALUES ($id, $t, $d, $c, $p, $due, $ca, $ua)";
+  (id, title, description, completed, priority, due_date, created_at, updated_at, archived_at)
+VALUES ($id, $t, $d, $c, $p, $due, $ca, $ua, $arc)";
         Bind(cmd, item);
         cmd.ExecuteNonQuery();
     }
@@ -58,7 +59,7 @@ VALUES ($id, $t, $d, $c, $p, $due, $ca, $ua)";
         using var cmd = _db.CreateCommand();
         cmd.CommandText = $@"
 UPDATE {ModelAttr.Tasks}
-SET title=$t, description=$d, completed=$c, priority=$p, due_date=$due, updated_at=$ua, deleted_at=$del
+SET title=$t, description=$d, completed=$c, priority=$p, due_date=$due, updated_at=$ua, deleted_at=$del, archived_at=$arc
 WHERE id=$id";
         Bind(cmd, item);
         cmd.ExecuteNonQuery();
@@ -70,12 +71,12 @@ WHERE id=$id";
         using var cmd = _db.CreateCommand();
         cmd.CommandText = $@"
 INSERT INTO {ModelAttr.Tasks}
-  (id, title, description, completed, priority, due_date, created_at, updated_at, deleted_at)
-VALUES ($id, $t, $d, $c, $p, $due, $ca, $ua, $del)
+  (id, title, description, completed, priority, due_date, created_at, updated_at, deleted_at, archived_at)
+VALUES ($id, $t, $d, $c, $p, $due, $ca, $ua, $del, $arc)
 ON CONFLICT(id) DO UPDATE SET
   title=excluded.title, description=excluded.description, completed=excluded.completed,
   priority=excluded.priority, due_date=excluded.due_date, created_at=excluded.created_at,
-  updated_at=excluded.updated_at, deleted_at=excluded.deleted_at";
+  updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, archived_at=excluded.archived_at";
         Bind(cmd, item);
         cmd.ExecuteNonQuery();
     }
@@ -99,6 +100,34 @@ ON CONFLICT(id) DO UPDATE SET
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>归档所有已完成且未归档的待办。</summary>
+    public void ArchiveCompleted()
+    {
+        var now = SqlMapper.NowMs();
+        using var cmd = _db.CreateCommand();
+        cmd.CommandText = $"UPDATE {ModelAttr.Tasks} SET archived_at=$t, updated_at=$t WHERE completed=1 AND archived_at IS NULL AND deleted_at IS NULL";
+        cmd.Parameters.AddWithValue("$t", now);
+        cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>取消归档。</summary>
+    public void Unarchive(string id)
+    {
+        using var cmd = _db.CreateCommand();
+        cmd.CommandText = $"UPDATE {ModelAttr.Tasks} SET archived_at=NULL, updated_at=$u WHERE id=$id";
+        cmd.Parameters.AddWithValue("$u", SqlMapper.NowMs());
+        cmd.Parameters.AddWithValue("$id", id);
+        cmd.ExecuteNonQuery();
+    }
+
+    public void UnarchiveAll()
+    {
+        using var cmd = _db.CreateCommand();
+        cmd.CommandText = $"UPDATE {ModelAttr.Tasks} SET archived_at=NULL, updated_at=$u WHERE archived_at IS NOT NULL";
+        cmd.Parameters.AddWithValue("$u", SqlMapper.NowMs());
+        cmd.ExecuteNonQuery();
+    }
+
     private static void Bind(SqliteCommand cmd, TaskItem item)
     {
         cmd.Parameters.AddWithValue("$id", item.Id);
@@ -111,6 +140,7 @@ ON CONFLICT(id) DO UPDATE SET
         cmd.Parameters.AddWithValue("$ca", item.CreatedAt == 0 ? now : item.CreatedAt);
         cmd.Parameters.AddWithValue("$ua", item.UpdatedAt == 0 ? now : item.UpdatedAt);
         cmd.Parameters.AddWithValue("$del", SqlMapper.IfNotNull(item.DeletedAt?.ToString()));
+        cmd.Parameters.AddWithValue("$arc", SqlMapper.IfNotNull(item.ArchivedAt?.ToString()));
     }
 
     private static TaskItem Read(SqliteDataReader rd) => new()
@@ -124,5 +154,6 @@ ON CONFLICT(id) DO UPDATE SET
         CreatedAt = rd.GetInt64(6),
         UpdatedAt = rd.GetInt64(7),
         DeletedAt = rd.IsDBNull(8) ? null : rd.GetInt64(8),
+        ArchivedAt = rd.IsDBNull(9) ? null : rd.GetInt64(9),
     };
 }

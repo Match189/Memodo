@@ -71,7 +71,7 @@ CREATE INDEX IF NOT EXISTS ix_memos_updated ON memos(updated_at);
 
 CREATE TABLE IF NOT EXISTS boards (
     id            TEXT PRIMARY KEY NOT NULL,
-    name          TEXT NOT NULL DEFAULT '我的图钉板',
+    name          TEXT NOT NULL DEFAULT '',
     created_at    INTEGER NOT NULL,
     updated_at    INTEGER NOT NULL,
     deleted_at    INTEGER
@@ -130,6 +130,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS ix_card_platform ON card_layouts(card_id, plat
         AddColumnIfMissing("memos", "completed", "INTEGER NOT NULL DEFAULT 0");
         // v5（用户裁定）：备忘改用「是否显示在钉板」语义（眼睛按钮），completed 保留但不再使用
         AddColumnIfMissing("memos", "show_on_board", "INTEGER NOT NULL DEFAULT 1");
+        // 归档时间戳：Android 侧 TaskItem / MemoItem 均有 archived_at，Windows 须补齐。
+        AddColumnIfMissing("tasks", "archived_at", "INTEGER");
+        AddColumnIfMissing("memos", "archived_at", "INTEGER");
     }
 
     private long UserVersion

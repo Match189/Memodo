@@ -17,7 +17,7 @@ public sealed class BoardRepository
     {
         var boards = ListBoards();
         if (boards.Count > 0) return boards[0];
-        var b = new BoardItem();
+        var b = new BoardItem { Name = Memodo.Windows.Services.LocalizationService.T("default_board_name") };
         Insert(b);
         return b;
     }

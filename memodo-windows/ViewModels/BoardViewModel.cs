@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Memodo.Windows.Models;
+using Memodo.Windows.Services;
 using Memodo.Windows.Repositories;
 
 namespace Memodo.Windows.ViewModels;
@@ -104,7 +105,7 @@ public partial class BoardViewModel : ObservableObject
     [RelayCommand]
     public async Task CreateCardAsync(string? type)
     {
-        await Task.Run(() => _repo.CreateInlineCard(Board.Id, type ?? "idea", "新卡片", "", "yellow"));
+        await Task.Run(() => _repo.CreateInlineCard(Board.Id, type ?? "idea", LocalizationService.T("board_new_card_default"), "", "yellow"));
         await ReloadAsync();
     }
 

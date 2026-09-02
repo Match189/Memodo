@@ -21,12 +21,24 @@ public partial class ShellWindow : Window
         InitializeComponent();
         App.DataChanged += OnDataChanged;
         Loaded += (_, _) => ShowPage("todo");
+        // 从托盘/后台恢复显示时补一次刷新（隐藏期间同步的数据不上屏）
+        Activated += async (_, _) => await RefreshCurrentPage();
     }
 
     /// <summary>小组件/同步改了数据 → 当前页重新加载，列表始终显示全部事项。</summary>
     private void OnDataChanged()
     {
         if (IsVisible && _currentTag is "todo" or "memo") ShowPage(_currentTag);
+    }
+
+    private async Task RefreshCurrentPage()
+    {
+        if (_syncingNav) return;
+        if (_currentTag is "todo" or "memo" && _pages.TryGetValue(_currentTag, out var page))
+        {
+            if (page is TaskListView t) await t.RefreshData();
+            else if (page is MemoListView m) await m.RefreshData();
+        }
     }
 
     /// <summary>导航到指定页（页面实例缓存，修复切换卡顿；列表数据经 DataChanged/Refresh 保持新鲜）。</summary>

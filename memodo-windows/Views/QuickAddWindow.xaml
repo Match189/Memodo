@@ -1,16 +1,16 @@
 <Window x:Class="Memodo.Windows.Views.QuickAddWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="快速添加" Width="380" SizeToContent="Height"
+        Title="{DynamicResource S_quick_add}" Width="380" SizeToContent="Height"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         Background="{DynamicResource SurfaceElevated}"
         ShowInTaskbar="False">
     <StackPanel Margin="16">
-        <TextBlock Text="快速添加" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,10"/>
+        <TextBlock Text="{DynamicResource S_quick_add}" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,10"/>
         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-            <Button x:Name="ModeTodo" Content="待办" Style="{DynamicResource SegBtn}"
+            <Button x:Name="ModeTodo" Content="{DynamicResource S_nav_todo}" Style="{DynamicResource SegBtn}"
                     Padding="14,6" Click="ModeTodo_Click"/>
-            <Button x:Name="ModeMemo" Content="备忘" Style="{DynamicResource SegBtn}"
+            <Button x:Name="ModeMemo" Content="{DynamicResource S_nav_memo}" Style="{DynamicResource SegBtn}"
                     Padding="14,6" Click="ModeMemo_Click"/>
         </StackPanel>
         <TextBox x:Name="InputBox" Padding="10,8" KeyDown="InputBox_KeyDown"/>
@@ -19,8 +19,8 @@
                  AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
                  KeyDown="ContentBox_KeyDown"/>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button Content="{DynamicResource S_Cancel}" Padding="14,6" Style="{StaticResource PlainBtn}" Click="Cancel_Click"/>
-            <Button Content="{DynamicResource S_Add}" Padding="14,6" Margin="8,0,0,0"
+            <Button Content="{DynamicResource S_cancel}" Padding="14,6" Style="{StaticResource PlainBtn}" Click="Cancel_Click"/>
+            <Button Content="{DynamicResource S_add}" Padding="14,6" Margin="8,0,0,0"
                     Style="{DynamicResource AccentBtn}" Click="Add_Click"/>
         </StackPanel>
     </StackPanel>

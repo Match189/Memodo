@@ -103,4 +103,20 @@ public partial class TaskListViewModel : ObservableObject
         await LoadAsync();
         App.NotifyDataChanged();
     }
+
+    [RelayCommand]
+    public async Task ArchiveCompletedAsync()
+    {
+        await Task.Run(() => _repo.ArchiveCompleted());
+        await LoadAsync();
+        App.NotifyDataChanged();
+    }
+
+    [RelayCommand]
+    public async Task UnarchiveTaskAsync(TaskItem task)
+    {
+        await Task.Run(() => _repo.Unarchive(task.Id));
+        await LoadAsync();
+        App.NotifyDataChanged();
+    }
 }

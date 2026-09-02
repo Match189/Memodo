@@ -11,7 +11,7 @@ public class BoardItem
     // PK
     public string Id { get; set; } = Guid.NewGuid().ToString();
 
-    public string Name { get; set; } = "我的图钉板";
+    public string Name { get; set; } = "";
     public long CreatedAt { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     public long UpdatedAt { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     public long? DeletedAt { get; set; }

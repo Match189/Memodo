@@ -3,6 +3,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Memodo.Windows.Models;
 using Memodo.Windows.Repositories;
+using Memodo.Windows.Services;
 
 namespace Memodo.Windows.Views;
 
@@ -28,7 +29,7 @@ public partial class EditCardWindow : Window
     {
         InitializeComponent();
         _task = task; _tasks = repo;
-        KindText.Text = "编辑待办";
+        KindText.Text = LocalizationService.T("edit_task");
         ContentLabel.Visibility = Visibility.Collapsed;
         ContentBox.Visibility = Visibility.Collapsed;
         TitleBox.Text = task.Title;
@@ -38,7 +39,7 @@ public partial class EditCardWindow : Window
     {
         InitializeComponent();
         _memo = memo; _memos = repo;
-        KindText.Text = "编辑备忘";
+        KindText.Text = LocalizationService.T("edit_memo");
         TitleBox.Text = memo.Title;
         ContentBox.Text = memo.Content;
     }
@@ -47,7 +48,7 @@ public partial class EditCardWindow : Window
     {
         InitializeComponent();
         _inline = inlineCard;
-        KindText.Text = inlineCard.RefType == "checklist" ? "编辑清单" : "编辑便签";
+        KindText.Text = inlineCard.RefType == "checklist" ? LocalizationService.T("edit_checklist") : LocalizationService.T("edit_idea");
         TitleBox.Text = inlineCard.Title;
         ContentBox.Text = inlineCard.Content;
         SelectedColor = string.IsNullOrEmpty(inlineCard.Color) ? "red" : inlineCard.Color;
@@ -103,7 +104,8 @@ public partial class EditCardWindow : Window
         }
         if (_task is not null && _tasks is not null)
         {
-            var t = _task.Title.Trim();
+            // 取编辑框内容（旧实现读 _task.Title 导致修改无效）
+            var t = TitleBox.Text.Trim();
             if (t.Length == 0) { Close(); return; }
             _task.Title = t;
             _tasks.Update(_task);

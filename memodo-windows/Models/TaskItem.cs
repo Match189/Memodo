@@ -1,4 +1,6 @@
 using System;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace Memodo.Windows.Models;
 
@@ -7,17 +9,31 @@ namespace Memodo.Windows.Models;
 /// 软删除：deletedAt 非空即墓碑（任务书 §36）。
 /// </summary>
 // table = (see ModelAttr)
-public class TaskItem
+public class TaskItem : INotifyPropertyChanged
 {
-    // PK
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    private string _id = Guid.NewGuid().ToString();
+    private string _title = string.Empty;
+    private string _description = string.Empty;
+    private bool _completed;
+    private int _priority;
+    private long? _dueDate;
+    private long _createdAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    private long _updatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    private long? _deletedAt;
+    private long? _archivedAt;
 
-    public string Title { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public bool Completed { get; set; }
-    public int Priority { get; set; }
-    public long? DueDate { get; set; }
-    public long CreatedAt { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-    public long UpdatedAt { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-    public long? DeletedAt { get; set; }
+    public string Id { get => _id; set { _id = value; OnPropertyChanged(); } }
+    public string Title { get => _title; set { _title = value; OnPropertyChanged(); } }
+    public string Description { get => _description; set { _description = value; OnPropertyChanged(); } }
+    public bool Completed { get => _completed; set { _completed = value; OnPropertyChanged(); } }
+    public int Priority { get => _priority; set { _priority = value; OnPropertyChanged(); } }
+    public long? DueDate { get => _dueDate; set { _dueDate = value; OnPropertyChanged(); } }
+    public long CreatedAt { get => _createdAt; set { _createdAt = value; OnPropertyChanged(); } }
+    public long UpdatedAt { get => _updatedAt; set { _updatedAt = value; OnPropertyChanged(); } }
+    public long? DeletedAt { get => _deletedAt; set { _deletedAt = value; OnPropertyChanged(); } }
+    public long? ArchivedAt { get => _archivedAt; set { _archivedAt = value; OnPropertyChanged(); } }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

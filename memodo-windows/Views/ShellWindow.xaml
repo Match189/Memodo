@@ -1,7 +1,7 @@
 <Window x:Class="Memodo.Windows.Views.ShellWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="念念 Memodo"
+        Title="{DynamicResource S_app_title}"
         Width="1100" Height="720"
         MinWidth="720" MinHeight="480"
         Background="{DynamicResource AppBackground}"
@@ -26,7 +26,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="{DynamicResource S_AppTitle}" Margin="14,0" VerticalAlignment="Center"
+                <TextBlock Grid.Column="0" Text="{DynamicResource S_app_title}" Margin="14,0" VerticalAlignment="Center"
                            FontSize="13" Foreground="{DynamicResource SecondaryLabel}" />
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
                     <Button Content="&#xE921;" Style="{StaticResource CapBtn}" Click="Min_Click"  ToolTip="{DynamicResource S_tip_min}"/>

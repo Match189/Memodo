@@ -38,8 +38,13 @@ public partial class TaskListView : UserControl
     private void UpdateCount()
     {
         var open = Vm.Tasks.Count(t => !t.Completed);
-        CountText.Text = Vm.Tasks.Count == 0 ? "空空如也" : $"{open} 项待完成 / 共 {Vm.Tasks.Count} 项";
-        EmptyState.Visibility = Vm.Tasks.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        var total = Vm.Tasks.Count;
+        CountText.Text = total == 0
+            ? LocalizationService.T("task_list_empty")
+            : LocalizationService.T("task_count_format")
+                .Replace("{0}", open.ToString())
+                .Replace("{1}", total.ToString());
+        EmptyState.Visibility = total == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void Input_GotFocus(object sender, RoutedEventArgs e) =>

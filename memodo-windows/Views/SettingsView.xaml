@@ -3,17 +3,17 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ScrollViewer>
         <StackPanel Margin="20" MaxWidth="560">
-            <TextBlock Text="设置" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,16" />
+            <TextBlock Text="{DynamicResource S_nav_settings}" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,16" />
 
             <!-- 同步（蓝图 §41-§45：WebDAV 先行，服务器 0.5） -->
-            <Border Padding="16" CornerRadius="10" Background="White" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" Margin="0,0,0,12">
+            <Border Padding="16" CornerRadius="10" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" Margin="0,0,0,12">
                 <StackPanel>
-                    <TextBlock Text="{DynamicResource S_SecSync}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,10" />
+                    <TextBlock Text="{DynamicResource S_sec_sync}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,10" />
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="同步方式" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="{DynamicResource S_sync_method}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                         <ComboBox x:Name="ProviderBox" Width="260" SelectionChanged="Provider_SelectionChanged">
-                            <ComboBoxItem Content="WebDAV（坚果云 / NAS / Nextcloud）" Tag="webdav"/>
-                            <ComboBoxItem Content="自建服务器（0.5 版开放）" Tag="server"/>
+                            <ComboBoxItem Content="{DynamicResource S_webdav_desc}" Tag="webdav"/>
+                            <ComboBoxItem Content="{DynamicResource S_server_desc}" Tag="server"/>
                         </ComboBox>
                     </StackPanel>
 
@@ -26,14 +26,14 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="地址" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource S_address}" VerticalAlignment="Center" Margin="0,0,8,6"/>
                             <TextBox x:Name="WebDavUrlBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,6" Padding="6"/>
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="账号" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource S_account}" VerticalAlignment="Center" Margin="0,0,8,6"/>
                             <TextBox x:Name="WebDavUserBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,6" Padding="6"/>
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="应用密码" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource S_app_password}" VerticalAlignment="Center" Margin="0,0,8,6"/>
                             <PasswordBox x:Name="WebDavPwdBox" Grid.Row="2" Grid.Column="1" Padding="6"/>
                         </Grid>
-                        <TextBlock Text="坚果云：网页端「账户信息 → 安全选项 → 添加应用密码」。密码加密存储，不落明文。"
+                        <TextBlock Text="{DynamicResource S_nutstore_hint}"
                                    Foreground="{DynamicResource SubtleText}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"/>
                     </StackPanel>
 
@@ -46,20 +46,57 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="地址" VerticalAlignment="Center" Margin="0,0,8,6"/>
-                            <TextBox x:Name="ServerUrlBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,6" Padding="6"/>
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="账号" VerticalAlignment="Center" Margin="0,0,8,6"/>
-                            <TextBox x:Name="EmailBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,6" Padding="6"/>
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="密码" VerticalAlignment="Center" Margin="0,0,8,6"/>
-                            <PasswordBox x:Name="PwdBox" Grid.Row="2" Grid.Column="1" Padding="6"/>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource S_address}" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                            <TextBox x:Name="ServerUrlBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,6" Padding="6" LostFocus="ServerField_LostFocus"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource S_account}" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                            <TextBox x:Name="EmailBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,6" Padding="6" LostFocus="ServerField_LostFocus"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource S_server_pass}" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                            <PasswordBox x:Name="PwdBox" Grid.Row="2" Grid.Column="1" Padding="6" LostFocus="ServerField_LostFocus"/>
                         </Grid>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                            <Button x:Name="LoginBtn" Content="登录" Style="{DynamicResource AccentBtn}" Click="Login_Click"/>
+                            <Button x:Name="LoginBtn" Content="{DynamicResource S_login}" Style="{DynamicResource AccentBtn}" Click="Login_Click"/>
+                            <Button x:Name="RegisterBtn" Content="{DynamicResource S_register}" Style="{StaticResource PlainBtn}" Click="Register_Click" Margin="8,0,0,0"/>
                         </StackPanel>
                     </StackPanel>
 
+                    <!-- 端到端加密口令（两种通道共用）：双端一致才可互解，云端只见密文 -->
+                    <TextBlock Text="{DynamicResource S_sync_passphrase}" Foreground="{DynamicResource SecondaryLabel}"
+                               FontSize="11" Margin="0,10,0,4"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <PasswordBox x:Name="SyncPassBox" Grid.Column="0" Padding="6" LostFocus="SyncPass_LostFocus"/>
+                        <TextBlock x:Name="SyncPassState" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center"
+                                   FontSize="11" Foreground="{DynamicResource SecondaryLabel}"/>
+                    </Grid>
+                    <TextBlock Text="{DynamicResource S_sync_passphrase_hint}"
+                               Foreground="{DynamicResource SubtleText}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
+
+                    <!-- 自动同步（蓝图 §41-§45：启动 + 按间隔静默同步，两种通道均生效） -->
+                    <CheckBox x:Name="AutoSyncChk" Content="{DynamicResource S_auto_sync_all}" Margin="0,12,0,0"
+                              Checked="AutoSync_Changed" Unchecked="AutoSync_Changed"/>
+                    <StackPanel Orientation="Horizontal" Margin="16,8,0,0">
+                        <TextBlock Text="{DynamicResource S_settings_interval}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <ComboBox x:Name="IntervalBox" Width="76" IsEditable="True" IsTextSearchEnabled="False"
+                                  SelectionChanged="Interval_SelectionChanged" LostFocus="IntervalBox_LostFocus"
+                                  KeyDown="IntervalBox_KeyDown"
+                                  PreviewTextInput="IntervalBox_PreviewTextInput"
+                                  DataObject.Pasting="IntervalBox_Pasting">
+                            <ComboBoxItem Content="1"/>
+                            <ComboBoxItem Content="3"/>
+                            <ComboBoxItem Content="5"/>
+                            <ComboBoxItem Content="10"/>
+                            <ComboBoxItem Content="15"/>
+                            <ComboBoxItem Content="30"/>
+                            <ComboBoxItem Content="60"/>
+                            <ComboBoxItem Content="120"/>
+                        </ComboBox>
+                        <TextBlock Text="{DynamicResource S_settings_minutes}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                        <Button x:Name="SyncBtn" Content="{DynamicResource S_SyncNow}" Style="{DynamicResource AccentBtn}" Click="Sync_Click"/>
+                        <Button x:Name="SyncBtn" Content="{DynamicResource S_sync_now}" Style="{DynamicResource AccentBtn}" Click="Sync_Click"/>
                     </StackPanel>
                     <TextBlock x:Name="SyncStatus" Margin="0,8,0,0" Foreground="{DynamicResource SubtleText}" TextWrapping="Wrap"/>
                 </StackPanel>
@@ -68,20 +105,51 @@
             <!-- 外观 -->
             <Border Padding="16" CornerRadius="12" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Separator}" BorderThickness="1" Margin="0,0,0,16">
                 <StackPanel>
-                    <TextBlock Text="{DynamicResource S_SecAppearance}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,10" />
-                    <StackPanel Orientation="Horizontal">
-                        <ComboBox x:Name="ThemeBox" Width="140" SelectionChanged="Theme_SelectionChanged">
-                            <ComboBoxItem Content="Cork 软木" Tag="Cork" />
-                            <ComboBoxItem Content="Glass 玻璃" Tag="Glass" />
-                            <ComboBoxItem Content="Hybrid 混合" Tag="Hybrid" />
-                        </ComboBox>
-                        <CheckBox x:Name="DarkChk" Content="深色模式" Margin="16,0,0,0"
-                                  VerticalAlignment="Center" Checked="Dark_Changed" Unchecked="Dark_Changed"/>
-                        <TextBlock Text="语言 / Language" VerticalAlignment="Center" Margin="16,0,8,0"/>
-                        <ComboBox x:Name="LangBox" Width="120" SelectionChanged="Lang_SelectionChanged">
-                            <ComboBoxItem Content="中文" Tag="zh" />
-                            <ComboBoxItem Content="English" Tag="en" />
-                        </ComboBox>
+                    <TextBlock Text="{DynamicResource S_sec_appearance}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,10" />
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox x:Name="ThemeBox" Width="140" SelectionChanged="Theme_SelectionChanged">
+                                <ComboBoxItem Content="{DynamicResource S_theme_cork}" Tag="Cork" />
+                                <ComboBoxItem Content="{DynamicResource S_theme_glass}" Tag="Glass" />
+                                <ComboBoxItem Content="{DynamicResource S_theme_hybrid}" Tag="Hybrid" />
+                            </ComboBox>
+                            <CheckBox x:Name="DarkChk" Content="{DynamicResource S_dark_mode}" Margin="16,0,0,0"
+                                      VerticalAlignment="Center" Checked="Dark_Changed" Unchecked="Dark_Changed"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <TextBlock Text="{DynamicResource S_settings_lang}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox x:Name="LangBox" Width="120" SelectionChanged="Lang_SelectionChanged" />
+                            <TextBlock Text="{DynamicResource S_time_format}" VerticalAlignment="Center" Margin="16,0,8,0"/>
+                            <ComboBox x:Name="TimeFormatBox" Width="120" SelectionChanged="TimeFormat_SelectionChanged">
+                                <ComboBoxItem Content="{DynamicResource S_time_relative}" Tag="relative"/>
+                                <ComboBoxItem Content="{DynamicResource S_time_absolute}" Tag="absolute"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <!-- 钉板背景图（与主题互斥：设置背景图后主题纹理被覆盖） -->
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <TextBlock Text="{DynamicResource S_board_pick}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <Button Content="{DynamicResource S_bg_choose}" Style="{StaticResource PlainBtn}" Click="BgChoose_Click"/>
+                            <Button Content="{DynamicResource S_bg_reset}" Style="{StaticResource PlainBtn}" Click="BgReset_Click" Margin="8,0,0,0"/>
+                        </StackPanel>
+                        <TextBlock x:Name="BgPathText" Margin="0,4,0,0" FontSize="11"
+                                   Foreground="{DynamicResource SubtleText}" TextTrimming="CharacterEllipsis"/>
+                        <!-- 壁纸模式 + 预览画框：预览与模式选择同行对齐 -->
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="{DynamicResource S_bg_stretch_mode}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox x:Name="BgStretchBox" Width="92" Height="24" VerticalAlignment="Center"
+                                      SelectionChanged="BgStretch_SelectionChanged">
+                                <ComboBoxItem Content="{DynamicResource S_bg_stretch_fill}" Tag="UniformToFill"/>
+                                <ComboBoxItem Content="{DynamicResource S_bg_stretch_fit}" Tag="Uniform"/>
+                                <ComboBoxItem Content="{DynamicResource S_bg_stretch_stretch}" Tag="Stretch"/>
+                                <ComboBoxItem Content="{DynamicResource S_bg_stretch_none}" Tag="None"/>
+                            </ComboBox>
+                            <Border x:Name="BgPreviewBorder" Width="72" Height="44" Margin="12,0,0,0"
+                                    VerticalAlignment="Center" CornerRadius="6"
+                                    BorderBrush="{DynamicResource Separator}" BorderThickness="1"
+                                    Background="{DynamicResource SurfaceElevated}">
+                                <Image x:Name="BgPreview" Stretch="UniformToFill" Margin="2"/>
+                            </Border>
+                        </StackPanel>
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -89,35 +157,26 @@
             <!-- 桌面组件 -->
             <Border Padding="16" CornerRadius="12" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Separator}" BorderThickness="1" Margin="0,0,0,16">
                 <StackPanel>
-                    <TextBlock Text="{DynamicResource S_SecWidget}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,10" />
-                    <CheckBox x:Name="StartWidgetChk" Content="登录时显示桌面组件（下次启动生效）" Checked="StartWidget_Changed" Unchecked="StartWidget_Changed"/>
-                    <CheckBox x:Name="TopmostChk" Content="组件始终置顶（立即生效，组件右上角也可切）" Margin="0,6,0,0" Checked="Topmost_Changed" Unchecked="Topmost_Changed"/>
+                    <TextBlock Text="{DynamicResource S_sec_widget}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,10" />
+                    <CheckBox x:Name="StartWidgetChk" Content="{DynamicResource S_show_widget_on_login}" Checked="StartWidget_Changed" Unchecked="StartWidget_Changed"/>
+                    <CheckBox x:Name="TopmostChk" Content="{DynamicResource S_widget_always_topmost}" Margin="0,6,0,0" Checked="Topmost_Changed" Unchecked="Topmost_Changed"/>
                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                        <TextBlock Text="组件不透明度" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="{DynamicResource S_note_opacity}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                         <Slider x:Name="OpacitySlider" Width="160" Minimum="30" Maximum="100"
                                 IsSnapToTickEnabled="True" TickFrequency="5" ValueChanged="Opacity_Changed"/>
                         <TextBlock x:Name="OpacityValue" VerticalAlignment="Center" Margin="8,0,0,0"/>
                     </StackPanel>
-                    <CheckBox x:Name="AutoSyncChk" Content="自动同步（WebDAV）" Margin="0,8,0,0"
-                              Checked="AutoSync_Changed" Unchecked="AutoSync_Changed"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                        <TextBlock Text="自动同步间隔" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <ComboBox x:Name="IntervalBox" Width="120" SelectionChanged="Interval_SelectionChanged">
-                            <ComboBoxItem Content="1 分钟" Tag="1"/>
-                            <ComboBoxItem Content="3 分钟" Tag="3"/>
-                            <ComboBoxItem Content="5 分钟" Tag="5"/>
-                            <ComboBoxItem Content="10 分钟" Tag="10"/>
-                            <ComboBoxItem Content="30 分钟" Tag="30"/>
-                        </ComboBox>
-                    </StackPanel>
+                    <Button x:Name="ToggleWidgetBtn" Content="{DynamicResource S_widget_toggle}"
+                            Click="ToggleWidget_Click" Margin="0,8,0,0"/>
                 </StackPanel>
             </Border>
 
             <!-- 数据（蓝图 §52：Export JSON 全量备份） -->
             <Border Padding="16" CornerRadius="12" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Separator}" BorderThickness="1" Margin="0,0,0,16">
                 <StackPanel>
-                    <TextBlock Text="{DynamicResource S_SecData}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,10" />
-                    <Button Content="导出 JSON 备份" Style="{DynamicResource AccentBtn}" Click="Export_Click"/>
+                    <TextBlock Text="{DynamicResource S_sec_data}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,10" />
+                    <Button Content="{DynamicResource S_export_json}" Style="{DynamicResource AccentBtn}" Click="Export_Click"/>
+                    <Button Content="{DynamicResource S_import_json}" Style="{DynamicResource AccentBtn}" Click="Import_Click" Margin="0,8,0,0"/>
                     <TextBlock x:Name="ExportStatus" Margin="0,8,0,0" Foreground="{DynamicResource SubtleText}"/>
                 </StackPanel>
             </Border>
@@ -125,11 +184,11 @@
             <!-- 关于 -->
             <Border Padding="16" CornerRadius="12" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Separator}" BorderThickness="1">
                 <StackPanel>
-                    <TextBlock Text="{DynamicResource S_SecAbout}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,10" />
-                    <TextBlock Text="Memodo 念念 · Windows 原生客户端 (C#/WPF)"
+                    <TextBlock Text="{DynamicResource S_sec_about}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,10" />
+                    <TextBlock Text="{DynamicResource S_about_desc}"
                                Foreground="{DynamicResource SubtleText}" />
-                    <TextBlock Text="数据库：%APPDATA%\app.memodo\settings.json / memodo.db"
-                               Foreground="{DynamicResource SubtleText}" FontSize="11" />
+                    <TextBlock x:Name="AboutPath" Text="{DynamicResource S_about_db}"
+                               Foreground="{DynamicResource SubtleText}" FontSize="11" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
         </StackPanel>

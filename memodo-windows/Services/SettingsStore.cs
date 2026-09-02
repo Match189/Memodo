@@ -18,6 +18,19 @@ public sealed class AppSettings
     public string WebDavPassProtected { get; set; } = "";
     public string DeviceId { get; set; } = "";
     public long LastSyncAt { get; set; } = 0;
+    /// <summary>上次服务器通道增量 push 的时间戳（毫秒）；仅推比它新的行。</summary>
+    public long LastPushAt { get; set; } = 0;
+    /// <summary>服务器通道 refresh token（DPAPI 加密；启动恢复会话免重登）。</summary>
+    public string RefreshTokenProtected { get; set; } = "";
+    /// <summary>服务器通道登录密码（DPAPI CurrentUser 加密；settings.json 不落明文）。</summary>
+    public string ServerPassProtected { get; set; } = "";
+    /// <summary>同步载荷端到端加密口令（DPAPI 加密存储；双端一致才可互解；空=明文同步）。</summary>
+    public string SyncPassphraseProtected { get; set; } = "";
+    /// <summary>口令指纹（SHA-256）：变更时重置服务器通道拉取游标做全量重拉，避免游标曾越过当时解不开的行。</summary>
+    public string E2eePassFingerprint { get; set; } = "";
+
+    /// <summary>取同步加密口令明文（DPAPI 解密；空=未启用加密）。</summary>
+    public string SyncPassphrase => SecretProtector.Unprotect(SyncPassphraseProtected);
 
     public bool ShowWidgetOnStartup { get; set; } = true;
     public string ThemeStyle { get; set; } = "Hybrid"; // Cork | Glass | Hybrid（蓝图 §17）
@@ -33,12 +46,12 @@ public sealed class AppSettings
     public int WidgetOpacity { get; set; } = 90;
     /// <summary>组件毛玻璃（BLURBEHIND）；false=透明渐变。</summary>
     public bool WidgetAcrylic { get; set; } = true;
-    /// <summary>附着桌面层（WorkerW，实验特性，Flutter Phase 3 移植）。</summary>
-    public bool WidgetAttachDesktop { get; set; } = false;
     /// <summary>自动同步（启动时 + 每 3 分钟，仅 WebDAV 通道）。</summary>
     public bool AutoSync { get; set; } = true;
-    /// <summary>自动同步间隔（分钟，用户可设）。</summary>
+    /// <summary>自动同步间隔（分钟，用户可设；跨端同步用 updated_at 做 LWW）。</summary>
     public int AutoSyncIntervalMinutes { get; set; } = 3;
+    /// <summary>间隔最近修改时间（毫秒时间戳），用于跨端同步裁决。</summary>
+    public long AutoSyncIntervalUpdatedAt { get; set; }
     /// <summary>界面语言：zh / en（用户裁定：双语可切换）。</summary>
     public string Language { get; set; } = "zh";
     /// <summary>组件显示方式（蓝图：钉板 / 传统列表 可切换）。</summary>
@@ -49,6 +62,10 @@ public sealed class AppSettings
     public Dictionary<string, WidgetCardPos> WidgetLayouts { get; set; } = new();
     /// <summary>组件钉板自定义背景图（本机视觉，不进同步协议；空=软木纹理）。</summary>
     public string BoardBgPath { get; set; } = "";
+    /// <summary>背景图缩放模式（UniformToFill / Uniform / Stretch / None）。</summary>
+    public string BoardBgStretch { get; set; } = "UniformToFill";
+    /// <summary>时间显示格式（relative / absolute）。</summary>
+    public string TimeFormat { get; set; } = "relative";
 
     /// <summary>设备标识（LWW 平局决胜，§19/§47）；首次访问自动生成。</summary>
     public string EnsureDeviceId()

@@ -22,8 +22,12 @@ public partial class MemoListView : UserControl
             ConfigureGroups();
             await Vm.LoadCommand.ExecuteAsync(null);
             UpdateEmpty();
+            UpdatePlaceholders();
             Vm.Memos.CollectionChanged += (_, _) => UpdateEmpty();
         };
+        // 占位提示跟随输入内容显隐
+        NewTitle.TextChanged += (_, _) => UpdatePlaceholders();
+        NewContent.TextChanged += (_, _) => UpdatePlaceholders();
     }
 
     /// <summary>列表分组（用户裁定）：钉板显示中 / 未在钉板显示。</summary>
@@ -58,6 +62,7 @@ public partial class MemoListView : UserControl
         var content = NewContent.Text?.Trim() ?? string.Empty;
         if (string.IsNullOrEmpty(title) && string.IsNullOrEmpty(content)) return;
         NewTitle.Text = NewContent.Text = string.Empty;
+        UpdatePlaceholders();
         await Vm.AddCommand.ExecuteAsync((title, content));
     }
 
@@ -69,7 +74,7 @@ public partial class MemoListView : UserControl
     }
 
     /// <summary>眼睛按钮：切换是否显示在钉板。</summary>
-    private void Eye_Click(object sender, RoutedEventArgs e)
+    private void Eye_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         if (sender is not FrameworkElement fe || fe.Tag is not string id) return;
         var item = Vm.Memos.FirstOrDefault(m => m.Id == id);
@@ -111,6 +116,15 @@ public partial class MemoListView : UserControl
 
     private void NewContent_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
-        if (e.Key == System.Windows.Input.Key.Enter) Add_Click(sender, e);
+        // Ctrl+Enter 添加（内容域支持换行，与快速添加一致）
+        if (e.Key == System.Windows.Input.Key.Enter
+            && System.Windows.Input.Keyboard.Modifiers == System.Windows.Input.ModifierKeys.Control)
+            Add_Click(sender, e);
+    }
+
+    private void UpdatePlaceholders()
+    {
+        TitlePlaceholder.Visibility = string.IsNullOrEmpty(NewTitle.Text) ? Visibility.Visible : Visibility.Collapsed;
+        ContentPlaceholder.Visibility = string.IsNullOrEmpty(NewContent.Text) ? Visibility.Visible : Visibility.Collapsed;
     }
 }

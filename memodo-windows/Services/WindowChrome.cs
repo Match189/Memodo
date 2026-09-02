@@ -118,51 +118,34 @@ public static class WindowChrome
         catch { /* 降级为普通窗口 */ }
     }
 
-    // ---------------- 桌面层（移植 Flutter Phase 3：Progman/WorkerW） ----------------
+    // ---------------- 桌面附着兼容清理 ----------------
+    // 附着桌面功能已移除（WPF 窗口挂为其他进程子窗口后 D3D 内容不渲染，详见
+    // docs/attach-desktop-analysis.md）。仅保留 DetachFromDesktop：把旧版本
+    // 可能挂在 Progman/WorkerW 下的窗口解回顶层，避免升级后窗口不可见。
 
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    private static extern IntPtr FindWindow(string? cls, string? title);
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string? cls, string? title);
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SetParent(IntPtr child, IntPtr parent);
     [DllImport("user32.dll")]
-    private static extern IntPtr SendMessageTimeout(IntPtr hwnd, uint msg, IntPtr w, IntPtr l, uint flags, uint timeout, out IntPtr result);
+    private static extern IntPtr GetAncestor(IntPtr hwnd, uint flags);
     [DllImport("user32.dll")]
-    private static extern bool EnumWindows(EnumProc proc, IntPtr l);
+    private static extern IntPtr GetDesktopWindow();
+    private const uint GA_PARENT = 1;
     [DllImport("user32.dll")]
-    private static extern bool SetParent(IntPtr child, IntPtr parent);
-    private delegate bool EnumProc(IntPtr hwnd, IntPtr l);
-    private const uint SMTO_NORMAL = 0x2;
+    private static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+    private const uint SWP_NOSIZE = 0x1;
+    private const uint SWP_NOMOVE = 0x2;
+    private const uint SWP_FRAMECHANGED = 0x20;
 
-    /// <summary>
-    /// 附到桌面层（SPD §13）：向 Progman 发 0x052C 生成 WorkerW，
-    /// 找到含 SHELLDLL_DefView 之后的那个 WorkerW 作为父窗。失败返回 false（调用方回退）。
-    /// </summary>
-    public static bool AttachToDesktop(IntPtr hwnd)
+    /// <summary>把旧版本附着在桌面层（Progman/WorkerW 子窗口）的窗口解回顶层。已是顶层则原样返回 true。</summary>
+    public static bool DetachFromDesktop(IntPtr hwnd)
     {
-        try
+        if (GetAncestor(hwnd, GA_PARENT) != GetDesktopWindow())
         {
-            var progman = FindWindow("Progman", null);
-            if (progman == IntPtr.Zero) return false;
-            SendMessageTimeout(progman, 0x052C, IntPtr.Zero, IntPtr.Zero, SMTO_NORMAL, 1000, out _);
-
-            IntPtr worker = IntPtr.Zero;
-            EnumWindows((top, l) =>
-            {
-                if (FindWindowEx(top, IntPtr.Zero, "SHELLDLL_DefView", null) != IntPtr.Zero)
-                {
-                    worker = FindWindowEx(IntPtr.Zero, top, "WorkerW", null);
-                    return false;
-                }
-                return true;
-            }, IntPtr.Zero);
-
-            if (worker == IntPtr.Zero) return false;
-            return SetParent(hwnd, worker);
+            SetParent(hwnd, IntPtr.Zero);
+            SetWindowPos(hwnd, IntPtr.Zero, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
         }
-        catch { return false; }
+        return GetAncestor(hwnd, GA_PARENT) == GetDesktopWindow();
     }
-
-    public static bool DetachFromDesktop(IntPtr hwnd) => SetParent(hwnd, IntPtr.Zero);
 
     private static bool IsWindows11() => Environment.OSVersion.Version.Build >= 22000;
 }

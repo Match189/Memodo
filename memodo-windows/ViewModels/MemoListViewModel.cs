@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Memodo.Windows.Models;
 using Memodo.Windows.Repositories;
+using Memodo.Windows.Services;
 
 namespace Memodo.Windows.ViewModels;
 
@@ -41,7 +42,7 @@ public partial class MemoListViewModel : ObservableObject
         if (string.IsNullOrEmpty(t) && string.IsNullOrEmpty(c)) return;
         var item = new MemoItem
         {
-            Title = string.IsNullOrEmpty(t) ? "无标题" : t,
+            Title = string.IsNullOrEmpty(t) ? LocalizationService.T("default_untitled") : t,
             Content = c,
         };
         await Task.Run(() => _repo.Insert(item));
@@ -62,7 +63,7 @@ public partial class MemoListViewModel : ObservableObject
     [RelayCommand]
     public async Task UpdateAsync((MemoItem item, string? title, string? content) args)
     {
-        args.item.Title = string.IsNullOrEmpty(args.title) ? "无标题" : args.title!;
+        args.item.Title = string.IsNullOrEmpty(args.title) ? LocalizationService.T("default_untitled") : args.title!;
         args.item.Content = args.content ?? string.Empty;
         await Task.Run(() => _repo.Update(args.item));
         await LoadAsync();
@@ -73,6 +74,22 @@ public partial class MemoListViewModel : ObservableObject
     public async Task RemoveAsync(MemoItem item)
     {
         await Task.Run(() => _repo.SoftDelete(item.Id));
+        await LoadAsync();
+        App.NotifyDataChanged();
+    }
+
+    [RelayCommand]
+    public async Task ArchiveAllAsync()
+    {
+        await Task.Run(() => _repo.ArchiveAll());
+        await LoadAsync();
+        App.NotifyDataChanged();
+    }
+
+    [RelayCommand]
+    public async Task UnarchiveMemoAsync(MemoItem memo)
+    {
+        await Task.Run(() => _repo.Unarchive(memo.Id));
         await LoadAsync();
         App.NotifyDataChanged();
     }

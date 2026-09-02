@@ -19,6 +19,7 @@ public sealed class TrayService : IDisposable
     private readonly TaskbarIcon _tray;
     private Window? _mainWindow;
     private DesktopWidgetWindow? _widget;
+    public DesktopWidgetWindow? WidgetWindow => _widget;
 
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string AppName = "Memodo";
@@ -27,7 +28,7 @@ public sealed class TrayService : IDisposable
     {
         _tray = new TaskbarIcon
         {
-            ToolTipText = "念念 Memodo",
+            ToolTipText = LocalizationService.T("app_title"),
             Icon = LoadTrayIcon(),
             Visibility = Visibility.Visible,
         };
@@ -101,8 +102,8 @@ public sealed class TrayService : IDisposable
         var s = SettingsStore.Current;
         if (s.SyncProvider != "webdav")
         {
-            System.Windows.MessageBox.Show("当前通道为自建服务器，请在 设置 → 同步 中操作（0.5 版）。",
-                "念念 Memodo");
+            System.Windows.MessageBox.Show(LocalizationService.T("err_server_only_in_settings"),
+                LocalizationService.T("app_title"));
             return;
         }
         try
@@ -110,7 +111,7 @@ public sealed class TrayService : IDisposable
             var engine = AppHost.Services.GetRequiredService<SyncEngine>();
             var (_, _, err) = await engine.RunWebDavAsync();
             if (err is not null)
-                System.Windows.MessageBox.Show("同步失败：" + err, "念念 Memodo");
+                System.Windows.MessageBox.Show(LocalizationService.T("sync_fail") + ": " + err, LocalizationService.T("app_title"));
             else
             {
                 _widget?.Reload();
@@ -119,7 +120,7 @@ public sealed class TrayService : IDisposable
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show("同步失败：" + ex.Message, "念念 Memodo");
+            System.Windows.MessageBox.Show(LocalizationService.T("sync_fail") + ": " + ex.Message, LocalizationService.T("app_title"));
         }
     }
 
@@ -141,7 +142,7 @@ public sealed class TrayService : IDisposable
     {
         _tray.Visibility = Visibility.Collapsed;
         _tray.Dispose();
-        Application.Current.Shutdown(0);
+        App.RequestQuit(); // 放行 Closing 拦截，防僵尸进程
     }
 
     public static bool IsAutostartEnabled()

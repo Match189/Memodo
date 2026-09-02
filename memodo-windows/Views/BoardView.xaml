@@ -13,10 +13,10 @@
         <StackPanel Orientation="Horizontal" Margin="14,12,14,6" Grid.Row="0">
             <TextBlock x:Name="BoardName" FontSize="18" FontWeight="Bold"
                        Foreground="#6B4A2F" VerticalAlignment="Center"/>
-            <Button x:Name="PinBtn" Content="钉卡片" Margin="14,0,0,0" Padding="10,4" Click="PinBtn_Click"/>
-            <Button x:Name="NewCardBtn" Content="＋卡片" Margin="8,0,0,0" Padding="10,4" Click="NewCard_Click" ToolTip="新建想法卡（可直接画布摆放）"/>
-            <Button x:Name="ZoomResetBtn" Content="1:1" Margin="8,0,0,0" Padding="10,4" Click="ZoomReset_Click" ToolTip="重置缩放"/>
-            <CheckBox x:Name="SnapChk" Content="网格吸附 (8px)" IsChecked="True"
+            <Button x:Name="PinBtn" Content="{DynamicResource S_board_pin_card_short}" Margin="14,0,0,0" Padding="10,4" Click="PinBtn_Click"/>
+            <Button x:Name="NewCardBtn" Content="{DynamicResource S_board_new_card_short}" Margin="8,0,0,0" Padding="10,4" Click="NewCard_Click" ToolTip="{DynamicResource S_board_new_card_hint_short}"/>
+            <Button x:Name="ZoomResetBtn" Content="1:1" Margin="8,0,0,0" Padding="10,4" Click="ZoomReset_Click" ToolTip="{DynamicResource S_board_zoom_reset}"/>
+            <CheckBox x:Name="SnapChk" Content="{DynamicResource S_board_snap_grid_short}" IsChecked="True"
                       Margin="12,0,0,0" VerticalAlignment="Center" Foreground="#6B4A2F"/>
         </StackPanel>
 
@@ -35,16 +35,16 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <TextBlock Text="钉到图钉板" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+                    <TextBlock Text="{DynamicResource S_board_picker_title_short}" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
                     <TabControl Grid.Row="1" x:Name="PickerTabs">
-                        <TabItem Header="待办">
+                        <TabItem Header="{DynamicResource S_board_picker_todo_short}">
                             <ListBox x:Name="TaskList" SelectionChanged="Picker_SelectionChanged"/>
                         </TabItem>
-                        <TabItem Header="备忘">
+                        <TabItem Header="{DynamicResource S_board_picker_memo_short}">
                             <ListBox x:Name="MemoList" SelectionChanged="Picker_SelectionChanged"/>
                         </TabItem>
                     </TabControl>
-                    <Button Grid.Row="2" Content="关闭" Margin="0,8,0,0" Click="PickerClose_Click"/>
+                    <Button Grid.Row="2" Content="{DynamicResource S_board_close}" Margin="0,8,0,0" Click="PickerClose_Click"/>
                 </Grid>
             </Border>
         </Popup>

@@ -47,7 +47,14 @@ public partial class DesktopWidgetWindow : Window
         UpdateTopVisual();
 
         _saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
-        _saveTimer.Tick += (_, _) => { _saveTimer.Stop(); SaveWindowPos(); };
+        _saveTimer.Tick += (_, _) =>
+        {
+            _saveTimer.Stop();
+            SaveWindowPos();
+            // 窗口缩小后画布变小：把落在画布外的贴纸拉回可视范围
+            if (SettingsStore.Current.WidgetViewMode != "list" && Board.Children.Count > 0)
+                Reload();
+        };
         LocationChanged += (_, _) => { _saveTimer.Stop(); _saveTimer.Start(); };
         SizeChanged += (_, _) => { _saveTimer.Stop(); _saveTimer.Start(); };
         Closing += (_, _) => SaveWindowPos();
@@ -60,20 +67,32 @@ public partial class DesktopWidgetWindow : Window
             ApplyLockDrag();
             RefreshCork();
             ThemeService.ThemeChanged += RefreshCork;
-            if (SettingsStore.Current.WidgetAttachDesktop) TryAttachDesktop(silent: true);
+            Services.LocalizationService.LanguageChanged += OnLanguageChanged;
             Reload();
         };
-        Unloaded += (_, _) => ThemeService.ThemeChanged -= RefreshCork;
+        Unloaded += (_, _) =>
+        {
+            ThemeService.ThemeChanged -= RefreshCork;
+            Services.LocalizationService.LanguageChanged -= OnLanguageChanged;
+        };
+    }
+
+    /// <summary>语言切换后刷新按钮 tooltip。</summary>
+    private void OnLanguageChanged()
+    {
+        UpdateTopVisual();
+        Reload();
     }
 
     /// <summary>设置页改动后即时生效。</summary>
     public void ApplySettings()
     {
-        Topmost = SettingsStore.Current.WidgetTopmost && !SettingsStore.Current.WidgetAttachDesktop;
+        Topmost = SettingsStore.Current.WidgetTopmost;
         UpdateTopVisual();
         ApplyMaterial();
         ApplySheetOpacity();
         ApplyLockDrag();
+        RefreshCork();
         Reload();
     }
 
@@ -113,7 +132,7 @@ public partial class DesktopWidgetWindow : Window
         var items = new List<NoteVM>();
         foreach (var t in _tasks.ListActive())
         {
-            if (t.Completed) continue; // 完成的待办不在钉板
+            if (t.Completed) continue; // 完成的待办从钉板移除
             items.Add(new NoteVM("t:" + t.Id, true, t.Title, "", false, t, null));
         }
         foreach (var m in _memos.ListActive())
@@ -121,7 +140,7 @@ public partial class DesktopWidgetWindow : Window
             if (!m.ShowOnBoard) continue; // 眼睛隐藏的备忘不在钉板（用户裁定）
             var body = string.IsNullOrWhiteSpace(m.Content) ? "" : m.Content;
             items.Add(new NoteVM("m:" + m.Id, false,
-                string.IsNullOrWhiteSpace(m.Title) ? "无标题" : m.Title, body, m.Completed, null, m));
+                string.IsNullOrWhiteSpace(m.Title) ? LocalizationService.T("default_untitled") : m.Title, body, m.Completed, null, m));
         }
         return items;
     }
@@ -149,6 +168,30 @@ public partial class DesktopWidgetWindow : Window
         double cw = 150 + 12, ch = 96 + 10;
         int rowsPerCol = Math.Max(1, (int)Math.Floor((boardH - 24) / ch));
 
+        // 画布尺寸变化（窗口缩放）：贴纸按相对位置等比跟随新画布，保持布局构图；
+        // 比例映射后可能轻微越界，统一钳回画布内
+        if (_lastBoardW > 40 && _lastBoardH > 40
+            && (Math.Abs(_lastBoardW - boardW) > 0.5 || Math.Abs(_lastBoardH - boardH) > 0.5))
+        {
+            double sx = boardW / _lastBoardW, sy = boardH / _lastBoardH;
+            foreach (var kv in SettingsStore.Current.WidgetLayouts)
+            {
+                var p = kv.Value;
+                p.X *= sx;
+                p.Y *= sy;
+                (p.X, p.Y) = ClampToBoard(p.X, p.Y, p.W, p.H, keepVisible: false);
+            }
+            SettingsStore.Save();
+        }
+        _lastBoardW = boardW;
+        _lastBoardH = boardH;
+
+        // 收集所有已占用区域（已保存位置的卡片）
+        var occupied = new List<Rect>();
+        foreach (var kv in SettingsStore.Current.WidgetLayouts)
+            if (items.Any(i => i.Key == kv.Key))
+                occupied.Add(new Rect(kv.Value.X, kv.Value.Y, kv.Value.W, kv.Value.H));
+
         int ti = 0, mi = 0;
         foreach (var it in items)
         {
@@ -156,23 +199,26 @@ public partial class DesktopWidgetWindow : Window
             if (SettingsStore.Current.WidgetLayouts.TryGetValue(it.Key, out var saved))
             {
                 pos = saved;
+                // 窗口缩小后存量贴纸可能落在画布外：加载时完整拉回画布内
+                if (pos.X > boardW - 24 || pos.Y > boardH - 24 || pos.X < 0 || pos.Y < 0
+                    || pos.X + pos.W > boardW || pos.Y + pos.H > boardH)
+                {
+                    (pos.X, pos.Y) = ClampToBoard(pos.X, pos.Y, pos.W, pos.H, keepVisible: false);
+                    SettingsStore.Current.WidgetLayouts[it.Key] = pos;
+                    SettingsStore.Save();
+                }
             }
             else if (it.IsTodo)
             {
-                int col = ti / rowsPerCol, row = ti % rowsPerCol;
-                pos = new WidgetCardPos { X = 8 + col * cw, Y = 8 + row * ch };
+                pos = FindFreePosition(occupied, boardW, boardH, cw, ch, rowsPerCol, ref ti, isTodo: true);
                 ti++;
             }
             else
             {
-                int col = mi / rowsPerCol, row = mi % rowsPerCol;
-                pos = new WidgetCardPos
-                {
-                    X = Math.Max(8, boardW - cw - col * cw),
-                    Y = 8 + row * ch,
-                };
+                pos = FindFreePosition(occupied, boardW, boardH, cw, ch, rowsPerCol, ref mi, isTodo: false);
                 mi++;
             }
+            occupied.Add(new Rect(pos.X, pos.Y, pos.W, pos.H));
             // 默认纸色：待办暖黄系 / 备忘蓝绿系（用户裁定 #2）
             if (string.IsNullOrEmpty(pos.NoteColor))
                 pos.NoteColor = DefaultNoteColor(it.IsTodo, it.IsTodo ? ti - 1 : mi - 1);
@@ -186,6 +232,47 @@ public partial class DesktopWidgetWindow : Window
         MemoPanel.Children.Clear();
         foreach (var t in _tasks.ListActive()) TodoPanel.Children.Add(BuildListRow(t));
         foreach (var m in _memos.ListActive()) MemoPanel.Children.Add(BuildListRow(m));
+    }
+
+    /// <summary>
+    /// 找空位：先按网格扫描（待办左列、备忘右列），只接受画布内的空位置；
+    /// 画布放不下时进入"交替层压"散布——质数步长错开位置，允许部分重叠但
+    /// 绝不允许候选位完全盖住已有贴纸（下层贴纸至少露出一条边）。
+    /// </summary>
+    private static WidgetCardPos FindFreePosition(
+        List<Rect> occupied, double boardW, double boardH, double cw, double ch,
+        int rowsPerCol, ref int counter, bool isTodo)
+    {
+        const double cardW = 150, cardH = 96;
+        bool Inside(double x, double y) => x >= 8 && y >= 8 && x + cardW <= boardW - 8 && y + cardH <= boardH - 8;
+
+        // 1) 网格扫描
+        for (int attempt = 0; attempt < 200; attempt++)
+        {
+            int col = counter / rowsPerCol, row = counter % rowsPerCol;
+            double x = isTodo ? 8 + col * cw : Math.Max(8, boardW - cardW - col * cw);
+            double y = 8 + row * ch;
+            counter++;
+            if (!Inside(x, y)) continue; // 超出画布的网格位跳过（画布小的时候会发生）
+            var candidate = new Rect(x, y, cardW, cardH);
+            if (!occupied.Any(r => r.IntersectsWith(candidate)))
+                return new WidgetCardPos { X = x, Y = y };
+        }
+
+        // 2) 交替层压散布：允许部分重叠，禁止完全遮挡
+        double spanX = Math.Max(1, boardW - cardW - 16);
+        double spanY = Math.Max(1, boardH - cardH - 16);
+        for (int n = 0; n < 120; n++)
+        {
+            double x = 8 + n * 37 % spanX;
+            double y = 8 + n * 29 % spanY;
+            var candidate = new Rect(x, y, cardW, cardH);
+            if (occupied.Any(r => candidate.Contains(r))) continue; // 会完全盖住下层贴纸 → 换位
+            return new WidgetCardPos { X = x, Y = y };
+        }
+
+        // 3) 兜底：画布中心
+        return new WidgetCardPos { X = Math.Max(8, (boardW - cardW) / 2), Y = Math.Max(8, (boardH - cardH) / 2) };
     }
 
     // ---------- 钉板便签 ----------
@@ -217,6 +304,7 @@ public partial class DesktopWidgetWindow : Window
         border.Child = grid;
         grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         var pin = new ContentControl
         {
@@ -232,17 +320,20 @@ public partial class DesktopWidgetWindow : Window
 
         var row = new StackPanel { Orientation = Orientation.Horizontal };
         Grid.SetRow(row, 0);
-        // 类型标识（用户裁定：待办/备忘要一眼可辨）：待办=✓ 图标，备忘=✎ 图标
-        var typeIcon = new TextBlock
+        // 备忘显示类型图标（✎），待办不显示（checkbox 已表明类型）
+        if (!it.IsTodo)
         {
-            Text = it.IsTodo ? "\uE73A" : "\uE70F",
-            FontFamily = new FontFamily("Segoe MDL2 Assets"),
-            FontSize = 11,
-            Foreground = (Brush)FindResource("Accent"),
-            VerticalAlignment = VerticalAlignment.Top,
-            Margin = new Thickness(0, 2, 5, 0),
-        };
-        row.Children.Add(typeIcon);
+            var typeIcon = new TextBlock
+            {
+                Text = "\uE70F",
+                FontFamily = new FontFamily("Segoe MDL2 Assets"),
+                FontSize = 11,
+                Foreground = (Brush)FindResource("Accent"),
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 2, 5, 0),
+            };
+            row.Children.Add(typeIcon);
+        }
         if (it.IsTodo && it.Task is not null)
         {
             var cb = new CheckBox
@@ -263,6 +354,8 @@ public partial class DesktopWidgetWindow : Window
             Foreground = (Brush)FindResource("TextPrimary"),
             VerticalAlignment = VerticalAlignment.Top,
             FontFamily = new FontFamily("KaiTi, Microsoft YaHei UI"),
+            MaxWidth = pos.W - 60,   // 留出图标+checkbox空间
+            MaxHeight = Math.Max(40, pos.H - 70), // 限制行数防溢出
         };
         if (it.Done) tb.TextDecorations = TextDecorations.Strikethrough;
         row.Children.Add(tb);
@@ -278,23 +371,24 @@ public partial class DesktopWidgetWindow : Window
                 Foreground = (Brush)FindResource("TextSecondary"),
                 Margin = new Thickness(0, 4, 0, 0),
                 TextTrimming = TextTrimming.CharacterEllipsis,
+                MaxHeight = Math.Max(0, pos.H - 60), // 限制内容区高度，保留标题+时间行空间
             };
             Grid.SetRow(body, 1);
             grid.Children.Add(body);
         }
 
-        // 备忘：眼睛斜线按钮 → 不在钉板显示（用户裁定：钉板不放删除按钮）
+        // 备忘：眼睛按钮 → 从钉板隐藏（右上角，避免与右下角 resize 重叠）
         if (!it.IsTodo && it.Memo is not null)
         {
             var hide = new Button
             {
-                Content = "\uED1A", // Hide（眼睛斜线）
+                Content = "\uE7B3", // 开眼（备忘当前在钉板上，点击隐藏）
                 FontFamily = new FontFamily("Segoe MDL2 Assets"),
                 Style = (Style)FindResource("CardDelBtn"),
-                Foreground = (Brush)FindResource("SecondaryLabel"),
+                Foreground = (Brush)FindResource("Accent"),
                 HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Bottom,
-                Margin = new Thickness(0, 0, 0, -2),
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, -2, 0, 0),
                 ToolTip = LocalizationService.T("memo_hide"),
                 IsHitTestVisible = !_locked,
             };
@@ -318,9 +412,32 @@ public partial class DesktopWidgetWindow : Window
             {
                 border.Width = Math.Max(120, border.Width + e.HorizontalChange);
                 border.Height = Math.Max(72, border.Height + e.VerticalChange);
+                // 尺寸不允许超出画布（贴纸至少完整保留在画布内）
+                if (border.Width > Board.ActualWidth) border.Width = Math.Max(120, Board.ActualWidth);
+                if (border.Height > Board.ActualHeight) border.Height = Math.Max(72, Board.ActualHeight);
             };
             thumb.DragCompleted += (_, _) => SaveCardPos(it.Key, border);
+            Grid.SetRow(thumb, 2); // 与时间同行，右下角
+            Grid.SetZIndex(thumb, 4);
             grid.Children.Add(thumb);
+        }
+
+        // 添加时间（右下角 resize 按钮左边）
+        var created = it.Task?.CreatedAt ?? it.Memo?.CreatedAt ?? 0;
+        if (created > 0)
+        {
+            var timeText = new TextBlock
+            {
+                Text = FormatRelativeTime(created),
+                FontSize = 9,
+                Foreground = (Brush)FindResource("TertiaryLabel"),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                Margin = new Thickness(0, 0, _locked ? 4 : 18, 4),
+            };
+            Grid.SetRow(timeText, 2);
+            Grid.SetZIndex(timeText, 1);
+            grid.Children.Add(timeText);
         }
 
         border.ContextMenu = BuildNoteMenu(it);
@@ -328,7 +445,7 @@ public partial class DesktopWidgetWindow : Window
         border.MouseLeftButtonDown += (sender, e) =>
         {
             if (_locked) return;
-            if (e.ClickCount == 2) { EditItem(it); return; }
+            if (e.ClickCount == 2) { EditItem(it); e.Handled = true; return; }
             if (e.OriginalSource is Thumb || e.OriginalSource is System.Windows.Controls.Primitives.ButtonBase) return;
             if (sender is not Border b) return;
             _dragEl = b; _dragKey = it.Key;
@@ -340,8 +457,12 @@ public partial class DesktopWidgetWindow : Window
         {
             if (_dragEl is not Border b) return;
             var p = e.GetPosition(Board);
-            Canvas.SetLeft(b, Canvas.GetLeft(b) + (p.X - _dragLast.X));
-            Canvas.SetTop(b, Canvas.GetTop(b) + (p.Y - _dragLast.Y));
+            double nl = Canvas.GetLeft(b) + (p.X - _dragLast.X);
+            double nt = Canvas.GetTop(b) + (p.Y - _dragLast.Y);
+            // 拖动钳制：贴纸不允许拖出画布可视范围（至少露 24px 边）
+            var (cl, ct) = ClampToBoard(nl, nt, b.Width, b.Height);
+            Canvas.SetLeft(b, cl);
+            Canvas.SetTop(b, ct);
             _dragLast = p;
         };
         border.MouseLeftButtonUp += (sender, e) =>
@@ -413,6 +534,8 @@ public partial class DesktopWidgetWindow : Window
     private Border? _dragEl;
     private string? _dragKey;
     private Point _dragLast;
+    // 上次钉板布局时的画布尺寸：窗口缩放时按比例映射贴纸相对位置
+    private double _lastBoardW, _lastBoardH;
 
     private void CompleteTask(TaskItem t)
     {
@@ -430,11 +553,43 @@ public partial class DesktopWidgetWindow : Window
         App.NotifyDataChanged();
     }
 
+    /// <summary>
+    /// 把画布坐标钳制在可视范围内：
+    /// keepVisible=true（拖动中）：允许贴纸大部分移出，但至少露 24px 边缘；
+    /// keepVisible=false（松手/加载/缩放拉回）：贴纸完整保留在画布内。
+    /// 画布尺寸异常时跳过钳制。
+    /// </summary>
+    private (double X, double Y) ClampToBoard(double x, double y, double w, double h, bool keepVisible = true)
+    {
+        double bw = Board.ActualWidth, bh = Board.ActualHeight;
+        if (bw < 40 || bh < 40) return (x, y);
+        double minX = keepVisible ? -Math.Max(0, w - 24) : 0;
+        double minY = keepVisible ? -Math.Max(0, h - 24) : 0;
+        double maxX = keepVisible ? bw - 24 : Math.Max(8, bw - w);
+        double maxY = keepVisible ? bh - 24 : Math.Max(8, bh - h);
+        return (Math.Clamp(x, minX, maxX), Math.Clamp(y, minY, maxY));
+    }
+
+    /// <summary>一键整理：清空全部已存摆位，按当前画布大小重新网格分布（待办居左、备忘居右）。</summary>
+    private void OrganizeBoard()
+    {
+        SettingsStore.Current.WidgetLayouts.Clear();
+        SettingsStore.Save();
+        Reload();
+    }
+
     private void SaveCardPos(string key, Border b)
     {
+        // 保留已有纸色与不透明度，避免拖拽后颜色重置；兜底钳制在画布内
+        var (cx, cy) = ClampToBoard(Canvas.GetLeft(b), Canvas.GetTop(b), b.Width, b.Height, keepVisible: false);
+        Canvas.SetLeft(b, cx);
+        Canvas.SetTop(b, cy);
+        SettingsStore.Current.WidgetLayouts.TryGetValue(key, out var prev);
         SettingsStore.Current.WidgetLayouts[key] = new WidgetCardPos
         {
-            X = Canvas.GetLeft(b), Y = Canvas.GetTop(b), W = b.Width, H = b.Height,
+            X = cx, Y = cy, W = b.Width, H = b.Height,
+            NoteColor = prev?.NoteColor ?? "",
+            NoteOpacity = prev?.NoteOpacity ?? 1.0,
         };
         SettingsStore.Save();
     }
@@ -486,13 +641,13 @@ public partial class DesktopWidgetWindow : Window
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
-        // 眼睛切换（用户裁定）：备忘无完成语义
+        // 眼睛切换（用户裁定）：备忘无完成语义；两种状态明显区分
         var eye = new Button
         {
-            Content = m.ShowOnBoard ? "\uE7B3" : "\uED1A",
+            Content = m.ShowOnBoard ? "\uE7B3" : "\uE8F4",
             FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 12,
             Background = Brushes.Transparent, BorderThickness = new Thickness(0),
-            Foreground = m.ShowOnBoard ? (Brush)FindResource("Accent") : (Brush)FindResource("SecondaryLabel"),
+            Foreground = m.ShowOnBoard ? (Brush)FindResource("Accent") : (Brush)FindResource("Danger"),
             VerticalAlignment = VerticalAlignment.Center, Cursor = Cursors.Hand,
             ToolTip = m.ShowOnBoard ? LocalizationService.T("memo_hide") : LocalizationService.T("memo_show"),
         };
@@ -506,7 +661,7 @@ public partial class DesktopWidgetWindow : Window
         var stack = new StackPanel();
         stack.Children.Add(new TextBlock
         {
-            Text = string.IsNullOrWhiteSpace(m.Title) ? "无标题" : m.Title,
+            Text = string.IsNullOrWhiteSpace(m.Title) ? LocalizationService.T("default_untitled") : m.Title,
             FontWeight = FontWeights.SemiBold, FontSize = 12.5,
             Foreground = m.ShowOnBoard ? (Brush)FindResource("TextPrimary") : (Brush)FindResource("SecondaryLabel"),
         });
@@ -541,12 +696,6 @@ public partial class DesktopWidgetWindow : Window
     // ---------- 右上角：置顶开关 + 选项菜单 ----------
     private void Top_Click(object sender, RoutedEventArgs e)
     {
-        if (SettingsStore.Current.WidgetAttachDesktop)
-        {
-            Topmost = false;
-            UpdateTopVisual();
-            return;
-        }
         Topmost = !Topmost;
         SettingsStore.Current.WidgetTopmost = Topmost;
         SettingsStore.Save();
@@ -597,7 +746,7 @@ public partial class DesktopWidgetWindow : Window
         menu.Items.Add(new Separator());
 
         // 用户裁定 #1：全部备忘恢复上板（批量救援）
-        var showAllMemo = new MenuItem { Header = "全部备忘上板" };
+        var showAllMemo = new MenuItem { Header = LocalizationService.T("show_all") };
         showAllMemo.Click += async (_, _) =>
         {
             foreach (var m in _memos.ListActive())
@@ -622,6 +771,11 @@ public partial class DesktopWidgetWindow : Window
         lockItem.Click += (_, _) => ToggleLock();
         menu.Items.Add(lockItem);
 
+        // 一键整理：按当前画布大小重新网格分布全部贴纸
+        var organize = new MenuItem { Header = LocalizationService.T("widget_organize") };
+        organize.Click += (_, _) => OrganizeBoard();
+        menu.Items.Add(organize);
+
         // 背景图（用户裁定 #7）：自定义图片 / 恢复软木
         var bgPick = new MenuItem { Header = LocalizationService.T("board_pick") };
         bgPick.Click += (_, _) => PickBoardImage();
@@ -633,15 +787,36 @@ public partial class DesktopWidgetWindow : Window
             RefreshCork();
         };
         menu.Items.Add(bgPick);
-        menu.Items.Add(bgReset);
 
-        var attachItem = new MenuItem
+        // 壁纸缩放模式子菜单
+        var stretchMenu = new MenuItem { Header = LocalizationService.T("bg_stretch_mode") };
+        var currentStretch = SettingsStore.Current.BoardBgStretch;
+        var stretchOptions = new (string key, string wpf)[]
         {
-            Header = LocalizationService.T("widget_attach"), IsCheckable = true,
-            IsChecked = SettingsStore.Current.WidgetAttachDesktop,
+            ("bg_stretch_fill", "UniformToFill"),
+            ("bg_stretch_fit", "Uniform"),
+            ("bg_stretch_stretch", "Stretch"),
+            ("bg_stretch_none", "None"),
         };
-        attachItem.Click += (_, _) => ToggleAttachDesktop();
-        menu.Items.Add(attachItem);
+        foreach (var (key, wpfVal) in stretchOptions)
+        {
+            var mi = new MenuItem
+            {
+                Header = LocalizationService.T(key),
+                IsCheckable = true,
+                IsChecked = currentStretch == wpfVal,
+                Tag = wpfVal,
+            };
+            mi.Click += (_, _) =>
+            {
+                SettingsStore.Current.BoardBgStretch = wpfVal;
+                SettingsStore.Save();
+                RefreshCork();
+            };
+            stretchMenu.Items.Add(mi);
+        }
+        menu.Items.Add(stretchMenu);
+        menu.Items.Add(bgReset);
         menu.Items.Add(new Separator());
 
         var showMain = new MenuItem { Header = LocalizationService.T("widget_show_main") };
@@ -694,36 +869,22 @@ public partial class DesktopWidgetWindow : Window
         if (chrome is not null) chrome.CaptionHeight = _locked ? 0 : 42;
     }
 
-    // ---------- 附着桌面（Flutter Phase 3 移植，实验） ----------
-    private void TryAttachDesktop(bool silent)
+    private static string FormatRelativeTime(long ms)
     {
-        var s = SettingsStore.Current;
-        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
-        if (hwnd == IntPtr.Zero) return;
-        var ok = s.WidgetAttachDesktop
-            ? WindowChrome.AttachToDesktop(hwnd)
-            : WindowChrome.DetachFromDesktop(hwnd);
-        if (!ok && !silent)
-        {
-            s.WidgetAttachDesktop = false;
-            SettingsStore.Save();
-            System.Windows.MessageBox.Show("附着桌面失败（已回退普通窗口）。", "念念 Memodo");
-        }
-        if (ok) Topmost = !s.WidgetAttachDesktop && s.WidgetTopmost;
-        UpdateTopVisual();
-    }
+        if (SettingsStore.Current.TimeFormat == "absolute")
+            return DateTimeOffset.FromUnixTimeMilliseconds(ms).ToString("yyyy/MM/dd HH:mm");
 
-    private void ToggleAttachDesktop()
-    {
-        var s = SettingsStore.Current;
-        s.WidgetAttachDesktop = !s.WidgetAttachDesktop;
-        SettingsStore.Save();
-        TryAttachDesktop(silent: false);
+        var diff = DateTimeOffset.Now - DateTimeOffset.FromUnixTimeMilliseconds(ms);
+        if (diff.TotalMinutes < 1) return LocalizationService.T("dates_today");
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}{LocalizationService.T("settings_minutes")}";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h";
+        if (diff.TotalDays < 30) return $"{(int)diff.TotalDays}d";
+        return DateTimeOffset.FromUnixTimeMilliseconds(ms).ToString("MM/dd");
     }
 
     private void RefreshCork() =>
         CorkHost.Content = CorkTexture.Create(ThemeService.Style, ThemeService.Dark,
-            SettingsStore.Current.BoardBgPath);
+            SettingsStore.Current.BoardBgPath, SettingsStore.Current.BoardBgStretch);
 
     /// <summary>自定义钉板背景图（用户裁定 #7）：复制到 AppData 后应用。</summary>
     private void PickBoardImage()
@@ -731,9 +892,10 @@ public partial class DesktopWidgetWindow : Window
         var dlg = new Microsoft.Win32.OpenFileDialog
         {
             Title = LocalizationService.T("board_pick"),
-            Filter = "图片|*.png;*.jpg;*.jpeg;*.bmp;*.webp",
+            Filter = LocalizationService.T("file_filter_image"),
         };
         if (dlg.ShowDialog(this) != true) return;
+        System.Diagnostics.Debug.WriteLine($"[Widget] PickBoardImage: selected={dlg.FileName}");
         try
         {
             var dir = Path.Combine(
@@ -742,13 +904,15 @@ public partial class DesktopWidgetWindow : Window
             Directory.CreateDirectory(dir);
             var dest = Path.Combine(dir, "board-bg" + Path.GetExtension(dlg.FileName).ToLowerInvariant());
             File.Copy(dlg.FileName, dest, overwrite: true);
+            System.Diagnostics.Debug.WriteLine($"[Widget] PickBoardImage: copied to={dest}, exists={File.Exists(dest)}");
             SettingsStore.Current.BoardBgPath = dest;
             SettingsStore.Save();
             RefreshCork();
+            System.Diagnostics.Debug.WriteLine($"[Widget] PickBoardImage: RefreshCork done, path={SettingsStore.Current.BoardBgPath}");
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show("背景设置失败：" + ex.Message, "念念 Memodo");
+            System.Windows.MessageBox.Show(LocalizationService.T("bg_set_fail") + ex.Message, LocalizationService.T("app_title"));
         }
     }
 }

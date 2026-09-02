@@ -49,7 +49,7 @@ public partial class BoardView : UserControl
     {
         _createPos = e.GetPosition(BoardCanvas);
         var menu = new ContextMenu();
-        foreach (var (type, label) in new[] { ("checklist", "待办清单"), ("idea", "文字便签") })
+        foreach (var (type, label) in new[] { ("checklist", LocalizationService.T("board_picker_todo_short")), ("idea", LocalizationService.T("board_picker_memo_short")) })
         {
             var t = type;
             var item = new MenuItem { Header = label };
@@ -114,7 +114,7 @@ public partial class BoardView : UserControl
         }
         catch (Exception ex)
         {
-            BoardName.Text = "加载失败：" + ex.Message;
+            BoardName.Text = LocalizationService.T("board_load_fail") + ex.Message;
         }
     }
 
@@ -271,11 +271,11 @@ public partial class BoardView : UserControl
     private ContextMenu BuildCardMenu(CardViewModel c)
     {
         var menu = new ContextMenu();
-        var edit = new MenuItem { Header = "编辑" };
+        var edit = new MenuItem { Header = LocalizationService.T("board_menu_edit") };
         edit.Click += (_, _) => OpenEditor(c);
         menu.Items.Add(edit);
 
-        var pinMenu = new MenuItem { Header = "图钉色（分类）" };
+        var pinMenu = new MenuItem { Header = LocalizationService.T("board_menu_pin_color") };
         foreach (var p in PinFactory.Colors)
         {
             var pc = p;
@@ -285,7 +285,7 @@ public partial class BoardView : UserControl
         }
         menu.Items.Add(pinMenu);
 
-        var noteMenu = new MenuItem { Header = "便签纸色" };
+        var noteMenu = new MenuItem { Header = LocalizationService.T("board_menu_note_color") };
         foreach (var n in PinFactory.NoteColors)
         {
             var nc = n;
@@ -295,11 +295,11 @@ public partial class BoardView : UserControl
         }
         menu.Items.Add(noteMenu);
 
-        var dup = new MenuItem { Header = "复制" };
+        var dup = new MenuItem { Header = LocalizationService.T("board_menu_duplicate") };
         dup.Click += async (_, _) => { await Vm.DuplicateAsync(c); };
         menu.Items.Add(dup);
 
-        var unpin = new MenuItem { Header = "取消钉 / 删除" };
+        var unpin = new MenuItem { Header = LocalizationService.T("board_menu_unpin") };
         unpin.Click += (_, _) => Vm.UnpinCommand.Execute(c);
         menu.Items.Add(unpin);
         return menu;
@@ -307,12 +307,12 @@ public partial class BoardView : UserControl
 
     private static string PinLabel(string c) => c switch
     {
-        "blue" => "蓝 · 资料", "green" => "绿 · 完成", "yellow" => "黄 · 待办", _ => "红 · 紧急",
+        "blue" => LocalizationService.T("pin_blue"), "green" => LocalizationService.T("pin_green"), "yellow" => LocalizationService.T("pin_yellow"), _ => LocalizationService.T("pin_red"),
     };
 
     private static string NoteLabel(string c) => c switch
     {
-        "pink" => "粉", "blue" => "蓝", "green" => "绿", "orange" => "橙", _ => "黄",
+        "pink" => LocalizationService.T("note_paper_pink"), "blue" => LocalizationService.T("note_paper_blue"), "green" => LocalizationService.T("note_paper_green"), "orange" => LocalizationService.T("note_paper_orange"), _ => LocalizationService.T("note_paper_yellow"),
     };
 
     private System.Windows.Controls.Border ColorDot(Color c) => new()
@@ -326,17 +326,17 @@ public partial class BoardView : UserControl
         // 内联卡（蓝图 §10：idea/checklist 内容直接存 cards）
         if (c.Record.RefType is "idea" or "checklist")
         {
-            var inlineHead = string.IsNullOrWhiteSpace(c.Record.Title) ? "新卡片" : c.Record.Title;
+            var inlineHead = string.IsNullOrWhiteSpace(c.Record.Title) ? LocalizationService.T("board_new_card_default") : c.Record.Title;
             return string.IsNullOrWhiteSpace(c.Record.Content) ? inlineHead : inlineHead + "\n" + c.Record.Content;
         }
         if (c.Record.RefType == "todo")
         {
             var t = Vm.Tasks.FirstOrDefault(x => x.Id == c.Record.RefUuid);
-            return t == null ? "(已删除待办)" : (t.Completed ? "✓ " : "○ ") + t.Title;
+            return t == null ? LocalizationService.T("board_deleted_task") : (t.Completed ? "✓ " : "○ ") + t.Title;
         }
         var m = Vm.Memos.FirstOrDefault(x => x.Id == c.Record.RefUuid);
-        if (m == null) return "(已删除备忘)";
-        var head = string.IsNullOrWhiteSpace(m.Title) ? "无标题" : m.Title;
+        if (m == null) return LocalizationService.T("board_deleted_memo");
+        var head = string.IsNullOrWhiteSpace(m.Title) ? LocalizationService.T("default_untitled") : m.Title;
         return string.IsNullOrWhiteSpace(m.Content) ? head : head + "\n" + m.Content;
     }
 

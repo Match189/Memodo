@@ -9,30 +9,57 @@
         </Grid.RowDefinitions>
 
         <DockPanel Grid.Row="0" Margin="0,0,0,16">
-            <TextBlock Text="{DynamicResource S_PageMemo}" FontSize="24" FontWeight="SemiBold"
+            <TextBlock Text="{DynamicResource S_page_memo}" FontSize="24" FontWeight="SemiBold"
                        Foreground="{DynamicResource Label}" />
             <Button DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center"
                     Content="{DynamicResource S_show_all}" Style="{StaticResource PlainBtn}"
-                    Click="ShowAll_Click" ToolTip="全部备忘恢复到钉板显示"/>
+                    Click="ShowAll_Click" ToolTip="{DynamicResource S_show_all}"/>
         </DockPanel>
 
-        <Border Grid.Row="1" Background="{DynamicResource Fill}" CornerRadius="8"
-                BorderThickness="2" BorderBrush="Transparent" Margin="0,0,0,16">
-            <Grid Margin="12,8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="1.6*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBox x:Name="NewTitle" Grid.Column="0" Padding="10,6" BorderThickness="0"
-                         Background="Transparent" VerticalContentAlignment="Center"
-                         Foreground="{DynamicResource Label}"
-                         KeyDown="NewTitle_KeyDown" />
-                <TextBox x:Name="NewContent" Grid.Column="1" Padding="10,6" Margin="8,0" BorderThickness="0"
-                         Background="Transparent" VerticalContentAlignment="Center"
-                         Foreground="{DynamicResource Label}"
-                         KeyDown="NewContent_KeyDown" />
-                <Button Grid.Column="2" Content="{DynamicResource S_Add}" Padding="18,0" Height="34"
+        <!-- 备忘编辑卡：标题 / 分隔线 / 多行内容 / 添加（与钉板快速添加同一层级语感） -->
+        <Border Grid.Row="1" Background="{DynamicResource Surface}" CornerRadius="10"
+                BorderThickness="1" BorderBrush="{DynamicResource Separator}" Margin="0,0,0,12"
+                Padding="14,10">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="BorderBrush" Value="{DynamicResource Separator}" />
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <!-- 标题行：单行、加粗、大一号 -->
+                <Grid Grid.Row="0">
+                    <TextBox x:Name="NewTitle" Padding="2,3" BorderThickness="0" Background="Transparent"
+                             Foreground="{DynamicResource Label}" FontSize="14" FontWeight="SemiBold"
+                             KeyDown="NewTitle_KeyDown" />
+                    <TextBlock x:Name="TitlePlaceholder" Text="{DynamicResource S_memo_title_placeholder}"
+                               Foreground="{DynamicResource TertiaryLabel}" FontSize="14" FontWeight="SemiBold"
+                               Margin="3,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                </Grid>
+                <Separator Grid.Row="1" Margin="0,7" Background="{DynamicResource Separator}"/>
+                <!-- 内容行：多行文本域，高度明显区别于标题 -->
+                <Grid Grid.Row="2" MinHeight="64">
+                    <TextBox x:Name="NewContent" Padding="2,3" BorderThickness="0" Background="Transparent"
+                             Foreground="{DynamicResource Label}" FontSize="13"
+                             AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top"
+                             VerticalScrollBarVisibility="Auto"
+                             KeyDown="NewContent_KeyDown" />
+                    <TextBlock x:Name="ContentPlaceholder" Text="{DynamicResource S_memo_content_placeholder}"
+                               Foreground="{DynamicResource TertiaryLabel}" FontSize="13"
+                               Margin="3,0,0,0" VerticalAlignment="Top" IsHitTestVisible="False"/>
+                </Grid>
+                <Button Grid.Row="3" Content="{DynamicResource S_add}" HorizontalAlignment="Right"
+                        MinWidth="88" Height="32" Margin="0,8,0,0"
                         Style="{StaticResource AccentBtn}" Click="Add_Click" />
             </Grid>
         </Border>
@@ -71,28 +98,43 @@
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <!-- 眼睛按钮：控制是否显示在钉板（备忘无完成语义，用户裁定） -->
-                                <Button Grid.Column="0" Width="28" Height="28"
-                                        VerticalAlignment="Center" Background="Transparent" BorderThickness="0"
-                                        Click="Eye_Click" Tag="{Binding Id}" Cursor="Hand">
-                                    <Button.Style>
-                                        <Style TargetType="Button">
-                                            <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
-                                            <Setter Property="FontSize" Value="14" />
-                                            <Setter Property="Foreground" Value="{DynamicResource Accent}" />
-                                            <Setter Property="Content" Value="&#xE7B3;" />
-                                            <Setter Property="ToolTip" Value="{DynamicResource S_memo_hide_tip}" />
+                                <Border Grid.Column="0" Width="28" Height="28"
+                                        VerticalAlignment="Center" CornerRadius="4"
+                                        Cursor="Hand" Background="Transparent"
+                                        MouseLeftButtonDown="Eye_Click" Tag="{Binding Id}">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="Transparent" />
                                             <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ShowOnBoard}" Value="True">
+                                                    <Setter Property="ToolTip" Value="{DynamicResource S_memo_hide_tip}" />
+                                                </DataTrigger>
                                                 <DataTrigger Binding="{Binding ShowOnBoard}" Value="False">
-                                                    <Setter Property="Content" Value="&#xED1A;" />
+                                                    <Setter Property="Background" Value="#22FF0000" />
                                                     <Setter Property="ToolTip" Value="{DynamicResource S_memo_show_tip}" />
-                                                    <Setter Property="Foreground" Value="{DynamicResource SecondaryLabel}" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </Button.Style>
-                                </Button>
+                                    </Border.Style>
+                                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="&#xE7B3;" />
+                                                <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ShowOnBoard}" Value="False">
+                                                        <Setter Property="Text" Value="&#xE8F4;" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource Danger}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
                                 <StackPanel Grid.Column="1" Margin="12,10,0,10" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding Title}" FontSize="14"
                                                TextTrimming="CharacterEllipsis">
@@ -111,7 +153,10 @@
                                                Margin="0,2,0,0"
                                                Foreground="{DynamicResource SecondaryLabel}" />
                                 </StackPanel>
-                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="8,0,0,0"
+                                           FontSize="11" Foreground="{DynamicResource TertiaryLabel}"
+                                           Text="{Binding CreatedAt, Converter={StaticResource TimeAgoConverter}}" />
+                                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
                                     <Button Content="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="13"
                                             ToolTip="{DynamicResource S_tip_edit}" Margin="0,0,6,0"
                                             Foreground="{DynamicResource Accent}" Background="Transparent" BorderThickness="0"
@@ -130,7 +175,7 @@
                         IsHitTestVisible="False">
                 <TextBlock Text="&#xE70B;" FontFamily="Segoe MDL2 Assets" FontSize="36"
                            Foreground="{DynamicResource TertiaryLabel}" HorizontalAlignment="Center" />
-                <TextBlock Text="{DynamicResource S_EmptyMemos}" Margin="0,8,0,0"
+                <TextBlock Text="{DynamicResource S_empty_memos}" Margin="0,8,0,0"
                            Foreground="{DynamicResource SecondaryLabel}" HorizontalAlignment="Center" />
             </StackPanel>
         </Grid>
