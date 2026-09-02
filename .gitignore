@@ -6,12 +6,8 @@
 todo-server/.env
 todo-server/dev.db
 
-# Flutter / Dart
-.dart_tool/
-.flutter-plugins*
-.packages
-build/
-*.lock
+# 已废弃的 Flutter 遗留（历史版本仍在 git 记录中可找回）
+legacy/
 
 # IDE / 系统
 .idea/
@@ -22,23 +18,25 @@ Thumbs.db
 
 # 本地临时
 *.log
-todo-server/**/__pycache__/
-todo-server/.venv/
 *.db
 todo-server/*.db
-android/key.properties
-android/app/*.jks
-*.keystore
+todo-server/test.db
 
 # Windows (WPF / .NET)
 memodo-windows/bin/
 memodo-windows/obj/
 memodo-windows/publish/
+memodo-windows/publish2/
+memodo-windows/crash.log
+memodo-windows/sync.log
 
 # Android (Gradle)
 memodo-android/.gradle/
+memodo-android/build/
+memodo-android/app/build/
 memodo-android/local.properties
 memodo-android/key.properties
+*.keystore
 *.apk
 *.aab
 
@@ -46,3 +44,15 @@ memodo-android/key.properties
 memodo-server/**/__pycache__/
 memodo-server/.venv/
 memodo-server/.env
+todo-server/**/__pycache__/
+todo-server/.venv/
+
+# QA 测试资产（含真实数据截图/备份，严禁入库）
+.qa/
+
+# ZCode CLI 数据
+.zcode/
+
+# 个人文件
+背景.jpg
+*.sql
