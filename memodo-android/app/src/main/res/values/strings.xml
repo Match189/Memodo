@@ -26,6 +26,9 @@
     <string name="board_empty_short">板面是空的</string>
     <string name="board_overflow">%1$d 条待办 / %2$d 条备忘</string>
     <string name="settings_title">设置</string>
+    <string name="about_homepage">项目主页</string>
+    <string name="about_version">版本</string>
+    <string name="about_homepage_url" translatable="false">https://github.com/Match189/Memodo</string>
     <string name="sync_section">同步</string>
     <string name="sync_local">仅本地</string>
     <string name="sync_webdav">WebDAV</string>

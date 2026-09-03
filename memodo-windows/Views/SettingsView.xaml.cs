@@ -78,6 +78,7 @@ public partial class SettingsView : UserControl
         };
         // 关于卡路径行是代码拼接的（覆盖了 DynamicResource），语言热切换后需重取词
         LocalizationService.LanguageChanged += ApplyAboutPath;
+        ApplyAboutHomepage();
     }
 
     /// <summary>关于卡「数据库路径」行。</summary>
@@ -85,6 +86,17 @@ public partial class SettingsView : UserControl
         AboutPath.Text = LocalizationService.T("about_db") + ": " + System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "app.memodo");
+
+    /// <summary>关于卡「项目主页」行（语言热切换时重取词）。</summary>
+    private void ApplyAboutHomepage() =>
+        AboutHomepage.Text = LocalizationService.T("about_homepage") + ": " + ProjectHome.Url;
+
+    private void AboutHomepage_Click(object sender, System.Windows.Input.MouseButtonEventArgs e) =>
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = ProjectHome.Url,
+            UseShellExecute = true,
+        });
 
     private void Lang_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {

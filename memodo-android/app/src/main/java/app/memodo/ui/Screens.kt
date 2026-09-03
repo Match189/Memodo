@@ -28,7 +28,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.withStyle
+import app.memodo.BuildConfig
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -55,6 +59,9 @@ import java.util.Locale
 /** 到期时间短格式（列表/卡片徽标用）。 */
 private fun formatDue(ms: Long): String =
     SimpleDateFormat("MM-dd", Locale.getDefault()).format(Date(ms))
+
+/** 项目主页（开源仓库地址，单点维护；关于页可点击跳转）。 */
+const val PROJECT_HOME_URL = "https://github.com/Match189/Memodo"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -573,6 +580,28 @@ fun SettingsView() {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.titleLarge)
+
+        // 关于：版本号 + 项目主页（用户可一键跳转项目页）
+        // URL 常量放 res（translatable=false），点击时经 ctx 取值，避开 composable 上下文限制
+        val verText = stringResource(R.string.about_version) + " " + BuildConfig.VERSION_NAME + " · "
+        val homeLabel = stringResource(R.string.about_homepage)
+        val aboutText = remember(verText, homeLabel) {
+            buildAnnotatedString {
+                append(verText)
+                pushStringAnnotation("url", PROJECT_HOME_URL)
+                withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) { append(homeLabel) }
+                pop()
+            }
+        }
+        Text(
+            aboutText,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.clickable {
+                ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,
+                    android.net.Uri.parse(PROJECT_HOME_URL)))
+            },
+        )
 
         // 同步方式（用户裁定补全：仅本地 / WebDAV / 自建服务器）
         OutlinedCard {

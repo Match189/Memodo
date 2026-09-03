@@ -26,6 +26,8 @@
     <string name="board_empty_short">Board is empty</string>
     <string name="board_overflow">%1$d tasks / %2$d memos</string>
     <string name="settings_title">Settings</string>
+    <string name="about_homepage">Project homepage</string>
+    <string name="about_version">Version</string>
     <string name="sync_section">Sync</string>
     <string name="sync_local">Local only</string>
     <string name="sync_webdav">WebDAV</string>

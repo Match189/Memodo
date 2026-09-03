@@ -310,6 +310,7 @@
   "time_relative": "相对时间",
   "time_absolute": "实际日期",
   "about_desc": "Memodo 念念 · Windows 原生客户端 (C#/WPF)",
+  "about_homepage": "项目主页",
   "about_db": "数据库路径",
   "board_new_card_short": "＋卡片",
   "board_new_card_hint_short": "新建想法卡（可直接画布摆放）",

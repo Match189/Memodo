@@ -187,6 +187,9 @@
                     <TextBlock Text="{DynamicResource S_sec_about}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,10" />
                     <TextBlock Text="{DynamicResource S_about_desc}"
                                Foreground="{DynamicResource SubtleText}" />
+                    <TextBlock x:Name="AboutHomepage" Cursor="Hand"
+                               Foreground="{DynamicResource Accent}" TextDecorations="Underline"
+                               MouseLeftButtonUp="AboutHomepage_Click" />
                     <TextBlock x:Name="AboutPath" Text="{DynamicResource S_about_db}"
                                Foreground="{DynamicResource SubtleText}" FontSize="11" TextWrapping="Wrap" />
                 </StackPanel>
