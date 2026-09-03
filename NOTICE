@@ -1,0 +1,37 @@
+Memodo (念念)
+Copyright 2026 Memodo Contributors
+
+This product includes software developed as part of the Memodo project.
+
+========================================================================
+Third-party dependencies (each under its own license, listed here for
+attribution; see the respective project repositories for full texts):
+========================================================================
+
+Windows client (memodo-windows, .NET 10 / WPF):
+  - .NET Runtime / WPF ............... MIT ........... dotnet.microsoft.com
+  - CommunityToolkit.Mvvm ............ MIT ........... github.com/CommunityToolkit/dotnet
+  - Hardcodet.NotifyIcon.Wpf ......... CPOL/MIT ...... github.com/hardcodet/wpf-notifyicon
+  - Microsoft.Data.Sqlite ............ MIT ........... learn.microsoft.com/dotnet/standard/data/sqlite
+  - SQLitePCLRaw ..................... Apache-2.0 .... github.com/ericsink/SQLitePCLRaw
+  - System.Drawing.Common ............ MIT ........... github.com/dotnet/runtime
+  - System.Security.Cryptography.ProtectedData ... MIT . github.com/dotnet/runtime
+
+Android client (memodo-android, Kotlin / Jetpack Compose):
+  - Kotlin ........................... Apache-2.0 .... kotlinlang.org
+  - Jetpack Compose .................. Apache-2.0 .... developer.android.com/jetpack/compose
+  - Room / Lifecycle / Glance ........ Apache-2.0 .... developer.android.com/jetpack
+
+Sync server (memodo-server, Python / FastAPI):
+  - FastAPI / Starlette / Pydantic ... MIT/BSD ....... fastapi.tiangolo.com
+  - SQLAlchemy ....................... MIT ........... sqlalchemy.org
+  - asyncpg / aiosqlite .............. Apache-2.0 .... github.com/MagicStack/asyncpg
+  - python-jose ...................... MIT ........... github.com/mpdavis/python-jose
+  - passlib / bcrypt ................. MIT/Apache-2.0  passlib.readthedocs.io
+  - uvicorn .......................... BSD ........... uvicorn.org
+
+Cryptographic notice:
+  The end-to-end encryption used by Memodo (format "MEMODO1") is built
+  exclusively on standard, patent-free primitives: PBKDF2-HMAC-SHA256
+  (RFC 8018) and AES-256-GCM (NIST SP 800-38D), as provided by the
+  respective platform cryptographic libraries.
