@@ -26,7 +26,6 @@ todo-server/test.db
 memodo-windows/bin/
 memodo-windows/obj/
 memodo-windows/publish/
-memodo-windows/publish2/
 memodo-windows/crash.log
 memodo-windows/sync.log
 
