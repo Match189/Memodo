@@ -1,3 +1,19 @@
+> **当前状态（2026-09-03）**：v0.2.0 已开源发布（Apache-2.0，tag v0.2.0）。
+> 本文下半部分是 v1.0 时期的历史计划（多数已完成，冲突矩阵一节仍是协议事实来源，另见 docs/PROTOCOL.md）。
+> 面向社区的前瞻路线见下节；历史计划保留在折叠区之后供追溯。
+
+## 下一阶段（面向开源社区）
+
+- 🔜 **GitHub Release 产物**：上传 Windows exe / Android APK（tag v0.2.0 已推）
+- 🔜 **演示截图**：README 三端截图（干净演示数据）
+- 🔜 **CI**：GitHub Actions —— Android `assembleDebug`、Windows `dotnet build`、服务端回归用例
+- 🔜 **CONTRIBUTING.md + issue/PR 模板**
+- 🔜 **服务端测试入库**：24 用例移植为 pytest 随 CI 跑
+- 🔜 **口令轮换重加密**：换口令时用新口令重封服务端旧行（受控迁移）
+- 🔜 **Windows UIA 可访问性**：自绘控件挂钩 UIA（无障碍 + 可测试性）
+- 💡 iOS/macOS 客户端 · Web 只读看板 · 重复任务/提醒 · 附件 E2EE · WebDAV 连接测试向导
+
+---
 # ROADMAP — 综合工作计划（v1.0 发布与同步深化）
 
 > 本文是 SPD 之后的滚动计划。每轮完成后在本文标注状态并回写 PHASES.md。
