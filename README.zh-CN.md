@@ -100,6 +100,22 @@ cd memodo-android
 ./gradlew :app:assembleRelease
 ```
 
+## 界面预览
+
+Windows 客户端（待办、备忘、钉板小组件）：
+
+![Windows 待办](docs/screenshots/zh-windows-todo.png)
+![Windows 备忘](docs/screenshots/zh-windows-memo.png)
+![Windows 钉板](docs/screenshots/zh-windows-board.png)
+
+Android 客户端（待办、备忘、图钉板）：
+
+![Android 待办](docs/screenshots/zh-android-todo.png)
+![Android 备忘](docs/screenshots/zh-android-memo.png)
+![Android 图钉板](docs/screenshots/zh-android-board.png)
+
+English screenshots live in [README.md](README.md).
+
 ## 构建 / 参与
 
 ```bash

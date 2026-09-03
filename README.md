@@ -115,6 +115,22 @@ cd memodo-android
 ./gradlew :app:assembleRelease   # signing config: see app/build.gradle.kts
 ```
 
+## Screenshots
+
+Windows client (to-dos, memos, pin-board widget):
+
+![Windows to-dos](docs/screenshots/en-windows-todo.png)
+![Windows memos](docs/screenshots/en-windows-memo.png)
+![Windows pin-board](docs/screenshots/en-windows-board.png)
+
+Android client (tasks, memos, board):
+
+![Android tasks](docs/screenshots/en-android-todo.png)
+![Android memos](docs/screenshots/en-android-memo.png)
+![Android board](docs/screenshots/en-android-board.png)
+
+中文界面预览见 [中文说明](README.zh-CN.md)。
+
 ## Building / contributing
 
 ```bash
