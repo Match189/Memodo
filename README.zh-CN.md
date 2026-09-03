@@ -102,17 +102,25 @@ cd memodo-android
 
 ## 界面预览
 
-Windows 客户端（待办、备忘、钉板小组件）：
+Windows 客户端（待办 · 备忘 · 钉板小组件）：
 
-![Windows 待办](docs/screenshots/zh-windows-todo.png)
-![Windows 备忘](docs/screenshots/zh-windows-memo.png)
-![Windows 钉板](docs/screenshots/zh-windows-board.png)
+<table>
+  <tr>
+    <td><img src="docs/screenshots/zh-windows-todo.png" width="320" alt="Windows 待办" /></td>
+    <td><img src="docs/screenshots/zh-windows-memo.png" width="320" alt="Windows 备忘" /></td>
+    <td><img src="docs/screenshots/zh-windows-board.png" width="320" alt="Windows 钉板" /></td>
+  </tr>
+</table>
 
-Android 客户端（待办、备忘、图钉板）：
+Android 客户端（待办 · 备忘 · 图钉板）：
 
-![Android 待办](docs/screenshots/zh-android-todo.png)
-![Android 备忘](docs/screenshots/zh-android-memo.png)
-![Android 图钉板](docs/screenshots/zh-android-board.png)
+<table>
+  <tr>
+    <td><img src="docs/screenshots/zh-android-todo.png" width="200" alt="Android 待办" /></td>
+    <td><img src="docs/screenshots/zh-android-memo.png" width="200" alt="Android 备忘" /></td>
+    <td><img src="docs/screenshots/zh-android-board.png" width="200" alt="Android 图钉板" /></td>
+  </tr>
+</table>
 
 English screenshots live in [README.md](README.md).
 

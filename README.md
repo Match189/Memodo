@@ -117,17 +117,25 @@ cd memodo-android
 
 ## Screenshots
 
-Windows client (to-dos, memos, pin-board widget):
+Windows client (to-dos · memos · pin-board widget):
 
-![Windows to-dos](docs/screenshots/en-windows-todo.png)
-![Windows memos](docs/screenshots/en-windows-memo.png)
-![Windows pin-board](docs/screenshots/en-windows-board.png)
+<table>
+  <tr>
+    <td><img src="docs/screenshots/en-windows-todo.png" width="320" alt="Windows to-dos" /></td>
+    <td><img src="docs/screenshots/en-windows-memo.png" width="320" alt="Windows memos" /></td>
+    <td><img src="docs/screenshots/en-windows-board.png" width="320" alt="Windows pin-board" /></td>
+  </tr>
+</table>
 
-Android client (tasks, memos, board):
+Android client (tasks · memos · board):
 
-![Android tasks](docs/screenshots/en-android-todo.png)
-![Android memos](docs/screenshots/en-android-memo.png)
-![Android board](docs/screenshots/en-android-board.png)
+<table>
+  <tr>
+    <td><img src="docs/screenshots/en-android-todo.png" width="200" alt="Android tasks" /></td>
+    <td><img src="docs/screenshots/en-android-memo.png" width="200" alt="Android memos" /></td>
+    <td><img src="docs/screenshots/en-android-board.png" width="200" alt="Android board" /></td>
+  </tr>
+</table>
 
 中文界面预览见 [中文说明](README.zh-CN.md)。
 
