@@ -23,34 +23,44 @@ Status: **v0.2.0** — daily-driver quality for the author; API/protocol stable
 
 ## Status & TODO
 
-**✅ Done**
+> Live board — updated each release. Feature requests go to
+> [Issues](../../issues); long-form plans live in the [roadmap](docs/ROADMAP.md).
 
-- [x] Tasks / memos CRUD with soft-delete tombstones (Windows + Android)
-- [x] Pin-board (Windows free layout & zoom · Android adaptive grid) + corkboard texture
-- [x] Desktop widget (Windows): sticky-note wall / list, topmost, opacity, tray control
-- [x] Android home-screen widgets: tasks (quick check-off), memos, board preview
-- [x] Share-to-memo on Android (system share sheet → memo draft)
-- [x] Sync — WebDAV snapshot channel (v3, any provider) + self-hosted server (JWT, incremental pull)
-- [x] Auto-sync on both channels (configurable interval, cross-device via LWW)
-- [x] End-to-end encryption: AES-256-GCM + PBKDF2 (210k), passphrase never leaves the device
-- [x] Protective sync abort on wrong/missing passphrase — local data is never touched
-- [x] Credentials sealed with OS keystore (DPAPI / AndroidKeyStore) — plaintext never on disk
-- [x] Bilingual UI (English / 简体中文) with hot switch
-- [x] Backup export / import (JSON snapshot v3, cross-platform compatible)
-- [x] Self-hosted server: one-command Docker deploy, multi-user isolation
+**✅ Done — core**
+
+| Area | What works |
+|---|---|
+| 📌 Pin-board | Windows free layout (drag / zoom / pin colors) · Android adaptive grid · corkboard texture |
+| 🗒️ Tasks & memos | CRUD, soft-delete tombstones, due dates, share-to-memo (Android) |
+| 🖥️ Windows widget | sticky-note wall / list views, topmost, opacity, tray control, autostart |
+| 📱 Android widgets | task list (quick check-off), memo cards, board preview |
+| 🔄 Sync | WebDAV snapshot (v3, any provider) + self-hosted server (JWT, incremental pull), auto-sync on both |
+| 🔒 E2EE | AES-256-GCM + PBKDF2 (210k) · wrong/missing passphrase aborts sync protectively · credentials in OS keystore |
+| 🧩 Extras | bilingual UI (EN/中文) · JSON backup export/import · tray + autostart · multi-user server isolation |
+
+**✅ Done — quality**
+
+- [x] Cross-device conflict matrix verified (LWW + tiebreak, tombstone propagation)
+- [x] E2EE full-matrix tested: on / rotate / wrong / missing / cleared (real devices, both channels)
+- [x] Server API regression suite (24 cases): auth, LWW, cursor paging, user isolation, tombstones
+- [x] Security review: no plaintext secrets on disk, no telemetry, no key escrow
 
 **🚧 In progress**
 
 - [ ] Demo screenshots for this README
-- [ ] CI (GitHub Actions: Android build · Windows build · server regression tests)
+- [ ] CI — GitHub Actions: Android build · Windows build · server regression tests
 
-**📆 Planned** — see the full [roadmap](docs/ROADMAP.md)
+**📆 Planned next** (priority order — full list in the [roadmap](docs/ROADMAP.md))
 
-- [ ] Passphrase rotation re-encryption of existing server rows
-- [ ] Windows UI accessibility (UIA) for self-drawn controls
-- [ ] Connection test wizard for WebDAV setup
-- [ ] Recurring tasks & reminders
-- [ ] iOS / macOS clients (protocol is platform-neutral)
+| # | Item | Why |
+|---|---|---|
+| 1 | Passphrase rotation re-encryption | rotate without orphaning old server rows |
+| 2 | Eisenhower four-quadrant board mode | drag tasks between quadrants → auto priority |
+| 3 | Windows UI accessibility (UIA) | screen readers + testability |
+| 4 | WebDAV connection test wizard | one-tap setup validation |
+| 5 | Recurring tasks & reminders | most-requested feature gap |
+
+**💡 Ideas** (no promises): iOS/macOS clients · web dashboard · attachments under E2EE
 
 ## How sync works
 
