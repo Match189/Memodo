@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -7,9 +7,8 @@
     <Version>0.2.0</Version>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <!-- 关键：彻底关掉 WPF SDK 的隐式 .xaml globbing。
-         我们的 ApplicationDefinition / Page 都显式列出，重复双绑是 SDK
-         默认行为造成的（一个 csproj 内有两个 .xaml 同时被绑为 AppDefinition）。 -->
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>    <!-- 鍏抽敭锛氬交搴曞叧鎺?WPF SDK 鐨勯殣寮?.xaml globbing銆?         鎴戜滑鐨?ApplicationDefinition / Page 閮芥樉寮忓垪鍑猴紝閲嶅鍙岀粦鏄?SDK
+         榛樿琛屼负閫犳垚鐨勶紙涓€涓?csproj 鍐呮湁涓や釜 .xaml 鍚屾椂琚粦涓?AppDefinition锛夈€?-->
     <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
     <EnableDefaultPageItems>false</EnableDefaultPageItems>
   </PropertyGroup>
@@ -57,7 +56,7 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.1.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
-    <!-- SQLitePCLRaw.lib.e_sqlite3 2.1.6 有高危通告 GHSA-2m69-gcr7-jv3q，显式固定到修复版 -->
+    <!-- SQLitePCLRaw.lib.e_sqlite3 2.1.6 鏈夐珮鍗遍€氬憡 GHSA-2m69-gcr7-jv3q锛屾樉寮忓浐瀹氬埌淇鐗?-->
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.12" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <PackageReference Include="System.Drawing.Common" Version="8.0.10" />
@@ -71,3 +70,4 @@
   </ItemGroup>
 
 </Project>
+

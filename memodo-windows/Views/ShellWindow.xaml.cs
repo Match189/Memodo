@@ -19,10 +19,27 @@ public partial class ShellWindow : Window
     public ShellWindow()
     {
         InitializeComponent();
+        TryLoadAppIcon();
         App.DataChanged += OnDataChanged;
         Loaded += (_, _) => ShowPage("todo");
         // 从托盘/后台恢复显示时补一次刷新（隐藏期间同步的数据不上屏）
         Activated += async (_, _) => await RefreshCurrentPage();
+    }
+
+    /// <summary>窗口/任务栏图标：取 exe 内嵌 Win32 图标（csproj ApplicationIcon），
+    /// 不走 pack URI——单文件发布下资源包不含 ico，曾因此启动即崩。</summary>
+    private void TryLoadAppIcon()
+    {
+        try
+        {
+            var exe = Environment.ProcessPath;
+            if (!string.IsNullOrEmpty(exe))
+                Icon = System.Drawing.Icon.ExtractAssociatedIcon(exe)?.ToBitmap() is { } bmp
+                    ? System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
+                        bmp.GetHicon(), Int32Rect.Empty, System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions())
+                    : null;
+        }
+        catch { }
     }
 
     /// <summary>小组件/同步改了数据 → 当前页重新加载，列表始终显示全部事项。</summary>

@@ -1,15 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Memodo 图标 v3：暖橙底 + 白图钉 + 深棕圆底白勾（与 Windows app.ico 同款）。 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <group android:translateX="34" android:translateY="34">
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M5,21 L5,3 L19,3 L19,11 L13,11 L13,21 Z" />
-        <path
-            android:fillColor="#0080A0"
-            android:pathData="M7,13 L9,15 L13,11 L11,9 Z" />
-    </group>
+    <!-- 图钉帽：椭圆 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M41,32.3 C41,28.7 47.4,25.8 55.2,25.8 C63,25.8 69.4,28.7 69.4,32.3 C69.4,35.9 63,38.8 55.2,38.8 C47.4,38.8 41,35.9 41,32.3 Z" />
+    <!-- 针身：梯形收至针尖 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M49.5,36.2 L60.9,36.2 L55.2,75.3 Z" />
+    <!-- badge：深棕圆 -->
+    <path
+        android:fillColor="#7A3A10"
+        android:pathData="M78.9,64.5 m-16.2,0 a16.2,16.2 0 1,0 32.4,0 a16.2,16.2 0 1,0 -32.4,0" />
+    <!-- 白勾 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeWidth="7.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M71.6,64.7 L75.9,69 L86.9,58" />
 </vector>
