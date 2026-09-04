@@ -146,6 +146,14 @@ Android home-screen widget (tasks tab · memos tab):
   </tr>
 </table>
 
+Pin-board with a custom Eisenhower-matrix background (Windows, free layout):
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/boardimg_en.png" width="520" alt="Eisenhower board (EN)" /></td>
+  </tr>
+</table>
+
 中文界面预览见 [中文说明](README.zh-CN.md)。
 
 ## Building / contributing

@@ -131,6 +131,14 @@ Android 桌面小组件（待办 Tab · 备忘 Tab）：
   </tr>
 </table>
 
+钉板自定义艾森豪威尔四象限背景（Windows，自由布局）：
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/boardimg_cn.png" width="520" alt="四象限钉板（中文）" /></td>
+  </tr>
+</table>
+
 English screenshots live in [README.md](README.md).
 
 ## 构建 / 参与
