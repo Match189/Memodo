@@ -139,6 +139,11 @@ Android 桌面小组件（待办 Tab · 备忘 Tab）：
   </tr>
 </table>
 
+📥 **壁纸分享** — 喜欢上图的四象限背景？壁纸文件已随仓库提供：
+[`eisenhower-cn.jpg`](docs/wallpapers/eisenhower-cn.jpg) ·
+[`eisenhower-en.jpg`](docs/wallpapers/eisenhower-en.jpg)（2816×1472）。
+设置 → 图钉板 → 选择图片 即可应用。
+
 English screenshots live in [README.md](README.md).
 
 ## 构建 / 参与

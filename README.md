@@ -154,6 +154,11 @@ Pin-board with a custom Eisenhower-matrix background (Windows, free layout):
   </tr>
 </table>
 
+📥 **Wallpaper** — like the Eisenhower-matrix board above? The background
+images ship in this repo: [`eisenhower-en.jpg`](docs/wallpapers/eisenhower-en.jpg) ·
+[`eisenhower-cn.jpg`](docs/wallpapers/eisenhower-cn.jpg) (2816×1472).
+Set them via Settings → Board → Choose image.
+
 中文界面预览见 [中文说明](README.zh-CN.md)。
 
 ## Building / contributing
