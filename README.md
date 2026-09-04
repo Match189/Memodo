@@ -18,6 +18,32 @@ pluggable sync (WebDAV or self-hosted server) protected by end-to-end encryption
   only ever stores ciphertext. No account, no telemetry, no key escrow.
 - 🌐 **Bilingual** — full English / 简体中文 UI on both platforms.
 
+<table>
+  <tr>
+    <td width="55%">
+      <img src="docs/screenshots/boardimg_en.png" width="620" alt="Eisenhower pin-board (Windows)" />
+      <p align="center"><sub>Pin-board with the Eisenhower-matrix background — drag, zoom, pin &amp; jot on a corkboard</sub></p>
+    </td>
+    <td>
+      <img src="docs/screenshots/en-windows-todo.png" width="290" alt="Windows to-dos" />
+      <p align="center"><sub>To-dos</sub></p>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <img src="docs/screenshots/en-widget-todo.png" width="290" alt="Android widget" />
+      <p align="center"><sub>Android home-screen widget</sub></p>
+    </td>
+    <td>
+      <img src="docs/screenshots/en-android-board.png" width="290" alt="Android board" />
+      <p align="center"><sub>Pin-board on Android</sub></p>
+    </td>
+  </tr>
+</table>
+
+More screenshots below in [Screenshots](#screenshots) · 中文界面见
+[中文说明](README.zh-CN.md)。
+
 Status: **v0.2.0** — daily-driver quality for the author; API/protocol stable
 ([spec](docs/PROTOCOL.md)); issues welcome.
 

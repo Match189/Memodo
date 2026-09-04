@@ -11,6 +11,32 @@
 - 🔒 **端到端加密** —— 自选口令在设备端完成加解密，云端（网盘或服务器）只存密文。无账号、无遥测、无密钥托管。
 - 🌐 **双语** —— 两端完整支持 简体中文 / English。
 
+<table>
+  <tr>
+    <td width="55%">
+      <img src="docs/screenshots/boardimg_cn.png" width="620" alt="艾森豪威尔四象限钉板（Windows）" />
+      <p align="center"><sub>四象限壁纸钉板 —— 软木板上拖动、缩放、钉住、随手记</sub></p>
+    </td>
+    <td>
+      <img src="docs/screenshots/zh-windows-todo.png" width="290" alt="Windows 待办" />
+      <p align="center"><sub>待办</sub></p>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <img src="docs/screenshots/zh-widget-todo.png" width="290" alt="Android 小组件" />
+      <p align="center"><sub>Android 桌面小组件</sub></p>
+    </td>
+    <td>
+      <img src="docs/screenshots/zh-android-board.png" width="290" alt="Android 图钉板" />
+      <p align="center"><sub>Android 图钉板</sub></p>
+    </td>
+  </tr>
+</table>
+
+更多截图见下方[界面预览](#界面预览) · English screenshots in
+[README.md](README.md)。
+
 当前版本：**v0.2.0**。协议已稳定（[规格说明](docs/PROTOCOL.md)），欢迎反馈。
 
 ## 状态与 TODO
