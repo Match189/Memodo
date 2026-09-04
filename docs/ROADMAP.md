@@ -26,7 +26,7 @@
 | --- | --- | --- |
 | 每条事项/备忘一个唯一 ID 避免冲突 | ✅ 已实现：`uuid` 全局标识（v2 起），合并按 uuid 并集，本地自增 id 不参与同步 | 方向正确，已是现实 |
 | WebDAV/OSS 拉到本地合并再上传 | ✅ 已实现：`SnapshotSyncProvider` = 拉远端快照 → 本地按 LWW 合并 → 差异落库 → 回传合并结果 | 已是现实 |
-| 自建服务器云端仲裁后同步各端 | ✅ 已实现：todo-server `/sync/push` 逐条服务端 LWW（`rejected: stale`），`/sync/pull` 按 server_seq cursor 增量 | 已是现实 |
+| 自建服务器云端仲裁后同步各端 | ✅ 已实现：memodo-server `/sync/push` 逐条服务端 LWW（`rejected: stale`），`/sync/pull` 按 server_seq cursor 增量 | 已是现实 |
 
 **冲突场景矩阵（当前行为）**：
 

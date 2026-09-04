@@ -3,8 +3,6 @@
 *.key
 *.pem
 .env
-todo-server/.env
-todo-server/dev.db
 
 # 已废弃的 Flutter 遗留（历史版本仍在 git 记录中可找回）
 legacy/
@@ -19,8 +17,6 @@ Thumbs.db
 # 本地临时
 *.log
 *.db
-todo-server/*.db
-todo-server/test.db
 
 # Windows (WPF / .NET)
 memodo-windows/bin/
@@ -43,8 +39,6 @@ memodo-android/key.properties
 memodo-server/**/__pycache__/
 memodo-server/.venv/
 memodo-server/.env
-todo-server/**/__pycache__/
-todo-server/.venv/
 
 # QA 测试资产（含真实数据截图/备份，严禁入库）
 .qa/
