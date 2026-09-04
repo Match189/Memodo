@@ -17,9 +17,9 @@
     <path
         android:fillColor="#7A3A10"
         android:pathData="M78.9,64.5 m-16.2,0 a16.2,16.2 0 1,0 32.4,0 a16.2,16.2 0 1,0 -32.4,0" />
-    <!-- 白勾 -->
+    <!-- 白勾：纯描边，不填充（fill 会把开放路径闭合成实心三角） -->
     <path
-        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFFFFF"
         android:strokeWidth="7.8"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
