@@ -137,6 +137,15 @@ Android client (tasks · memos · board):
   </tr>
 </table>
 
+Android home-screen widget (tasks tab · memos tab):
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/en-widget-todo.png" width="260" alt="Android widget tasks" /></td>
+    <td><img src="docs/screenshots/en-widget-memo.png" width="260" alt="Android widget memos" /></td>
+  </tr>
+</table>
+
 中文界面预览见 [中文说明](README.zh-CN.md)。
 
 ## Building / contributing

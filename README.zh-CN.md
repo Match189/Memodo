@@ -122,6 +122,15 @@ Android 客户端（待办 · 备忘 · 图钉板）：
   </tr>
 </table>
 
+Android 桌面小组件（待办 Tab · 备忘 Tab）：
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/zh-widget-todo.png" width="260" alt="Android 小组件待办" /></td>
+    <td><img src="docs/screenshots/zh-widget-memo.png" width="260" alt="Android 小组件备忘" /></td>
+  </tr>
+</table>
+
 English screenshots live in [README.md](README.md).
 
 ## 构建 / 参与
