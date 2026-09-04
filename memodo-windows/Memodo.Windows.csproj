@@ -67,6 +67,8 @@
     <Content Include="locales\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!-- 语言包同时嵌入程序集：单文件 exe 无 locales/ 文件夹时仍可显示文字 -->
+    <Resource Include="locales\*.json" />
   </ItemGroup>
 
 </Project>

@@ -74,7 +74,9 @@ public static class LocalizationService
         return dict;
     }
 
-    /// <summary>从嵌入资源或文件系统读取 locale JSON。</summary>
+    /// <summary>从嵌入资源或文件系统读取 locale JSON。
+    /// 外置 locales/ 优先（可覆盖翻译），缺失时回退到程序集嵌入资源
+    /// （单文件发布下不带 locales/ 文件夹也能正常显示文字）。</summary>
     private static string? ReadLocaleFile(string lang)
     {
         // 优先从应用程序目录下的 locales/ 读取
@@ -82,6 +84,27 @@ public static class LocalizationService
         var path = Path.Combine(appDir, "locales", $"{lang}.json");
         if (File.Exists(path))
             return File.ReadAllText(path);
+
+        // 回退：程序集嵌入资源（csproj 以 <Resource Include="locales\*.json" /> 嵌入，
+        // WPF 将其收入 g.resources 容器，键形如 "locales/en.json"）
+        try
+        {
+            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+            using var container = assembly.GetManifestResourceStream("Memodo.Windows.g.resources");
+            if (container != null)
+            {
+                using var reader = new System.Resources.ResourceReader(container);
+                foreach (System.Collections.DictionaryEntry entry in reader)
+                {
+                    var key = entry.Key as string;
+                    if (key != null && key.Replace('\\', '/').Equals($"locales/{lang}.json", StringComparison.OrdinalIgnoreCase)
+                        && entry.Value is System.IO.Stream bytes)
+                        using (var sr = new StreamReader(bytes))
+                            return sr.ReadToEnd();
+                }
+            }
+        }
+        catch { }
 
         // 回退：尝试从项目根目录的 locales/ 读取（开发环境）
         var projectPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "locales", $"{lang}.json");
