@@ -37,8 +37,12 @@ public sealed class TrayService : IDisposable
 
         // 双向实时联动：任何数据变更（主窗口/同步）→ 组件即时回刷
         App.DataChanged += () => _widget?.Reload();
-        // 语言切换 → 重建托盘菜单
-        Services.LocalizationService.LanguageChanged += BuildMenu;
+        // 语言切换 → 重建托盘菜单 + 刷新 tooltip
+        Services.LocalizationService.LanguageChanged += () =>
+        {
+            BuildMenu();
+            _tray.ToolTipText = LocalizationService.T("app_title");
+        };
     }
 
     /// <summary>托盘菜单（§21），双语由 LocalizationService 提供。</summary>
@@ -170,10 +174,13 @@ public sealed class TrayService : IDisposable
 
     private static Icon LoadTrayIcon()
     {
-        var exe = Assembly.GetEntryAssembly()?.Location;
+        // 单文件发布下 Assembly.Location 恒为空（IL3000），须用 ProcessPath 取真实 exe；
+        // new Icon(exe) 对单文件大 exe 抛异常，只能用 ExtractAssociatedIcon
+        var exe = Environment.ProcessPath;
         if (!string.IsNullOrEmpty(exe) && File.Exists(exe))
         {
-            try { return new Icon(exe); } catch { }
+            try { return Icon.FromHandle(Icon.ExtractAssociatedIcon(exe)!.ToBitmap().GetHicon()); }
+            catch { }
         }
         var bmp = new Bitmap(16, 16);
         using (var g = Graphics.FromImage(bmp))
