@@ -11,31 +11,51 @@
 - 🔒 **端到端加密** —— 自选口令在设备端完成加解密，云端（网盘或服务器）只存密文。无账号、无遥测、无密钥托管。
 - 🌐 **双语** —— 两端完整支持 简体中文 / English。
 
+## 界面预览
+
+Windows 客户端（待办 · 备忘 · 钉板小组件）：
+
 <table>
   <tr>
-    <td width="55%">
-      <img src="docs/screenshots/boardimg_cn.png" width="620" alt="艾森豪威尔四象限钉板（Windows）" />
-      <p align="center"><sub>四象限壁纸钉板 —— 软木板上拖动、缩放、钉住、随手记</sub></p>
-    </td>
-    <td>
-      <img src="docs/screenshots/zh-windows-todo.png" width="290" alt="Windows 待办" />
-      <p align="center"><sub>待办</sub></p>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <img src="docs/screenshots/zh-widget-todo.png" width="290" alt="Android 小组件" />
-      <p align="center"><sub>Android 桌面小组件</sub></p>
-    </td>
-    <td>
-      <img src="docs/screenshots/zh-android-board.png" width="290" alt="Android 图钉板" />
-      <p align="center"><sub>Android 图钉板</sub></p>
-    </td>
+    <td><img src="docs/screenshots/zh-windows-todo.png" width="320" alt="Windows 待办" /></td>
+    <td><img src="docs/screenshots/zh-windows-memo.png" width="320" alt="Windows 备忘" /></td>
+    <td><img src="docs/screenshots/zh-windows-board.png" width="320" alt="Windows 钉板" /></td>
   </tr>
 </table>
 
-更多截图见下方[界面预览](#界面预览) · English screenshots in
-[README.md](README.md)。
+Android 客户端（待办 · 备忘 · 图钉板）：
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/zh-android-todo.png" width="200" alt="Android 待办" /></td>
+    <td><img src="docs/screenshots/zh-android-memo.png" width="200" alt="Android 备忘" /></td>
+    <td><img src="docs/screenshots/zh-android-board.png" width="200" alt="Android 图钉板" /></td>
+  </tr>
+</table>
+
+Android 桌面小组件（待办 Tab · 备忘 Tab）：
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/zh-widget-todo.png" width="260" alt="Android 小组件待办" /></td>
+    <td><img src="docs/screenshots/zh-widget-memo.png" width="260" alt="Android 小组件备忘" /></td>
+  </tr>
+</table>
+
+钉板自定义艾森豪威尔四象限背景（Windows，自由布局）：
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/boardimg_cn.png" width="520" alt="四象限钉板（中文）" /></td>
+  </tr>
+</table>
+
+📥 **壁纸分享** — 喜欢上图的四象限背景？壁纸文件已随仓库提供：
+[`eisenhower-cn.jpg`](docs/wallpapers/eisenhower-cn.jpg) ·
+[`eisenhower-en.jpg`](docs/wallpapers/eisenhower-en.jpg)（2816×1472）。
+设置 → 图钉板 → 选择图片 即可应用。
+
+English screenshots live in [README.md](README.md)。
 
 当前版本：**v0.2.0**。协议已稳定（[规格说明](docs/PROTOCOL.md)），欢迎反馈。
 
@@ -125,52 +145,6 @@ dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=
 cd memodo-android
 ./gradlew :app:assembleRelease
 ```
-
-## 界面预览
-
-Windows 客户端（待办 · 备忘 · 钉板小组件）：
-
-<table>
-  <tr>
-    <td><img src="docs/screenshots/zh-windows-todo.png" width="320" alt="Windows 待办" /></td>
-    <td><img src="docs/screenshots/zh-windows-memo.png" width="320" alt="Windows 备忘" /></td>
-    <td><img src="docs/screenshots/zh-windows-board.png" width="320" alt="Windows 钉板" /></td>
-  </tr>
-</table>
-
-Android 客户端（待办 · 备忘 · 图钉板）：
-
-<table>
-  <tr>
-    <td><img src="docs/screenshots/zh-android-todo.png" width="200" alt="Android 待办" /></td>
-    <td><img src="docs/screenshots/zh-android-memo.png" width="200" alt="Android 备忘" /></td>
-    <td><img src="docs/screenshots/zh-android-board.png" width="200" alt="Android 图钉板" /></td>
-  </tr>
-</table>
-
-Android 桌面小组件（待办 Tab · 备忘 Tab）：
-
-<table>
-  <tr>
-    <td><img src="docs/screenshots/zh-widget-todo.png" width="260" alt="Android 小组件待办" /></td>
-    <td><img src="docs/screenshots/zh-widget-memo.png" width="260" alt="Android 小组件备忘" /></td>
-  </tr>
-</table>
-
-钉板自定义艾森豪威尔四象限背景（Windows，自由布局）：
-
-<table>
-  <tr>
-    <td><img src="docs/screenshots/boardimg_cn.png" width="520" alt="四象限钉板（中文）" /></td>
-  </tr>
-</table>
-
-📥 **壁纸分享** — 喜欢上图的四象限背景？壁纸文件已随仓库提供：
-[`eisenhower-cn.jpg`](docs/wallpapers/eisenhower-cn.jpg) ·
-[`eisenhower-en.jpg`](docs/wallpapers/eisenhower-en.jpg)（2816×1472）。
-设置 → 图钉板 → 选择图片 即可应用。
-
-English screenshots live in [README.md](README.md).
 
 ## 构建 / 参与
 
