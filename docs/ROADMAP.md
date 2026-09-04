@@ -59,13 +59,13 @@
 | **R1 v1.0 发布就绪** | 正式身份 | ① 定名 **Memodo** + 包名迁移 `app.memodo`（Dart/Android/Windows 全栈 + 旧数据自动迁移）② 应用图标（flutter_launcher_icons 全尺寸 + 托盘图标）③ Android 签名（PKCS12 keystore，CN=Memodo，密钥本地不入库）④ 系统托盘 + 开机自启 ⑤ 服务器公网准备（pull deviceId 心跳、Caddyfile 示例） | ✅ 完成 |
 | **R2 同步深化** | 冲突重检 + 归档 | ① 上传冲突重检 ② 归档功能 ③ 数据导出/导入 JSON ④ ~~pull 携带 deviceId~~（已并入 R1） | 1 天 |
 | **R3 提醒与详情** | 激活数据字段 | ① 任务详情页（description/dueAt/priority 编辑）② 到期本地通知（双端）③ 搜索过滤 | 1~2 天 |
-| **R4 服务器正式化** | 公网测试（用户已确认会做） | 按 todo-server/README 部署：compose + Caddy HTTPS + 公网客户端连通测试 | 用户执行 |
+| **R4 服务器正式化** | 公网测试（用户已确认会做） | 按 memodo-server/README 部署：compose + 公网客户端连通测试（HTTPS 反代自备） | 用户执行 |
 
 | 决策项 | 决定 |
 | --- | --- |
 | 项目名 / 包名 | **Memodo** / `app.memodo` |
 | 远程仓库 | 所有工作完工后统一上传（本地 git 逐阶段提交已就绪） |
-| 服务器 | 将在公网测试 → HTTPS 部署按 todo-server/README + Caddyfile.example 执行 |
+| 服务器 | 将在公网测试 → HTTPS 部署按 memodo-server/README 执行（HTTPS 反代自备） |
 
 ---
 
@@ -88,7 +88,7 @@
 - ⚠️ **务必备份 `android/app/memodo-release.jks` 和 `android/key.properties`**（丢失后无法再发布同应用更新）
 - 安卓端包名变了 = 全新应用：手机重装后需重新登录坚果云/服务器，云端数据会自动拉回
 - Windows 首次启动自动把旧库复制到 `%APPDATA%\app.memodo\Memodo\`（旧文件保留未删）
-- 公网部署按 `todo-server/README.md` + `Caddyfile.example`；测试期也建议至少改默认 JWT 密钥
+- 公网部署按 `memodo-server/README.md`；测试期也建议至少改默认 JWT 密钥
 
 ## 补充决策：中文产品名
 

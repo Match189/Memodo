@@ -93,7 +93,7 @@ Status: **v0.2.0** — daily-driver quality for the author; API/protocol stable
 
 **🚧 In progress**
 
-- [ ] Demo screenshots for this README
+- [x] Demo screenshots for this README
 - [ ] CI — GitHub Actions: Android build · Windows build · server regression tests
 
 **📆 Planned next** (priority order — full list in the [roadmap](docs/ROADMAP.md))
@@ -144,8 +144,11 @@ installer), or build from source:
 
 ```bash
 cd memodo-windows
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
 ```
+
+The `IncludeNativeLibrariesForSelfExtract` flag bundles WPF's native DLLs into
+the exe — without it the exe only runs next to those loose files.
 
 Requires Windows 10/11. Configure sync in Settings → 同步 (Sync): pick WebDAV or
 server, fill in the address and account, set the **same passphrase** on every

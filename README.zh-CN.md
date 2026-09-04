@@ -84,7 +84,7 @@ English screenshots live in [README.md](README.md)。
 
 **🚧 进行中**
 
-- [ ] README 演示截图
+- [x] README 演示截图
 - [ ] CI（GitHub Actions：Android 构建 · Windows 构建 · 服务端回归测试）
 
 **📆 计划中**（按优先级——完整清单见[路线图](docs/ROADMAP.md)）
@@ -95,7 +95,7 @@ English screenshots live in [README.md](README.md)。
 | 2 | 艾森豪威尔四象限钉板 | 象限间拖动任务 → 自动标记优先级 |
 | 3 | Windows 无障碍（UIA） | 读屏支持 + 可测试性 |
 | 4 | WebDAV 连接测试向导 | 一键验证配置 |
-| 5 | 重复任务与提醒 |呼声最高的功能缺口 |
+| 5 | 重复任务与提醒 | 呼声最高的功能缺口 |
 
 **💡 想法池**（未承诺）：iOS/macOS 客户端 · Web 看板 · E2EE 附件
 
@@ -132,8 +132,10 @@ docker compose up -d
 
 ```bash
 cd memodo-windows
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
 ```
+
+`IncludeNativeLibrariesForSelfExtract` 会把 WPF 原生 DLL 一并打入 exe——缺了它，单文件拷到别的机器无法启动。
 
 设置 → 同步：选择 WebDAV 或服务器，填写地址与账号；多台设备请填**相同口令**（不填为明文同步）。
 
