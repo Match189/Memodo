@@ -87,6 +87,7 @@ class MainActivity : ComponentActivity() {
         if (readSharedText(intent)) {
             sharedText.value = pendingShared
             pendingShared = null
+            openTab.value = 1 // 分享进来直接落到备忘 Tab，草稿即时可见
         }
     }
 

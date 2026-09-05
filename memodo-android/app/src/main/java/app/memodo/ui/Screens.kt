@@ -443,8 +443,8 @@ fun MemoListView(vm: MainViewModel, snackbarHostState: SnackbarHostState, shared
             (parts[0].trim().take(60)) to parts.getOrElse(1) { "" }.trim()
         }
     }
-    var title by remember { mutableStateOf(draft?.first ?: "") }
-    var content by remember { mutableStateOf(draft?.second ?: "") }
+    var title by remember(sharedDraft) { mutableStateOf(draft?.first ?: "") }
+    var content by remember(sharedDraft) { mutableStateOf(draft?.second ?: "") }
     var editingMemo by remember { mutableStateOf<app.memodo.data.MemoItem?>(null) }
     val scope = rememberCoroutineScope()
     val ctx = LocalContext.current
