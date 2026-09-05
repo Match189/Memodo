@@ -49,3 +49,6 @@ memodo-server/.env
 # 个人文件
 背景.jpg
 *.sql
+
+# Release 产物暂存（上传 GitHub Release 附件用，不入库：exe 超过 100MB 单文件限制）
+release/

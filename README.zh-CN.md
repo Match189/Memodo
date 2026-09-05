@@ -57,7 +57,7 @@ Android 桌面小组件（待办 Tab · 备忘 Tab）：
 
 English screenshots live in [README.md](README.md)。
 
-当前版本：**v0.2.0**。协议已稳定（[规格说明](docs/PROTOCOL.md)），欢迎反馈。
+当前版本：**v0.2.1**。协议已稳定（[规格说明](docs/PROTOCOL.md)），欢迎反馈。
 
 ## 状态与 TODO
 

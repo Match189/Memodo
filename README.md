@@ -65,7 +65,7 @@ Set them via Settings → Board → Choose image.
 
 中文界面预览见 [中文说明](README.zh-CN.md)。
 
-Status: **v0.2.0** — daily-driver quality for the author; API/protocol stable
+Status: **v0.2.1** — daily-driver quality for the author; API/protocol stable
 ([spec](docs/PROTOCOL.md)); issues welcome.
 
 ## Status & TODO
