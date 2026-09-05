@@ -4,7 +4,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>    <!-- 鍏抽敭锛氬交搴曞叧鎺?WPF SDK 鐨勯殣寮?.xaml globbing銆?         鎴戜滑鐨?ApplicationDefinition / Page 閮芥樉寮忓垪鍑猴紝閲嶅鍙岀粦鏄?SDK
