@@ -172,6 +172,34 @@ First build from a fresh clone needs two one-time setup steps:
    to the **debug** key — the APK installs fine but cannot upgrade an
    app signed with the release key.
 
+## Usage
+
+**Windows**
+
+- **Main window** — sidebar switches To-dos / Memos / Settings. Type in the top
+  box + Enter to add; check to complete (strikethrough, grouped at the bottom);
+  ✎ edit · 🗑 delete.
+- **Memos** — the 👁 icon toggles whether a memo shows on the pin-board.
+- **Pin-board** — toolbar: 钉 pins an existing task/memo onto the board ·
+  新建 creates a note card · drag to arrange · double-click a card to edit ·
+  scroll to zoom · 1:1 resets · snap-to-grid toggle.
+- **Desktop widget** — double-click empty space: quick-add · double-click a
+  note: edit · circle: check off · Tasks/Memos tabs switch views. Tray icon:
+  left-click opens the main window; right-click menu has show widget, new
+  to-do/memo, sync now, settings, autostart, quit.
+- **Backup** — Settings → export / import a full JSON snapshot.
+
+**Android**
+
+- Bottom tabs: Tasks / Memos / Board / Settings.
+- **Tasks** — swipe right: complete or undo · swipe left: delete (with
+  confirm) · top box to add.
+- **Memos** — swipe right: toggle pin-board visibility (also via 👁).
+- **Home-screen widget** — checkbox checks off instantly · tap a row opens
+  the app · Tasks / Memos tabs.
+- **Share to Memodo** — share text from any app and save it as a memo.
+- **Backup** — Settings → export / import JSON.
+
 ## Building / contributing
 
 ```bash
