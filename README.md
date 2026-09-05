@@ -164,6 +164,14 @@ cd memodo-android
 ./gradlew :app:assembleRelease   # signing config: see app/build.gradle.kts
 ```
 
+First build from a fresh clone needs two one-time setup steps:
+1. `local.properties` with your SDK path: `sdk.dir=/path/to/android-sdk`
+   (Android Studio generates it automatically on first open).
+2. Release signing (optional): place `key.properties` + your keystore as
+   described in `app/build.gradle.kts`. Without them the build falls back
+   to the **debug** key — the APK installs fine but cannot upgrade an
+   app signed with the release key.
+
 ## Building / contributing
 
 ```bash

@@ -148,6 +148,13 @@ cd memodo-android
 ./gradlew :app:assembleRelease
 ```
 
+全新 clone 首次构建需要两步一次性设置：
+1. 建立包含 SDK 路径的 `local.properties`：`sdk.dir=/path/to/android-sdk`
+   （用 Android Studio 打开项目会自动生成）；
+2. 配置正式签名（可选）：按 `app/build.gradle.kts` 注释放置 `key.properties`
+   与 keystore。缺省时自动回退 **debug** 签名——APK 可正常安装，
+   但无法覆盖安装正式签名发布的版本。
+
 ## 构建 / 参与
 
 ```bash
