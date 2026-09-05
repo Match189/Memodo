@@ -77,7 +77,7 @@ Status: **v0.2.0** — daily-driver quality for the author; API/protocol stable
 
 | Area | What works |
 |---|---|
-| 📌 Pin-board | Windows free layout (drag / zoom / pin colors) · Android adaptive grid · corkboard texture |
+| 📌 Pin-board | Windows desktop-widget board (free layout, drag / zoom / pin colors) · Android board tab (adaptive grid) |
 | 🗒️ Tasks & memos | CRUD, soft-delete tombstones, due dates, share-to-memo (Android) |
 | 🖥️ Windows widget | sticky-note wall / list views, topmost, opacity, tray control, autostart |
 | 📱 Android widgets | task list (quick check-off), memo cards, board preview |
@@ -184,14 +184,12 @@ First build from a fresh clone needs two one-time setup steps:
 - **Main window** — sidebar switches To-dos / Memos / Settings. Type in the top
   box + Enter to add; check to complete (strikethrough, grouped at the bottom);
   ✎ edit · 🗑 delete.
-- **Memos** — the 👁 icon toggles whether a memo shows on the pin-board.
-- **Pin-board** — toolbar: 钉 pins an existing task/memo onto the board ·
-  新建 creates a note card · drag to arrange · double-click a card to edit ·
-  scroll to zoom · 1:1 resets · snap-to-grid toggle.
-- **Desktop widget** — double-click empty space: quick-add · double-click a
-  note: edit · circle: check off · Tasks/Memos tabs switch views. Tray icon:
-  left-click opens the main window; right-click menu has show widget, new
-  to-do/memo, sync now, settings, autostart, quit.
+- **Memos** — the 👁 icon toggles whether a memo shows on the widget corkboard.
+- **Desktop widget** — board view with free layout (drag to arrange, positions
+  saved); double-click empty space: quick-add · double-click a note: edit ·
+  circle: check off · Tasks/Memos tabs switch views. Tray icon: left-click
+  opens the main window; right-click menu has show widget, new to-do/memo,
+  sync now, settings, autostart, quit.
 - **Backup** — Settings → export / import a full JSON snapshot.
 
 **Android**
