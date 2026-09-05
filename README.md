@@ -20,7 +20,7 @@ pluggable sync (WebDAV or self-hosted server) protected by end-to-end encryption
 
 ## Screenshots
 
-Windows client (to-dos · memos · pin-board widget):
+Windows client (to-dos · memos · desktop widget):
 
 <table>
   <tr>
@@ -49,7 +49,8 @@ Android home-screen widget (tasks tab · memos tab):
   </tr>
 </table>
 
-Pin-board with a custom Eisenhower-matrix background (Windows, free layout):
+Desktop widget (Windows) — board view with a custom Eisenhower-matrix
+background, and the wallpaper ships with the repo:
 
 <table>
   <tr>
@@ -175,6 +176,10 @@ First build from a fresh clone needs two one-time setup steps:
 ## Usage
 
 **Windows**
+
+> Two similar-looking surfaces: the **pin-board** is a page inside the main
+> window where you manually pin cards; the **desktop widget** is a separate
+> always-on desktop window that auto-shows all open to-dos + visible memos.
 
 - **Main window** — sidebar switches To-dos / Memos / Settings. Type in the top
   box + Enter to add; check to complete (strikethrough, grouped at the bottom);
