@@ -8,7 +8,8 @@ pluggable sync (WebDAV or self-hosted server) protected by end-to-end encryption
 - 📌 **Pin-board** — your open todos and visible memos rendered as pinned notes on
   a corkboard (free layout on Windows, adaptive grid on mobile).
 - 🖥️ **Desktop widget** (Windows) — always-on sticky-note wall / task list on your
-  desktop: check off, pin, drag, stays out of your way.
+  desktop: check off, pin, drag, stays out of your way — and unaffected by
+  Win+D "show desktop".
 - 📱 **Android home-screen widget** — tasks with quick check-off, memo cards,
   board preview.
 - 🔄 **Pluggable sync** — WebDAV (any provider, e.g. Nextcloud / 坚果云) or a
