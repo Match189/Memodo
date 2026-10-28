@@ -197,8 +197,8 @@ private fun NoteCard(
             }
             if (!body.isNullOrBlank()) {
                 Spacer(Modifier.height(4.dp))
-                Text(body, style = MaterialTheme.typography.bodySmall, color = Color(0xFF6B5B49),
-                    maxLines = 3, overflow = TextOverflow.Ellipsis)
+                // 正文不截断：卡片随内容增高，键入的数据完整可见
+                Text(body, style = MaterialTheme.typography.bodySmall, color = Color(0xFF6B5B49))
             }
             if (createdAt > 0) {
                 Text(formatRelativeTime(createdAt, context), style = MaterialTheme.typography.labelSmall,

@@ -302,8 +302,10 @@ public partial class DesktopWidgetWindow : Window
 
         var grid = new Grid();
         border.Child = grid;
-        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        // 标题/时间按内容占高，正文占满剩余空间——卡片拉高后正文自动重排，
+        // 不再依赖建卡时的 pos.H 计算上限
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         var pin = new ContentControl
@@ -355,7 +357,7 @@ public partial class DesktopWidgetWindow : Window
             VerticalAlignment = VerticalAlignment.Top,
             FontFamily = new FontFamily("KaiTi, Microsoft YaHei UI"),
             MaxWidth = pos.W - 60,   // 留出图标+checkbox空间
-            MaxHeight = Math.Max(40, pos.H - 70), // 限制行数防溢出
+            MaxHeight = Math.Max(40, pos.H - 70), // 标题过长时不越出卡片
         };
         if (it.Done) tb.TextDecorations = TextDecorations.Strikethrough;
         row.Children.Add(tb);
@@ -363,18 +365,26 @@ public partial class DesktopWidgetWindow : Window
 
         if (!it.IsTodo && !string.IsNullOrWhiteSpace(it.Body))
         {
+            // 正文完整显示：不设 MaxHeight、不做省略号截断；
+            // 内容超出可用高度时卡片内滚动（滚轮/滚动条），数据不会丢
             var body = new TextBlock
             {
                 Text = it.Body,
                 TextWrapping = TextWrapping.Wrap,
                 FontSize = 11,
                 Foreground = (Brush)FindResource("TextSecondary"),
-                Margin = new Thickness(0, 4, 0, 0),
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                MaxHeight = Math.Max(0, pos.H - 60), // 限制内容区高度，保留标题+时间行空间
+                Margin = new Thickness(0, 4, 0, 2),
             };
-            Grid.SetRow(body, 1);
-            grid.Children.Add(body);
+            var bodyScroll = new ScrollViewer
+            {
+                Content = body,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                Focusable = false,
+                VerticalAlignment = VerticalAlignment.Stretch,
+            };
+            Grid.SetRow(bodyScroll, 1);
+            grid.Children.Add(bodyScroll);
         }
 
         // 备忘：眼睛按钮 → 从钉板隐藏（右上角，避免与右下角 resize 重叠）
